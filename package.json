@@ -1,0 +1,27 @@
+{
+  "name": "villas-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev --name init",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.17.0",
+    "date-fns": "^3.6.0",
+    "next": "14.2.5",
+    "ra-data-simple-rest": "^4.16.7",
+    "react": "18.2.0",
+    "react-admin": "^4.16.7",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.17.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.4.5"
+  }
+}
