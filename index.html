@@ -409,6 +409,7 @@
         );
       }
 
+      // обновление числовых полей при вводе
       function Num({ label, value, set }) {
         const [txt, setTxt] = useState(value ?? "");
         useEffect(() => setTxt(value ?? ""), [value]);
@@ -419,8 +420,11 @@
               inputMode="decimal"
               className="px-3 py-2 rounded-xl border"
               value={txt}
-              onChange={(e) => setTxt(e.target.value)}
-              onBlur={() => set(txt)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setTxt(v);
+                set(v); // применяем сразу
+              }}
             />
           </label>
         );
@@ -457,33 +461,30 @@
           }
         };
 
+        // добавление + сразу открываем модалку редактирования
         const addRow = (projectId) => {
+          const newRow = {
+            id: uid(),
+            villaType: "New Villa",
+            rooms: "2",
+            land: 0,
+            villa: 0,
+            f1: 0,
+            f2: 0,
+            roof: 0,
+            garden: 0,
+            ppsm: null,
+            price: null,
+            status: "available",
+          };
           setSections((prev) =>
             prev.map((s) =>
               s.id === projectId
-                ? {
-                    ...s,
-                    rows: [
-                      {
-                        id: uid(),
-                        villaType: "New Villa",
-                        rooms: "2",
-                        land: 0,
-                        villa: 0,
-                        f1: 0,
-                        f2: 0,
-                        roof: 0,
-                        garden: 0,
-                        ppsm: null,
-                        price: null,
-                        status: "available",
-                      },
-                      ...s.rows,
-                    ],
-                  }
+                ? { ...s, rows: [newRow, ...s.rows] }
                 : s
             )
           );
+          setEditing({ open: true, projectId, rowId: newRow.id, init: newRow });
         };
 
         const editRow = (projectId, rowId) => {
