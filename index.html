@@ -260,8 +260,8 @@
           [th.roof, formatSqm(r.roof, lang)],
           [th.garden, formatSqm(r.garden, lang)],
           [th.ppsm, r.ppsm ? formatInt(r.ppsm, lang) : ""],
-          [th.price, r.price ? formatInt(r.price, lang) : ""],
-          [th.vat, r.price ? formatInt(vat, lang) : ""],
+          // [th.price] удалено
+          // [th.vat] удалено
           [th.withVat, r.price ? formatInt(withVat, lang) : ""],
           [th.first, r.price ? formatInt(firstPay, lang) : ""],
         ];
@@ -334,7 +334,7 @@
                   ))}
                 </div>
 
-                {/* Десктопная таблица: шапка переносит слова, данные без переносов, шрифт сжимается */}
+                {/* Десктопная таблица: шапка переносит слова; данные без переносов; «Цена» и «НДС» убраны */}
                 <div className="hidden md:block">
                   <table className="w-full table-fixed text-[clamp(9px,0.75vw,14px)]">
                     <thead>
@@ -348,8 +348,8 @@
                         <Th>{th.roof}</Th>
                         <Th>{th.garden}</Th>
                         <Th>{th.ppsm}</Th>
-                        <Th>{th.price}</Th>
-                        <Th>{th.vat}</Th>
+                        {/* <Th>{th.price}</Th> удалено */}
+                        {/* <Th>{th.vat}</Th> удалено */}
                         <Th>{th.withVat}</Th>
                         <Th>{th.first}</Th>
                         {admin && <Th>{th.actions}</Th>}
@@ -372,8 +372,8 @@
                             <Td>{formatSqm(r.roof, lang)}</Td>
                             <Td>{formatSqm(r.garden, lang)}</Td>
                             <Td>{r.ppsm ? formatInt(r.ppsm, lang) : ""}</Td>
-                            <Td>{r.price ? formatInt(r.price, lang) : ""}</Td>
-                            <Td>{r.price ? formatInt(vat, lang) : ""}</Td>
+                            {/* <Td>{r.price ? formatInt(r.price, lang) : ""}</Td> удалено */}
+                            {/* <Td>{r.price ? formatInt(vat, lang) : ""}</Td> удалено */}
                             <Td>{r.price ? formatInt(withVat, lang) : ""}</Td>
                             <Td>{r.price ? formatInt(firstPay, lang) : ""}</Td>
                             {admin ? (
@@ -400,7 +400,7 @@
         );
       }
 
-      // Шапка: перенос по словам, увеличенные отступы; Данные: без переносов, те же отступы
+      // Шапка: перенос по словам; Данные: без переносов, единые отступы
       function Th({ children }) {
         return (
           <th className="px-2 py-2 md:px-3 md:py-3 text-left font-medium align-top whitespace-normal break-normal leading-snug">
