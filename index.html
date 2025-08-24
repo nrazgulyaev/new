@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- продолжаем -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Arconique · Projects & Price List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:," />
+  </head>
+  <body class="bg-white">
+    <div id="root"></div>
+
+    <!-- React 18 UMD + Babel for on-the-fly JSX -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useEffect, useState } = React;
+
+      // ===============================
+      // Arconique · Projects & Price List (RU/EN + Admin)
+      // - Два языка (RU/EN)
+      // - Админ‑режим: добавление/удаление/редактирование вилл, смена статуса/цен/площадей
+      // - Локальное сохранение в localStorage
+      // - Формулы: VAT = 11%, First payment = 30% от Price with VAT
+      // ===============================
+
+      const VAT_RATE = 0.11;
+      const FIRST_PAYMENT_RATE = 0.3;
+      const LS_KEY = "arconique_sections_v2";
+
+      const i18n = {
+        en: {
+          brandTag: "Bali · Villa Development",
+          nav: { ahau: "Ahau", enso: "Enso", eternal: "Eternal" },
+          seePrices: "See prices",
+          includesTitle: "Price includes",
+          table: {
+            villaType: "Villa type",
+            qRooms: "Q Rooms",
+            land: "Land, sq m",
+            villa: "Villa, sq m",
+            f1: "1 floor, sq m",
+            f2: "2 floor, sq m",
+            roof: "Rooftop, sq m",
+            garden: "Garden & pool, sq m",
+            ppsm: "Price per sq m, $",
+            price: "Price, $",
+            vat: `VAT 11%, $`,
+            withVat: "Price with VAT, $",
+            first: "*First payment",
+            status: "Status",
+            actions: "Actions",
+            edit: "Edit",
+            del: "Delete",
+            addVilla: "Add villa",
+          },
+          status: { available: "Available", reserved: "Reserved", hold: "On hold" },
+          modals: {
+            editTitle: "Edit villa",
+            project: "Project",
+            title: "Title",
+            rooms: "Rooms",
+            land: "Land, sq m",
+            villa: "Villa, sq m",
+            f1: "1 floor, sq m",
+            f2: "2 floor, sq m",
+            roof: "Rooftop, sq m",
+            garden: "Garden & pool, sq m",
+            ppsm: "Price per sq m, $",
+            price: "Price, $",
+            status: "Status",
+            cancel: "Cancel",
+            save: "Save",
+          },
+          toolbar: {
+            lang: "Language",
+            admin: "Admin mode",
+            export: "Export JSON",
+            import: "Import JSON",
+          },
+        },
+        ru: {
+          brandTag: "Бали · Девелопмент вилл",
+          nav: { ahau: "Ahau", enso: "Enso", eternal: "Eternal" },
+          seePrices: "Смотреть цены",
+          includesTitle: "Цена включает",
+          table: {
+            villaType: "Тип виллы",
+            qRooms: "Кол-во комнат",
+            land: "Земля, м²",
+            villa: "Вилла, м²",
+            f1: "1 этаж, м²",
+            f2: "2 этаж, м²",
+            roof: "Руфтоп, м²",
+            garden: "Сад и бассейн, м²",
+            ppsm: "Цена за м², $",
+            price: "Цена, $",
+            vat: `НДС 11%, $`,
+            withVat: "Цена с НДС, $",
+            first: "*Первый платёж",
+            status: "Статус",
+            actions: "Действия",
+            edit: "Править",
+            del: "Удалить",
+            addVilla: "Добавить виллу",
+          },
+          status: { available: "Доступно", reserved: "Забронировано", hold: "На паузе" },
+          modals: {
+            editTitle: "Редактирование виллы",
+            project: "Проект",
+            title: "Название",
+            rooms: "Комнат",
+            land: "Земля, м²",
+            villa: "Вилла, м²",
+            f1: "1 этаж, м²",
+            f2: "2 этаж, м²",
+            roof: "Руфтоп, м²",
+            garden: "Сад и бассейн, м²",
+            ppsm: "Цена за м², $",
+            price: "Цена, $",
+            status: "Статус",
+            cancel: "Отмена",
+            save: "Сохранить",
+          },
+          toolbar: {
+            lang: "Язык",
+            admin: "Админ-режим",
+            export: "Экспорт JSON",
+            import: "Импорт JSON",
+          },
+        },
+      };
+
+      // ======= Demo assets (replace with real) =======
+      const ASSETS = {
+        planAhau: "https://images.unsplash.com/photo-1534088568595-a066f410bcda?q=80&w=1600&auto=format&fit=crop",
+        planEnso: "https://images.unsplash.com/photo-1523419409543-a5e549c1ae67?q=80&w=1600&auto=format&fit=crop",
+        planEternal: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1600&auto=format&fit=crop",
+      };
+
+      function uid() { return Math.random().toString(36).slice(2, 9); }
+
+      // ======= Initial Sections (EN/RU titles & includes) =======
+      const DEFAULT_SECTIONS = [
+        {
+          id: "ahau",
+          theme: "light",
+          title: { en: "Ahau Gardens by Arconique", ru: "Ahau Gardens by Arconique" },
+          plan: ASSETS.planAhau,
+          includes: {
+            en: ["Full equiped key-ready villas", "Sales tax of 10%", "Notary fee 1%", "Payment plan: 30%+30%+25%+10%+5%"],
+            ru: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
+          },
+          rows: [
+            { id: uid(), villaType: "A1", rooms: "2", land: 201.7, villa: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2200, price: 282828, status: "hold" },
+            { id: uid(), villaType: "A6", rooms: "2", land: 201.7, villa: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2250, price: 289229, status: "reserved" },
+            { id: uid(), villaType: "B1", rooms: "2+rt", land: 100.5, villa: 192.0, f1: 83.1, f2: 67.96, roof: 40.9, garden: 24.51, ppsm: null, price: null, status: "hold" },
+          ],
+        },
+        {
+          id: "enso",
+          theme: "dark",
+          title: { en: "ENSO by Arconique", ru: "ENSO by Arconique" },
+          plan: ASSETS.planEnso,
+          includes: {
+            en: ["Full equiped key-ready villas", "Sales tax of 10%", "Notary fee 1%", "Payment plan: 30%+30%+25%+10%+5%"],
+            ru: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
+          },
+          rows: [
+            { id: uid(), villaType: "L1", rooms: "2", land: 174.6, villa: 104.1, f1: 0, f2: 0, roof: 0, garden: 40.73, ppsm: 2410, price: 244775, status: "hold" },
+            { id: uid(), villaType: "V1", rooms: "2", land: 165.8, villa: 114.1, f1: 0, f2: 0, roof: 0, garden: 43.4, ppsm: 2549, price: 262018, status: "hold" },
+            { id: uid(), villaType: "R2", rooms: "2", land: 100.5, villa: 134.4, f1: 0, f2: 0, roof: 0, garden: 43.18, ppsm: 2550, price: 308756, status: "hold" },
+          ],
+        },
+        {
+          id: "eternal",
+          theme: "light",
+          title: { en: "Eternal villas by Arconique", ru: "Eternal villas by Arconique" },
+          plan: ASSETS.planEternal,
+          includes: {
+            en: ["Full equiped key-ready villas", "Sales tax of 10%", "Notary fee 1%", "Payment plan: 30%+30%+25%+10%+5%"],
+            ru: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
+          },
+          rows: [
+            { id: uid(), villaType: "P1", rooms: "3+rt", land: 124, villa: 218, f1: 109.8, f2: 76.07, roof: 32.09, garden: 44.21, ppsm: 2200, price: 431531, status: "hold" },
+            { id: uid(), villaType: "P2", rooms: "3+rt", land: 124, villa: 218, f1: 109.8, f2: 76.07, roof: 32.09, garden: 44.21, ppsm: null, price: null, status: "hold" },
+            { id: uid(), villaType: "S3", rooms: "2", land: 107.9, villa: 141.7, f1: 86.6, f2: 55.1, roof: 0, garden: 47.5, ppsm: 2451, price: 312889, status: "hold" },
+          ],
+        },
+      ];
+
+      // ======= Helpers =======
+      function useSections() {
+        const [sections, setSections] = useState(DEFAULT_SECTIONS);
+        useEffect(() => {
+          try {
+            const raw = localStorage.getItem(LS_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) setSections(parsed);
+            }
+          } catch {}
+        }, []);
+        useEffect(() => {
+          try { localStorage.setItem(LS_KEY, JSON.stringify(sections)); } catch {}
+        }, [sections]);
+        return [sections, setSections];
+      }
+
+      function formatInt(n, lang) {
+        const locale = lang === "ru" ? "ru-RU" : "en-US";
+        return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.round(n ?? 0));
+      }
+      function formatSqm(n, lang) {
+        const locale = lang === "ru" ? "ru-RU" : "en-US";
+        return new Intl.NumberFormat(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n ?? 0);
+      }
+
+      function StatusPill({ value, lang }) {
+        const t = i18n[lang].status;
+        const map = {
+          available: "bg-emerald-100 text-emerald-800",
+          reserved: "bg-amber-100 text-amber-800",
+          hold: "bg-slate-100 text-slate-700",
+        };
+        const label = value === "available" ? t.available : value === "reserved" ? t.reserved : t.hold;
+        return <span className={`px-2 py-1 rounded-xl text-xs ${map[value]}`}>{label}</span>;
+      }
+
+      function Toolbar({ lang, setLang, admin, setAdmin, onExport, onImport }) {
+        const t = i18n[lang].toolbar;
+        return (
+          <div className="sticky top-[60px] z-30 bg-white/80 backdrop-blur border-b border-neutral-200">
+            <div className="mx-auto max-w-7xl px-5 py-3 flex items-center gap-2 flex-wrap">
+              <label className="text-xs text-neutral-500">{t.lang}</label>
+              <select value={lang} onChange={(e) => setLang(e.target.value)} className="px-2 py-1.5 rounded-lg border border-neutral-300 text-sm">
+                <option value="en">EN</option>
+                <option value="ru">RU</option>
+              </select>
+              <div className="h-5 w-px bg-neutral-200 mx-1" />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} /> {i18n[lang].toolbar.admin}
+              </label>
+              <div className="h-5 w-px bg-neutral-200 mx-1" />
+              <button onClick={onExport} className="px-3 py-1.5 rounded-lg border text-sm">{t.export}</button>
+              <label className="px-3 py-1.5 rounded-lg border text-sm cursor-pointer">
+                <input type="file" accept="application/json,.json" className="hidden" onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />
+                {t.import}
+              </label>
+            </div>
+          </div>
+        );
+      }
+
+      function PriceSection({ section, lang, admin, onAddRow, onEditRow, onDeleteRow }) {
+        const dark = section.theme === "dark";
+        const t = i18n[lang];
+        const th = t.table;
+        return (
+          <section id={section.id} className={`${dark ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"}`}>
+            <div className="mx-auto max-w-7xl px-5 py-10">
+              <div className="flex items-end justify-between gap-3 mb-2">
+                <div>
+                  <h2 className={`text-3xl font-semibold ${dark ? "text-white" : "text-neutral-900"}`}>{section.title[lang]}</h2>
+                  <div className={`mt-2 text-sm ${dark ? "text-white/80" : "text-neutral-600"}`}>{t.includesTitle}</div>
+                </div>
+                {admin && (
+                  <button onClick={() => onAddRow(section.id)} className="px-3 py-2 rounded-xl text-sm bg-white/90 border border-neutral-300 shadow hover:bg-neutral-50">
+                    {th.addVilla}
+                  </button>
+                )}
+              </div>
+              <ul className={`mt-1 text-sm space-y-1 ${dark ? "text-white/80" : "text-neutral-700"}`}>
+                {(section.includes[lang] || []).map((x, i) => (
+                  <li key={i}>• {x}</li>
+                ))}
+              </ul>
+
+              <div className="relative rounded-3xl overflow-hidden border border-dashed bg-white/90 backdrop-blur mt-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={`${dark ? "bg-white/10 text-white" : "bg-neutral-50"}`}>
+                      <Th>{th.villaType}</Th>
+                      <Th>{th.qRooms}</Th>
+                      <Th>{th.land}</Th>
+                      <Th>{th.villa}</Th>
+                      <Th>{th.f1}</Th>
+                      <Th>{th.f2}</Th>
+                      <Th>{th.roof}</Th>
+                      <Th>{th.garden}</Th>
+                      <Th>{th.ppsm}</Th>
+                      <Th>{th.price}</Th>
+                      <Th>{th.vat}</Th>
+                      <Th>{th.withVat}</Th>
+                      <Th>{th.first}</Th>
+                      {admin && <Th>{th.actions}</Th>}
+                      {!admin && <Th>{th.status}</Th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {section.rows.map((r) => {
+                      const vat = r.price ? Math.round(r.price * VAT_RATE) : null;
+                      const withVat = r.price ? Math.round(r.price + vat) : null;
+                      const firstPay = r.price ? Math.round(withVat * FIRST_PAYMENT_RATE) : null;
+                      return (
+                        <tr key={r.id} className={`${dark ? "border-white/15" : "border-neutral-200"} border-t`}>
+                          <Td>{r.villaType}</Td>
+                          <Td>{r.rooms}</Td>
+                          <Td>{formatSqm(r.land, lang)}</Td>
+                          <Td>{formatSqm(r.villa, lang)}</Td>
+                          <Td>{formatSqm(r.f1, lang)}</Td>
+                          <Td>{formatSqm(r.f2, lang)}</Td>
+                          <Td>{formatSqm(r.roof, lang)}</Td>
+                          <Td>{formatSqm(r.garden, lang)}</Td>
+                          <Td>{r.ppsm ? formatInt(r.ppsm, lang) : ""}</Td>
+                          <Td>{r.price ? formatInt(r.price, lang) : ""}</Td>
+                          <Td>{r.price ? formatInt(vat, lang) : ""}</Td>
+                          <Td>{r.price ? formatInt(withVat, lang) : ""}</Td>
+                          <Td>{r.price ? formatInt(firstPay, lang) : ""}</Td>
+                          {admin ? (
+                            <Td>
+                              <div className="flex gap-2">
+                                <button onClick={() => onEditRow(section.id, r.id)} className="px-2 py-1 rounded-lg text-xs bg-neutral-900 text-white hover:bg-neutral-800">{th.edit}</button>
+                                <button onClick={() => onDeleteRow(section.id, r.id)} className="px-2 py-1 rounded-lg text-xs bg-white border border-neutral-300 hover:bg-neutral-50">{th.del}</button>
+                              </div>
+                            </Td>
+                          ) : (
+                            <Td>
+                              <StatusPill value={r.status} lang={lang} />
+                            </Td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      function Th({ children }) {
+        return <th className="px-3 py-3 text-left font-medium whitespace-nowrap">{children}</th>;
+      }
+      function Td({ children }) {
+        return <td className="px-3 py-3 whitespace-nowrap">{children}</td>;
+      }
+
+      function EditModal({ open, onClose, lang, init, onSave, projectId, projectName }) {
+        const t = i18n[lang].modals;
+        const [form, setForm] = useState(init);
+        useEffect(() => setForm(init), [init]);
+
+        if (!open) return null;
+        const set = (k, v) => setForm((s) => ({ ...s, [k]: v }));
+        const number = (val) => (val === "" || val === null || isNaN(Number(val)) ? null : Number(val));
+
+        return (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 grid place-items-center p-4" onMouseDown={onClose}>
+            <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl" onMouseDown={(e) => e.stopPropagation()}>
+              <div className="flex items-start justify-between gap-4 p-4 border-b">
+                <div>
+                  <h3 className="text-lg font-semibold">{t.editTitle}</h3>
+                  <p className="text-xs text-neutral-500">{projectName}</p>
+                </div>
+                <button onClick={onClose} className="text-neutral-500 hover:text-black">✕</button>
+              </div>
+              <div className="p-4 grid gap-3">
+                <div className="grid md:grid-cols-3 gap-3">
+                  <label className="grid gap-1">
+                    <span className="text-sm text-neutral-600">{t.title}</span>
+                    <input className="px-3 py-2 rounded-xl border" value={form.villaType || ""} onChange={(e) => set("villaType", e.target.value)} />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-sm text-neutral-600">{t.rooms}</span>
+                    <input className="px-3 py-2 rounded-xl border" value={form.rooms || ""} onChange={(e) => set("rooms", e.target.value)} />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-sm text-neutral-600">{t.status}</span>
+                    <select className="px-3 py-2 rounded-xl border" value={form.status || "hold"} onChange={(e) => set("status", e.target.value)}>
+                      <option value="available">{i18n[lang].status.available}</option>
+                      <option value="reserved">{i18n[lang].status.reserved}</option>
+                      <option value="hold">{i18n[lang].status.hold}</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="grid md:grid-cols-3 gap-3">
+                  <Num label={t.land} value={form.land} set={(v) => set("land", number(v))} />
+                  <Num label={t.villa} value={form.villa} set={(v) => set("villa", number(v))} />
+                  <Num label={t.f1} value={form.f1} set={(v) => set("f1", number(v))} />
+                  <Num label={t.f2} value={form.f2} set={(v) => set("f2", number(v))} />
+                  <Num label={t.roof} value={form.roof} set={(v) => set("roof", number(v))} />
+                  <Num label={t.garden} value={form.garden} set={(v) => set("garden", number(v))} />
+                </div>
+                <div className="grid md:grid-cols-3 gap-3">
+                  <Num label={t.ppsm} value={form.ppsm} set={(v) => set("ppsm", number(v))} />
+                  <Num label={t.price} value={form.price} set={(v) => set("price", number(v))} />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 p-4 border-t">
+                <button onClick={onClose} className="px-3 py-2 rounded-xl text-sm bg-white border">{t.cancel}</button>
+                <button onClick={() => onSave(form)} className="px-3 py-2 rounded-xl text-sm bg-neutral-900 text-white">{t.save}</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function Num({ label, value, set }) {
+        const [txt, setTxt] = useState(value ?? "");
+        useEffect(() => setTxt(value ?? ""), [value]);
+        return (
+          <label className="grid gap-1">
+            <span className="text-sm text-neutral-600">{label}</span>
+            <input
+              inputMode="decimal"
+              className="px-3 py-2 rounded-xl border"
+              value={txt}
+              onChange={(e) => setTxt(e.target.value)}
+              onBlur={() => set(txt)}
+            />
+          </label>
+        );
+      }
+
+      function App() {
+        const [sections, setSections] = useSections();
+        const [lang, setLang] = useState("en");
+        const [admin, setAdmin] = useState(false);
+
+        // Edit modal state
+        const [editing, setEditing] = useState({ open: false, projectId: null, rowId: null, init: {} });
+
+        const t = i18n[lang];
+
+        const onExport = () => {
+          const blob = new Blob([JSON.stringify(sections, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `arconique_sections_${new Date().toISOString().slice(0, 10)}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+
+        const onImport = async (file) => {
+          try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            if (!Array.isArray(data)) throw new Error("Root must be an array of sections");
+            setSections(data);
+          } catch (e) {
+            alert("Invalid JSON: " + e.message);
+          }
+        };
+
+        const addRow = (projectId) => {
+          setSections((prev) =>
+            prev.map((s) =>
+              s.id === projectId
+                ? {
+                    ...s,
+                    rows: [
+                      {
+                        id: uid(),
+                        villaType: "New Villa",
+                        rooms: "2",
+                        land: 0,
+                        villa: 0,
+                        f1: 0,
+                        f2: 0,
+                        roof: 0,
+                        garden: 0,
+                        ppsm: null,
+                        price: null,
+                        status: "available",
+                      },
+                      ...s.rows,
+                    ],
+                  }
+                : s
+            )
+          );
+        };
+
+        const editRow = (projectId, rowId) => {
+          const project = sections.find((s) => s.id === projectId);
+          const row = project?.rows.find((r) => r.id === rowId);
+          if (!row) return;
+          setEditing({ open: true, projectId, rowId, init: row });
+        };
+
+        const saveRow = (patch) => {
+          setSections((prev) =>
+            prev.map((s) =>
+              s.id === editing.projectId
+                ? { ...s, rows: s.rows.map((r) => (r.id === editing.rowId ? { ...r, ...patch } : r)) }
+                : s
+            )
+          );
+          setEditing({ open: false, projectId: null, rowId: null, init: {} });
+        };
+
+        const deleteRow = (projectId, rowId) => {
+          setSections((prev) =>
+            prev.map((s) => (s.id === projectId ? { ...s, rows: s.rows.filter((r) => r.id !== rowId) } : s))
+          );
+        };
+
+        return (
+          <div className="min-h-screen bg-white">
+            {/* NAV */}
+            <header className="sticky top-0 z-40 bg-white/70 backdrop-blur border-b border-neutral-200">
+              <div className="mx-auto max-w-7xl px-5 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-2xl bg-neutral-900 text-white grid place-items-center font-semibold">A</div>
+                  <div className="leading-tight">
+                    <div className="font-semibold">Arconique</div>
+                    <div className="text-xs text-neutral-500">{t.brandTag}</div>
+                  </div>
+                </div>
+                <nav className="hidden md:flex items-center gap-6 text-sm text-neutral-600">
+                  <a href="#ahau" className="hover:text-black">{t.nav.ahau}</a>
+                  <a href="#enso" className="hover:text-black">{t.nav.enso}</a>
+                  <a href="#eternal" className="hover:text-black">{t.nav.eternal}</a>
+                </nav>
+                <a href="#eternal" className="px-4 py-2 rounded-xl bg-neutral-900 text-white text-sm shadow hover:bg-neutral-800">{t.seePrices}</a>
+              </div>
+            </header>
+
+            <Toolbar lang={lang} setLang={setLang} admin={admin} setAdmin={setAdmin} onExport={onExport} onImport={onImport} />
+
+            {/* Sections */}
+            {sections.map((s) => (
+              <PriceSection
+                key={s.id}
+                section={s}
+                lang={lang}
+                admin={admin}
+                onAddRow={addRow}
+                onEditRow={editRow}
+                onDeleteRow={deleteRow}
+              />
+            ))}
+
+            <EditModal
+              open={editing.open}
+              onClose={() => setEditing({ open: false, projectId: null, rowId: null, init: {} })}
+              lang={lang}
+              init={editing.init}
+              onSave={saveRow}
+              projectId={editing.projectId}
+              projectName={sections.find((s) => s.id === editing.projectId)?.title[lang]}
+            />
+
+            <footer className="mx-auto max-w-7xl px-5 py-10 text-center text-sm text-neutral-500">
+              © {new Date().getFullYear()} Arconique. Data is stored locally in your browser.
+            </footer>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
