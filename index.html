@@ -244,7 +244,7 @@
         );
       }
 
-      // Мобильные карточки (перенос слов включён)
+      // Мобильные карточки (переносы включены)
       function CardRow({ r, lang, th, admin, onEditRow, onDeleteRow, sectionId }) {
         const vat = r.price ? Math.round(r.price * VAT_RATE) : null;
         const withVat = r.price ? Math.round(r.price + vat) : null;
@@ -316,9 +316,9 @@
                 ))}
               </ul>
 
-              {/* Единый прямоугольник-обёртка */}
+              {/* Прямоугольник-обёртка */}
               <div className="relative rounded-3xl overflow-hidden border border-dashed bg-white/90 backdrop-blur mt-4">
-                {/* Мобильные карточки (внутри прямоугольника) */}
+                {/* Мобильные карточки */}
                 <div className="p-4 md:hidden space-y-3">
                   {section.rows.map((r) => (
                     <CardRow
@@ -334,7 +334,7 @@
                   ))}
                 </div>
 
-                {/* Десктопная таблица: без переносов, шрифт сжимается */}
+                {/* Десктопная таблица: шапка переносит слова, данные без переносов, шрифт сжимается */}
                 <div className="hidden md:block">
                   <table className="w-full table-fixed text-[clamp(9px,0.75vw,14px)]">
                     <thead>
@@ -400,12 +400,20 @@
         );
       }
 
-      // Десктоп: без переносов слов + уменьшенные отступы
+      // Шапка: перенос по словам, увеличенные отступы; Данные: без переносов, те же отступы
       function Th({ children }) {
-        return <th className="px-1 py-1 md:px-2 md:py-2 lg:px-3 lg:py-3 text-left font-medium align-top whitespace-nowrap">{children}</th>;
+        return (
+          <th className="px-2 py-2 md:px-3 md:py-3 text-left font-medium align-top whitespace-normal break-normal leading-snug">
+            {children}
+          </th>
+        );
       }
       function Td({ children }) {
-        return <td className="px-1 py-1 md:px-2 md:py-2 lg:px-3 lg:py-3 align-top whitespace-nowrap">{children}</td>;
+        return (
+          <td className="px-2 py-2 md:px-3 md:py-3 align-top whitespace-nowrap leading-snug">
+            {children}
+          </td>
+        );
       }
 
       function EditModal({ open, onClose, lang, init, onSave, projectId, projectName }) {
