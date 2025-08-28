@@ -104,8 +104,8 @@ function Header() {
           </div>
         </div>
         <nav className="flex items-center gap-3 text-sm">
-          <a href="#/catalog" className="px-3 py-1.5 rounded-lg border hover:bg-neutral-50">Каталог</a>
-          <a href="#/admin" className="px-3 py-1.5 rounded-lg border hover:bg-neutral-50">Админ</a>
+          <a href="#/catalog" className="btn-outline">Каталог</a>
+          <a href="#/admin" className="btn-outline">Админ</a>
         </nav>
       </div>
     </header>
@@ -128,7 +128,7 @@ function AdminGate({ onLogin }) {
       <div className="grid gap-3 border rounded-2xl p-4">
         <label className="grid gap-1">
           <span className="text-sm text-neutral-600">PIN</span>
-          <input className="px-3 py-2 rounded-xl border" type="password" value={pin} onChange={e=>setPin(e.target.value)} />
+          <input className="input" type="password" value={pin} onChange={e=>setPin(e.target.value)} />
         </label>
         {err && <div className="text-red-600 text-sm">{err}</div>}
         <div className="flex gap-2">
@@ -481,7 +481,7 @@ function CatalogView({ catalog }) {
   );
 }
 
-/* FACTORS & helpers (без изменений по логике) */
+/* FACTORS & helpers */
 const leaseFactorF = (year, totalYears, alpha) => { try { if (totalYears<=0 || year<0) return 1; return Math.pow((totalYears - year)/totalYears, alpha); } catch { return 1; } };
 const ageFactorF   = (year, beta) => { try { if (year<0 || beta<0) return 1; return Math.exp(-beta * year); } catch { return 1; } };
 const brandFactorF = (year, cfg) => {
@@ -782,8 +782,8 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
   const rentalMap = new Map();
   for (let mon = handoverMonth+3; mon <= handoverMonth + (lineData.vMonths || months); mon++){
     const yOff = Math.floor((mon - handoverMonth)/12);
-    const daily = getIndexedRentalPrice(baseDaily, indexPct, yOff);
-    const val = daily * 0.55 * occ * getDaysInMonth(mon);
+    const daily = getIndexedRentalPrice(line.dailyRateUSD ?? 0, line.rentalPriceIndexPct ?? 0, yOff);
+    const val = daily * 0.55 * (line.occupancyPct ?? 75)/100 * getDaysInMonth(mon);
     rentalMap.set(mon, (rentalMap.get(mon)||0) + val);
   }
 
@@ -805,7 +805,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
         <div className="pill-row"><span className="pill">{selected.project.projectName}</span></div>
       </div>
 
-      {/* далее — всё содержимое калькулятора как в предыдущей версии (без изменений визуальной логики), уже обёрнуто в .container и .card/.section */}
       {/* Стадии + Настройки */}
       <div className="grid md:grid-cols-2 gap-4">
         <div className="card p-4">
@@ -882,12 +881,22 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       <div className="object-card card mt-4">
         <h3 className="font-medium mb-2">Объект недвижимости</h3>
         <div className="scroll-x">
-          <table className="table min-w-[980px]">
+          <table className="table min-w-[1200px]">
             <thead>
               <tr className="bg-neutral-50">
-                <Th>Проект</Th><Th>Вилла</Th><Th>м²</Th><Th>$ / м²</Th><Th>Текущая стоимость (USD)</Th>
+                <Th>Проект</Th>
+                <Th>Вилла</Th>
+                <Th>м²</Th>
+                <Th>$ / м²</Th>
+                <Th>Текущая стоимость (USD)</Th>
+                <Th>Стоимость проживания в сутки (USD)</Th>
+                <Th>Средняя заполняемость за месяц (%)</Th>
+                <Th>Рост цены аренды в год (%)</Th>
                 {isAdmin && <Th>Скидка, %</Th>}
-                <Th>До ключей, %</Th><Th>Месяцы</Th>{isAdmin && <Th>Ставка, %/мес (линия)</Th>}<Th>Итоговая стоимость</Th><Th>—</Th>
+                <Th>До ключей, %</Th>
+                <Th>Месяцы</Th>
+                {isAdmin && <Th>Ставка, %/мес (линия)</Th>}
+                <Th>Итоговая стоимость</Th>
               </tr>
             </thead>
             <tbody>
@@ -897,17 +906,96 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
                 <Td>{fmtInt(line.snapshot?.area||0)}</Td>
                 <Td>{fmtInt(line.snapshot?.ppsm||0)}</Td>
                 <Td>{toMoney(lineData.base)}</Td>
-                {isAdmin && (
-                  <Td><input className="input w-20" type="number" min="0" max="20" step="0.1" value={line.discountPct||0} onChange={e=>updLine({discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
-                )}
+
+                {/* Стоимость проживания в сутки (USD) — редактируется всегда */}
                 <Td>
-                  <input className="w-36" type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, line.prePct||0))} onChange={e=>updLine({prePct: parseInt(e.target.value,10)})}/>
+                  <input
+                    className="input w-24"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={line.dailyRateUSD || 0}
+                    onChange={e => updLine({ dailyRateUSD: Math.max(0, +e.target.value || 0) })}
+                  />
+                </Td>
+
+                {/* Средняя заполняемость за месяц (%) — редактируется всегда */}
+                <Td>
+                  <input
+                    className="input w-24"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={line.occupancyPct || 0}
+                    onChange={e => updLine({ occupancyPct: Math.min(100, Math.max(0, +e.target.value || 0)) })}
+                  />
+                </Td>
+
+                {/* Рост цены аренды в год (%) — редактируется всегда */}
+                <Td>
+                  <input
+                    className="input w-24"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={line.rentalPriceIndexPct || 0}
+                    onChange={e => updLine({ rentalPriceIndexPct: Math.max(0, +e.target.value || 0) })}
+                  />
+                </Td>
+
+                {isAdmin && (
+                  <Td>
+                    <input
+                      className="input w-20"
+                      type="number"
+                      min="0"
+                      max="20"
+                      step="0.1"
+                      value={line.discountPct||0}
+                      onChange={e=>updLine({discountPct:clamp(parseFloat(e.target.value||0),0,20)})}
+                    />
+                  </Td>
+                )}
+
+                <Td>
+                  <input
+                    className="w-36"
+                    type="range"
+                    min="50"
+                    max="100"
+                    step="1"
+                    value={Math.max(50,Math.min(100, line.prePct||0))}
+                    onChange={e=>updLine({prePct: parseInt(e.target.value,10)})}
+                  />
                   <div className="text-xs text-neutral-600">{Math.max(50,Math.min(100, line.prePct||0))}%</div>
                 </Td>
-                <Td><input className="input w-20" type="number" min="6" step="1" value={lineData.vMonths} onChange={e=>updLine({ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
-                {isAdmin && <Td><input className="input w-24" type="number" min="0" step="0.01" value={line.monthlyRatePct??monthlyRatePct} onChange={e=>updLine({ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>}
+
+                <Td>
+                  <input
+                    className="input w-20"
+                    type="number"
+                    min="6"
+                    step="1"
+                    value={lineData.vMonths}
+                    onChange={e=>updLine({ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}
+                  />
+                </Td>
+
+                {isAdmin && (
+                  <Td>
+                    <input
+                      className="input w-24"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.monthlyRatePct??monthlyRatePct}
+                      onChange={e=>updLine({ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}
+                    />
+                  </Td>
+                )}
+
                 <Td className="font-semibold">{toMoney(lineData.finalUSD)}</Td>
-                <Td><button className="btn-outline btn-sm" onClick={()=>null}>—</button></Td>
               </tr>
             </tbody>
           </table>
