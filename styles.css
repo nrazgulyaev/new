@@ -215,3 +215,23 @@ input[type="range"].range::-moz-range-track{
 .more-grid .label{display:block;color:var(--muted);font-size:12px}
 .more-grid .value{display:block;color:var(--ink);font-weight:600}
 
+/* styles.css — ДОБАВЬТЕ в конец. Скоуп только каталога, калькулятор не затрагивается */
+
+/* Блок "В стоимость включено" под заголовком проекта */
+.catalog-section .project-includes{margin:6px 0 12px}
+.catalog-section .includes-title{
+  font-weight:600;color:var(--ink);margin-bottom:6px;font-size:13px
+}
+.catalog-section .includes-list{
+  margin:0;padding-left:18px;display:block;color:var(--muted);font-size:13px;line-height:1.5
+}
+.catalog-section .includes-list li{list-style:disc}
+
+/* Линейка параметров виллы */
+.catalog-section .villa-line .spec-row{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0
+}
+.catalog-section .villa-line .spec-row.subtle{opacity:.9}
+.catalog-section .villa-line .spec{font-size:13px;color:var(--ink)}
+.catalog-section .villa-line .spec.price{font-weight:700;color:#1f6feb}
+.catalog-section .villa-line .dot{color:#9aa1ab}
