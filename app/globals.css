@@ -1,7 +1,0 @@
-:root {
-  --bg: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-}
-html, body, #__next { height: 100%; }
-a { color: var(--primary, #3b82f6); text-decoration: none; }
-a:hover { text-decoration: underline; }
-.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
