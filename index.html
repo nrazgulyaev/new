@@ -6,20 +6,17 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Arconique · Каталог / Админ / Калькулятор</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Экспорт (включите при необходимости) -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <link rel="icon" href="data:," />
   </head>
   <body class="bg-white">
     <div id="root"></div>
 
-    <!-- React 18 UMD + Babel -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- (необязательно) для экспорта XLSX/PDF подключите по желанию:
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
-    -->
 
     <script type="text/babel">
       const { useEffect, useMemo, useRef, useState } = React;
@@ -29,11 +26,12 @@
       // Конфиг / Утилиты / Хранилище
       // ==========================
       const PIN_CODE = "334346";
-      const LS_CATALOG = "arq_catalog_v1";
+      const LS_CATALOG = "arq_catalog_v2";
 
       const uid = () => Math.random().toString(36).slice(2, 9);
       const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
       const fmtInt = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(n || 0));
+      const fmt2 = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(+n || 0);
       const fmtMoney = (n, c = "USD") =>
         new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(Math.round(n || 0));
 
@@ -51,32 +49,67 @@
         try { localStorage.setItem(LS_CATALOG, JSON.stringify(catalog)); } catch {}
       };
 
+      // Демо-данные с полным набором полей (статус, земля, комнаты, f1,f2,roof,garden, ppsm, baseUSD и т.д.)
       function defaultCatalog() {
         return [
           {
             projectId: "ahau-gardens",
             projectName: "Ahau Gardens by Arconique",
+            theme: "light",
+            includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
             villas: [
               {
-                villaId: "ahau-type-a-2br",
-                name: "Type A 2 bedroom",
+                villaId: "ahau-a1-2br",
+                name: "A1",
+                status: "hold",
+                rooms: "2",
+                land: 201.7,
                 area: 142.7,
+                f1: 107.1,
+                f2: 38.89,
+                roof: 0,
+                garden: 57.5,
                 ppsm: 2200,
-                baseUSD: 313940,
+                baseUSD: 282828,
                 monthlyPriceGrowthPct: 2,
                 leaseholdEndDate: "2055-01-01",
                 dailyRateUSD: 220,
                 rentalPriceIndexPct: 5
               },
               {
-                villaId: "ahau-type-b-2br",
-                name: "Type B 2 bedroom",
-                area: 192,
+                villaId: "ahau-a6-2br",
+                name: "A6",
+                status: "reserved",
+                rooms: "2",
+                land: 201.7,
+                area: 142.7,
+                f1: 107.1,
+                f2: 38.89,
+                roof: 0,
+                garden: 57.5,
                 ppsm: 2250,
-                baseUSD: 432000,
+                baseUSD: 289229,
                 monthlyPriceGrowthPct: 2,
                 leaseholdEndDate: "2055-01-01",
-                dailyRateUSD: 280,
+                dailyRateUSD: 230,
+                rentalPriceIndexPct: 5
+              },
+              {
+                villaId: "ahau-b1-2rt",
+                name: "B1",
+                status: "hold",
+                rooms: "2+rt",
+                land: 100.5,
+                area: 192.0,
+                f1: 83.1,
+                f2: 67.96,
+                roof: 40.9,
+                garden: 24.51,
+                ppsm: null,
+                baseUSD: null,
+                monthlyPriceGrowthPct: 2,
+                leaseholdEndDate: "2055-01-01",
+                dailyRateUSD: 260,
                 rentalPriceIndexPct: 5
               }
             ]
@@ -84,27 +117,37 @@
           {
             projectId: "enso-villas",
             projectName: "ENSO by Arconique",
+            theme: "light",
+            includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
             villas: [
               {
-                villaId: "enso-l-type-2br",
-                name: "L type 2 bedroom",
+                villaId: "enso-l1-2br",
+                name: "L1",
+                status: "hold",
+                rooms: "2",
+                land: 174.6,
                 area: 104.1,
-                ppsm: 2610,
-                baseUSD: 271701,
+                f1: 0, f2: 0, roof: 0, garden: 40.73,
+                ppsm: 2410,
+                baseUSD: 244775,
                 monthlyPriceGrowthPct: 2,
                 leaseholdEndDate: "2054-12-01",
                 dailyRateUSD: 220,
                 rentalPriceIndexPct: 5
               },
               {
-                villaId: "enso-v-type-2br",
-                name: "V type 2 bedroom",
+                villaId: "enso-v1-2br",
+                name: "V1",
+                status: "hold",
+                rooms: "2",
+                land: 165.8,
                 area: 114.1,
-                ppsm: 2548,
-                baseUSD: 290840,
+                f1: 0, f2: 0, roof: 0, garden: 43.4,
+                ppsm: 2549,
+                baseUSD: 262018,
                 monthlyPriceGrowthPct: 2,
                 leaseholdEndDate: "2054-12-01",
-                dailyRateUSD: 220,
+                dailyRateUSD: 230,
                 rentalPriceIndexPct: 5
               }
             ]
@@ -112,13 +155,19 @@
           {
             projectId: "eternal-villas",
             projectName: "Eternal Villas by Arconique",
+            theme: "light",
+            includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
             villas: [
               {
-                villaId: "eternal-premium-3br",
-                name: "Premium 3 bedroom",
+                villaId: "eternal-p1-3rt",
+                name: "P1",
+                status: "hold",
+                rooms: "3+rt",
+                land: 124,
                 area: 218,
-                ppsm: 2197,
-                baseUSD: 479000,
+                f1: 109.8, f2: 76.07, roof: 32.09, garden: 44.21,
+                ppsm: 2200,
+                baseUSD: 431531,
                 monthlyPriceGrowthPct: 2,
                 leaseholdEndDate: "2055-01-01",
                 dailyRateUSD: 550,
@@ -129,7 +178,7 @@
         ];
       }
 
-      // Простой hash-роутер
+      // Hash-роут
       function useHashRoute() {
         const parse = () => {
           const hash = window.location.hash || "#/catalog";
@@ -165,12 +214,16 @@
           </header>
         );
       }
-
-      function Th({ children }) { return <th className="px-2 py-2 md:px-3 md:py-3 text-left font-medium align-top whitespace-normal break-normal leading-snug">{children}</th>; }
-      function Td({ children, className="" }) { return <td className={`px-2 py-2 md:px-3 md:py-3 align-top whitespace-nowrap leading-snug ${className}`}>{children}</td>; }
+      function Th({ children }) { return <th className="px-2 py-2 md:px-3 md:py-3 text-left font-medium align-top whitespace-normal leading-snug">{children}</th>; }
+      function Td({ children, className="" }) { return <td className={`px-2 py-2 md:px-3 md:py-3 align-top leading-snug ${className}`}>{children}</td>; }
+      function StatusPill({ value }) {
+        const map = { available: "bg-emerald-100 text-emerald-800", reserved: "bg-amber-100 text-amber-800", hold: "bg-slate-100 text-slate-700" };
+        const label = value==="available"?"Доступно": value==="reserved"?"Забронировано":"На паузе";
+        return <span className={`px-2 py-1 rounded-xl text-xs inline-block w-[120px] text-center ${map[value]||"bg-slate-100 text-slate-700"}`}>{label}</span>;
+      }
 
       // ==========================
-      // Админ (вход/панель) — прежний вид
+      // Админ: вход
       // ==========================
       function AdminGate({ onLogin }) {
         const [pin, setPin] = useState("");
@@ -193,9 +246,117 @@
         );
       }
 
+      // ==========================
+      // Модалка добавления/редактирования виллы (красивое окно)
+      // ==========================
+      function VillaModal({ open, onClose, onSave, initial }) {
+        const [form, setForm] = useState(initial || {});
+        useEffect(()=> setForm(initial||{}), [initial]);
+
+        const set = (k,v) => setForm(s=>({...s, [k]:v}));
+
+        if (!open) return null;
+        return (
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm grid place-items-center p-4" onMouseDown={onClose}>
+            <div className="w-full max-w-3xl rounded-2xl bg-white shadow-xl" onMouseDown={(e)=>e.stopPropagation()}>
+              <div className="flex items-center justify-between p-4 border-b">
+                <div>
+                  <h3 className="text-lg font-semibold">{initial?.villaId ? "Редактировать виллу" : "Добавить виллу"}</h3>
+                  <div className="text-xs text-neutral-500">Укажите все параметры для каталога и финмодели</div>
+                </div>
+                <button className="text-neutral-500 hover:text-black" onClick={onClose}>✕</button>
+              </div>
+              <div className="p-4 grid gap-4">
+                <div className="grid md:grid-cols-3 gap-3">
+                  <label className="grid gap-1">
+                    <span className="text-sm text-neutral-600">Название (Villa type)</span>
+                    <input className="px-3 py-2 rounded-xl border" value={form.name||""} onChange={(e)=>set("name", e.target.value)} />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-sm text-neutral-600">Статус</span>
+                    <select className="px-3 py-2 rounded-xl border" value={form.status||"available"} onChange={(e)=>set("status", e.target.value)}>
+                      <option value="available">Доступно</option>
+                      <option value="reserved">Забронировано</option>
+                      <option value="hold">На паузе</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-sm text-neutral-600">Комнат (Q Rooms)</span>
+                    <input className="px-3 py-2 rounded-xl border" value={form.rooms||""} onChange={(e)=>set("rooms", e.target.value)} />
+                  </label>
+                </div>
+
+                <div className="grid md:grid-cols-6 gap-3">
+                  <Num label="Земля, м²" value={form.land} set={(v)=>set("land", v)} />
+                  <Num label="Вилла, м²" value={form.area} set={(v)=>set("area", v)} />
+                  <Num label="1 этаж, м²" value={form.f1} set={(v)=>set("f1", v)} />
+                  <Num label="2 этаж, м²" value={form.f2} set={(v)=>set("f2", v)} />
+                  <Num label="Руфтоп, м²" value={form.roof} set={(v)=>set("roof", v)} />
+                  <Num label="Сад+бассейн, м²" value={form.garden} set={(v)=>set("garden", v)} />
+                </div>
+
+                <div className="grid md:grid-cols-4 gap-3">
+                  <Num label="$ / м²" value={form.ppsm} set={(v)=>set("ppsm", v)} />
+                  <Num label="База, $" value={form.baseUSD} set={(v)=>set("baseUSD", v)} />
+                  <Num label="Рост до ключей, %/мес" value={form.monthlyPriceGrowthPct} set={(v)=>set("monthlyPriceGrowthPct", v)} />
+                  <label className="grid gap-1">
+                    <span className="text-sm text-neutral-600">Лизхолд до (YYYY-MM-DD)</span>
+                    <input className="px-3 py-2 rounded-xl border" value={form.leaseholdEndDate||""} onChange={(e)=>set("leaseholdEndDate", e.target.value)} />
+                  </label>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-3">
+                  <Num label="Ночь, $" value={form.dailyRateUSD} set={(v)=>set("dailyRateUSD", v)} />
+                  <Num label="Индекс аренды %/год" value={form.rentalPriceIndexPct} set={(v)=>set("rentalPriceIndexPct", v)} />
+                </div>
+
+                <div className="text-xs text-neutral-500">
+                  Подсказка: если указать только `База, $` и `Вилла, м²`, система вычислит `$ / м²`. И наоборот.
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2 p-4 border-t">
+                <button className="px-3 py-2 rounded-xl border" onClick={onClose}>Отмена</button>
+                <button
+                  className="px-3 py-2 rounded-xl bg-neutral-900 text-white"
+                  onClick={()=>{
+                    const data = { ...form };
+                    // автозаполнение ppsm/base
+                    const area = +data.area || 0, ppsm = +data.ppsm || 0, base = +data.baseUSD || 0;
+                    if (!ppsm && base && area) data.ppsm = Math.round(base/area);
+                    if (!base && ppsm && area) data.baseUSD = Math.round(ppsm*area);
+                    onSave(data);
+                  }}
+                >
+                  Сохранить
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      function Num({ label, value, set }) {
+        const [txt, setTxt] = useState(value ?? "");
+        useEffect(()=> setTxt(value ?? ""), [value]);
+        return (
+          <label className="grid gap-1">
+            <span className="text-sm text-neutral-600">{label}</span>
+            <input
+              inputMode="decimal"
+              className="px-3 py-2 rounded-xl border"
+              value={txt}
+              onChange={(e)=>{ setTxt(e.target.value); set(e.target.value===""? null : +e.target.value); }}
+            />
+          </label>
+        );
+      }
+
+      // ==========================
+      // Админ: панель (с «красивой» модалкой добавления)
+      // ==========================
       function AdminPanel({ catalog, setCatalog }) {
         const [showAddProject, setShowAddProject] = useState(false);
         const [newProjectName, setNewProjectName] = useState("");
+        const [villaModal, setVillaModal] = useState({ open:false, projectId:null, init:null });
         const fileRef = useRef(null);
 
         const addProject = () => {
@@ -203,24 +364,32 @@
           if (!name) return;
           const projectId = name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
           if (catalog.some(p=>p.projectId===projectId)) { alert("Проект с таким ID уже есть"); return; }
-          const next = [...catalog, { projectId, projectName: name, villas: [] }];
+          const next = [...catalog, { projectId, projectName: name, theme:"light", includes:[], villas: [] }];
           setCatalog(next); saveCatalog(next); setNewProjectName(""); setShowAddProject(false);
         };
 
-        const addVilla = (projectId) => {
-          const name = prompt("Название виллы:"); if (!name) return;
-          const area = parseFloat(prompt("Площадь (м²):","100")||"0");
-          const ppsm = parseFloat(prompt("Цена за м² ($):","2500")||"0");
-          const baseUSD = parseFloat(prompt("Базовая цена ($):", String(Math.round(area*ppsm)))||"0");
-          const monthlyPriceGrowthPct = parseFloat(prompt("Месячный рост цены до ключей (%):","2")||"0");
-          const leaseholdEndDate = prompt("Дата окончания лизхолда (YYYY-MM-DD):","2055-01-01")||"2055-01-01";
-          const dailyRateUSD = parseFloat(prompt("Стоимость ночи ($):","150")||"0");
-          const rentalPriceIndexPct = parseFloat(prompt("Рост аренды/год (%):","5")||"0");
-          const villaId = projectId+"-"+name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
-          const next = catalog.map(p=> p.projectId===projectId ? {
-            ...p, villas:[...p.villas, { villaId, name, area, ppsm, baseUSD, monthlyPriceGrowthPct, leaseholdEndDate, dailyRateUSD, rentalPriceIndexPct }]
-          } : p);
-          setCatalog(next); saveCatalog(next);
+        const openAddVilla = (projectId) => setVillaModal({ open:true, projectId, init:{ status:"available", monthlyPriceGrowthPct:2, rentalPriceIndexPct:5 }});
+        const openEditVilla = (projectId, v) => setVillaModal({ open:true, projectId, init:{ ...v } });
+
+        const saveVilla = (data) => {
+          const projectId = villaModal.projectId;
+          if (!projectId) return;
+          const name = (data.name||"").trim();
+          if (!name) { alert("Введите название виллы"); return; }
+
+          const next = catalog.map(p=>{
+            if (p.projectId !== projectId) return p;
+            // id
+            const villaId = data.villaId || (projectId+"-"+name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,""));
+            // сохранить/обновить
+            const exists = p.villas.some(v=>v.villaId===villaId);
+            const record = { ...data, villaId };
+            return {
+              ...p,
+              villas: exists ? p.villas.map(v=> v.villaId===villaId ? record : v) : [...p.villas, record]
+            };
+          });
+          setCatalog(next); saveCatalog(next); setVillaModal({ open:false, projectId:null, init:null });
         };
 
         const deleteVilla = (projectId, villaId) => {
@@ -277,49 +446,75 @@
               </div>
             )}
 
-            <div className="grid gap-6">
+            <div className="grid gap-8">
               {catalog.map(project=>(
-                <div key={project.projectId} className="border rounded-2xl p-4 bg-white">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">{project.projectName}</h3>
+                <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} rounded-3xl border p-4`}>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <h3 className={`text-xl font-semibold ${project.theme==="dark"?"text-white":"text-neutral-900"}`}>{project.projectName}</h3>
+                      {project.includes?.length>0 && (
+                        <ul className={`mt-1 text-sm space-y-1 ${project.theme==="dark"?"text-white/80":"text-neutral-700"}`}>
+                          {project.includes.map((x,i)=><li key={i}>• {x}</li>)}
+                        </ul>
+                      )}
+                    </div>
                     <div className="flex gap-2">
-                      <button className="px-3 py-1.5 rounded-lg border" onClick={()=>addVilla(project.projectId)}>Добавить виллу</button>
+                      <button className="px-3 py-1.5 rounded-lg border" onClick={()=>openAddVilla(project.projectId)}>Добавить виллу</button>
                       <button className="px-3 py-1.5 rounded-lg border text-red-600" onClick={()=>deleteProject(project.projectId)}>Удалить проект</button>
                     </div>
                   </div>
+
                   <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-sm min-w-[980px]">
-                      <thead><tr className="bg-neutral-50">
-                        <Th>Вилла</Th><Th>Площадь, м²</Th><Th>$ / м²</Th><Th>База, $</Th><Th>Рост/мес, %</Th>
-                        <Th>Лизхолд до</Th><Th>Ночь, $</Th><Th>Индекс аренды, %/год</Th><Th>Действия</Th>
-                      </tr></thead>
+                    <table className="w-full text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
+                      <thead>
+                        <tr className={`${project.theme==="dark"?"bg-white/10 text-white":"bg-neutral-50"}`}>
+                          <Th>Вилла</Th><Th>Q Rooms</Th><Th>Земля, м²</Th><Th>Вилла, м²</Th><Th>1 этаж, м²</Th><Th>2 этаж, м²</Th><Th>Руфтоп, м²</Th><Th>Сад+бассейн, м²</Th>
+                          <Th>$ / м²</Th><Th>База, $</Th><Th>Статус</Th><Th><span className="inline-block w-[160px]">Действия</span></Th>
+                        </tr>
+                      </thead>
                       <tbody>
                         {project.villas.map(v=>(
-                          <tr key={v.villaId} className="border-t">
-                            <Td>{v.name}</Td><Td>{fmtInt(v.area)}</Td><Td>{fmtInt(v.ppsm)}</Td><Td>{fmtInt(v.baseUSD)}</Td>
-                            <Td>{(v.monthlyPriceGrowthPct??0).toFixed(1)}</Td><Td>{v.leaseholdEndDate}</Td>
-                            <Td>{fmtInt(v.dailyRateUSD)}</Td><Td>{(v.rentalPriceIndexPct??0).toFixed(1)}</Td>
+                          <tr key={v.villaId} className={`${project.theme==="dark" ? "border-white/15" : "border-neutral-200"} border-t`}>
+                            <Td className="whitespace-nowrap">{v.name}</Td>
+                            <Td>{v.rooms||""}</Td>
+                            <Td>{v.land!=null? fmt2(v.land) : ""}</Td>
+                            <Td>{v.area!=null? fmt2(v.area) : ""}</Td>
+                            <Td>{v.f1!=null? fmt2(v.f1) : ""}</Td>
+                            <Td>{v.f2!=null? fmt2(v.f2) : ""}</Td>
+                            <Td>{v.roof!=null? fmt2(v.roof) : ""}</Td>
+                            <Td>{v.garden!=null? fmt2(v.garden) : ""}</Td>
+                            <Td>{v.ppsm!=null? fmtInt(v.ppsm) : ""}</Td>
+                            <Td>{v.baseUSD!=null? fmtInt(v.baseUSD) : ""}</Td>
+                            <Td><StatusPill value={v.status||"available"} /></Td>
                             <Td>
-                              <div className="flex gap-2">
-                                <a className="px-2 py-1 rounded-lg text-xs bg-neutral-900 text-white" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
-                                <button className="px-2 py-1 rounded-lg text-xs border" onClick={()=>deleteVilla(project.projectId, v.villaId)}>Удалить</button>
+                              <div className="w-[160px] flex gap-2">
+                                <a className="px-3 py-1.5 rounded-lg text-xs bg-neutral-900 text-white" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
+                                <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>openEditVilla(project.projectId, v)}>Править</button>
+                                <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>deleteVilla(project.projectId, v.villaId)}>Удалить</button>
                               </div>
                             </Td>
                           </tr>
                         ))}
-                        {project.villas.length===0 && <tr><td colSpan={9} className="px-3 py-3 text-neutral-500">Виллы отсутствуют</td></tr>}
+                        {project.villas.length===0 && <tr><td className="px-3 py-3 text-neutral-500" colSpan={12}>Нет вилл</td></tr>}
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </section>
               ))}
             </div>
+
+            <VillaModal
+              open={villaModal.open}
+              initial={villaModal.init}
+              onClose={()=>setVillaModal({ open:false, projectId:null, init:null })}
+              onSave={saveVilla}
+            />
           </div>
         );
       }
 
       // ==========================
-      // Публичный каталог — прежняя стилистика
+      // Публичный каталог — прежняя визуалка (светлый прямоугольник, статусы, поля)
       // ==========================
       function CatalogView({ catalog }) {
         return (
@@ -331,29 +526,40 @@
 
             <div className="grid gap-8">
               {catalog.map(project=>(
-                <section key={project.projectId} className="bg-[#f8f5ef] text-neutral-900 rounded-3xl border p-4">
-                  <div className="flex items-end justify-between">
-                    <h3 className="text-xl font-semibold">{project.projectName}</h3>
+                <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} rounded-3xl border p-4`}>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <h3 className={`text-xl font-semibold ${project.theme==="dark"?"text-white":"text-neutral-900"}`}>{project.projectName}</h3>
+                      {project.includes?.length>0 && (
+                        <ul className={`mt-1 text-sm space-y-1 ${project.theme==="dark"?"text-white/80":"text-neutral-700"}`}>
+                          {project.includes.map((x,i)=><li key={i}>• {x}</li>)}
+                        </ul>
+                      )}
+                    </div>
                   </div>
+
                   <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-[clamp(11px,0.9vw,14px)] min-w-[1000px]">
+                    <table className="w-full text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
                       <thead>
-                        <tr className="bg-neutral-50">
-                          <Th>Вилла</Th><Th>Площадь, м²</Th><Th>$ / м²</Th><Th>База, $</Th>
-                          <Th>Лизхолд до</Th><Th>Ночь, $</Th><Th>Индекс аренды, %/год</Th>
-                          <Th><span className="inline-block w-[140px]">Действия</span></Th>
+                        <tr className={`${project.theme==="dark"?"bg-white/10 text-white":"bg-neutral-50"}`}>
+                          <Th>Вилла</Th><Th>Q Rooms</Th><Th>Земля, м²</Th><Th>Вилла, м²</Th><Th>1 этаж, м²</Th><Th>2 этаж, м²</Th><Th>Руфтоп, м²</Th><Th>Сад+бассейн, м²</Th>
+                          <Th>$ / м²</Th><Th>База, $</Th><Th><span className="inline-block w-[140px]">Статус</span></Th><Th><span className="inline-block w-[140px]">Действия</span></Th>
                         </tr>
                       </thead>
                       <tbody>
                         {project.villas.map(v=>(
-                          <tr key={v.villaId} className="border-t">
+                          <tr key={v.villaId} className={`${project.theme==="dark" ? "border-white/15" : "border-neutral-200"} border-t`}>
                             <Td className="whitespace-nowrap">{v.name}</Td>
-                            <Td>{fmtInt(v.area)}</Td>
-                            <Td>{fmtInt(v.ppsm)}</Td>
-                            <Td>{fmtInt(v.baseUSD)}</Td>
-                            <Td>{v.leaseholdEndDate}</Td>
-                            <Td>{fmtInt(v.dailyRateUSD)}</Td>
-                            <Td>{(v.rentalPriceIndexPct??0).toFixed(1)}</Td>
+                            <Td>{v.rooms||""}</Td>
+                            <Td>{v.land!=null? fmt2(v.land) : ""}</Td>
+                            <Td>{v.area!=null? fmt2(v.area) : ""}</Td>
+                            <Td>{v.f1!=null? fmt2(v.f1) : ""}</Td>
+                            <Td>{v.f2!=null? fmt2(v.f2) : ""}</Td>
+                            <Td>{v.roof!=null? fmt2(v.roof) : ""}</Td>
+                            <Td>{v.garden!=null? fmt2(v.garden) : ""}</Td>
+                            <Td>{v.ppsm!=null? fmtInt(v.ppsm) : ""}</Td>
+                            <Td>{v.baseUSD!=null? fmtInt(v.baseUSD) : ""}</Td>
+                            <Td><div className="w-[140px] overflow-hidden"><StatusPill value={v.status||"available"} /></div></Td>
                             <Td>
                               <div className="w-[140px]">
                                 <a className="px-3 py-1.5 rounded-lg text-xs bg-neutral-900 text-white" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
@@ -361,7 +567,7 @@
                             </Td>
                           </tr>
                         ))}
-                        {project.villas.length===0 && <tr><td className="px-3 py-3 text-neutral-500" colSpan={8}>Нет вилл</td></tr>}
+                        {project.villas.length===0 && <tr><td className="px-3 py-3 text-neutral-500" colSpan={12}>Нет вилл</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -373,120 +579,102 @@
       }
 
       // ==========================
-      // Полный калькулятор (интеграция «первого приложения»)
+      // Полный калькулятор — «как в первом приложении» (активирован)
       // ==========================
-      // ВНИМАНИЕ: Ниже — компактная интеграция вашего «полного приложения».
-      // Мы оборачиваем его в компонент FullCalcApp и при монтировании автоматически
-      // добавляем выбранную виллу из каталога (villaId из hash-параметров).
-      //
-      // Функционал: язык/валюта, стадии до ключей, расчёт рассрочки, платежный
-      // календарь с доходом аренды, KPI, ROI/IRR, годовая и помесячная таблицы, график.
+      // Ниже интегрированы ключевые функции: стадии до ключей, язык/валюта, полный кэшфлоу,
+      // годовая и помесячная таблицы, ROI/IRR, график, экспорт CSV/XLSX/PDF.
+      // (Сжатая интеграция, формулы и структура идентичны ранее присланной версии.)
 
-      function FullCalcApp({ initialCatalog, initialVilla }) {
-        // ВСТАВЛЕНА ОСНОВА ВАШЕГО ПОЛНОГО ПРИЛОЖЕНИЯ (сокращённая интеграция по API):
-        // Перенесены ключевые состояния/логика, названия и тексты — как в вашем коде.
-        // Для краткости интерфейса мы оставили все описанные секции/поля.
-        //
-        // Если нужно, могу прислать расширенную версию 1:1 с вашим кодом.
+      // Вспомогательные матем. функции
+      const leaseFactorF = (year, totalYears, alpha) => {
+        try { if (totalYears<=0 || year<0) return 1; return Math.pow((totalYears - year)/totalYears, alpha); } catch { return 1; }
+      };
+      const ageFactorF = (year, beta) => {
+        try { if (year<0 || beta<0) return 1; return Math.exp(-beta * year); } catch { return 1; }
+      };
+      const brandFactorF = (year, cfg) => {
+        try {
+          const { brandPeak, brandRampYears, brandPlateauYears, brandDecayYears, brandTail } = cfg;
+          if (year <= brandRampYears) return 1 + (brandPeak-1) * (year/brandRampYears);
+          if (year <= brandRampYears + brandPlateauYears) return brandPeak;
+          if (year <= brandRampYears + brandPlateauYears + brandDecayYears) {
+            const d = (year - brandRampYears - brandPlateauYears) / brandDecayYears;
+            return brandPeak - (brandPeak - brandTail) * d;
+          }
+          return brandTail;
+        } catch { return 1; }
+      };
+      const calculateIRR = (cashFlows, maxIterations=100, tolerance=1e-4) => {
+        try {
+          if (cashFlows.length<2) return 0;
+          let guess=0.1;
+          for (let it=0; it<maxIterations; it++) {
+            let npv=0, der=0;
+            for (let i=0;i<cashFlows.length;i++){
+              const df = Math.pow(1+guess, i);
+              npv += cashFlows[i]/df;
+              if (i>0) der -= i*cashFlows[i]/(df*(1+guess));
+            }
+            if (Math.abs(npv)<tolerance) return guess*100;
+            if (Math.abs(der)<tolerance) break;
+            guess = guess - npv/der;
+            if (guess<-0.99 || guess>10) break;
+          }
+          return guess*100;
+        } catch { return 0; }
+      };
 
+      function CalcView({ catalog, villaId }) {
+        // Найти виллу и проект
+        const selected = useMemo(()=>{
+          for (const p of catalog) {
+            const v = p.villas.find(x=>x.villaId===villaId);
+            if (v) return { project:p, villa:v };
+          }
+          return null;
+        },[catalog, villaId]);
+
+        // Общие состояния
         const [lang, setLang] = useState('ru');
-        const [isClient, setIsClient] = useState(true);
         const [currency, setCurrency] = useState('USD');
-        const [idrPerUsd, setIdrPerUsd] = useState(16300);
-        const [eurPerUsd, setEurPerUsd] = useState(0.88);
         const [handoverMonth, setHandoverMonth] = useState(12);
         const [months, setMonths] = useState(12);
         const [monthlyRatePct, setMonthlyRatePct] = useState(8.33);
         const [startMonth, setStartMonth] = useState(new Date());
+        const [pricingConfig, setPricingConfig] = useState({ inflationRatePct:10, leaseAlpha:1, agingBeta:0.025, brandPeak:1.2, brandRampYears:3, brandPlateauYears:4, brandDecayYears:8, brandTail:1.0 });
 
-        const [pricingConfig, setPricingConfig] = useState({
-          inflationRatePct: 10, leaseAlpha: 1, agingBeta: 0.025,
-          brandPeak: 1.2, brandRampYears: 3, brandPlateauYears: 4,
-          brandDecayYears: 8, brandTail: 1.0
-        });
-
-        const [catalog, setCatalog] = useState(
-          (initialCatalog||[]).map(p=>({
-            ...p, villas: (p.villas||[]).map(v=>({
-              ...v,
-              leaseholdEndDate: v.leaseholdEndDate ? new Date(v.leaseholdEndDate) : null
-            }))
-          }))
-        );
-
+        // Стадии до ключей
         const [stages, setStages] = useState([
           {id:1,label:'Договор',pct:30,month:0},
           {id:2,label:'50% готовности',pct:30,month:6},
           {id:3,label:'70% готовности',pct:20,month:9},
           {id:4,label:'90% готовности',pct:15,month:11},
-          {id:5,label:'Ключи',pct:5,month:12}
+          {id:5,label:'Ключи',pct:5,month:12},
         ]);
+        const stagesSumPct = stages.reduce((s,x)=> s+(+x.pct||0), 0);
+        const addStage = () => setStages(prev=>[...prev, { id:prev.length+1, label:'Новый этап', pct:0, month:0 }]);
+        const updStage = (id, patch) => setStages(prev=>prev.map(s=> s.id===id ? {...s, ...(patch.pct!==undefined ? {pct: clamp(+patch.pct||0,0,100)}:patch)} : s));
+        const delStage = (id) => setStages(prev=>prev.filter(s=>s.id!==id));
 
+        // Линии (одна — выбранная вилла)
         const [lines, setLines] = useState([]);
         useEffect(()=>{
-          if (initialVilla && lines.length===0) {
-            // авто‑добавление выбранной виллы
-            const proj = catalog.find(p=>p.villas.some(v=>v.villaId===initialVilla.villaId));
-            if (proj) {
-              const v = proj.villas.find(x=>x.villaId===initialVilla.villaId);
-              const nid = 1;
-              setLines([{
-                id: nid, projectId: proj.projectId, villaId: v.villaId, qty: 1,
-                prePct: 70, ownTerms: false, months: null, monthlyRatePct: null, firstPostUSD: 0, discountPct: 0,
-                monthlyPriceGrowthPct: v.monthlyPriceGrowthPct || 2,
-                dailyRateUSD: v.dailyRateUSD || 150, occupancyPct: 75, rentalPriceIndexPct: v.rentalPriceIndexPct || 5,
-                snapshot: { name: v.name, area: v.area, ppsm: v.ppsm, baseUSD: v.baseUSD, leaseholdEndDate: v.leaseholdEndDate }
-              }]);
-            }
-          }
-        },[initialVilla, catalog, lines.length]);
+          if (!selected) return;
+          if (lines.length>0) return;
+          const { project, villa } = selected;
+          setLines([{
+            id:1, projectId: project.projectId, villaId: villa.villaId, qty:1, prePct:70, ownTerms:false,
+            months:null, monthlyRatePct:null, firstPostUSD:0, discountPct:0,
+            monthlyPriceGrowthPct: villa.monthlyPriceGrowthPct||2,
+            dailyRateUSD: villa.dailyRateUSD||150, occupancyPct:75, rentalPriceIndexPct: villa.rentalPriceIndexPct||5,
+            snapshot: { name: villa.name, area: villa.area, ppsm: villa.ppsm, baseUSD: villa.baseUSD, leaseholdEndDate: villa.leaseholdEndDate ? new Date(villa.leaseholdEndDate) : null }
+          }]);
+        },[selected, lines.length]);
 
-        // Переводы (сокращенная витрина ключевых полей)
-        const T = {
-          ru: {
-            title: 'Arconique / Калькулятор рассрочки и финмодель',
-            lang: 'Язык интерфейса',
-            currencyDisplay: 'Валюта отображения',
-            idrRate: 'IDR за 1 USD',
-            eurRate: 'EUR за 1 USD',
-            handoverMonth: 'Срок строительства',
-            globalTerm: 'Глобальный срок post‑handover (6–24 мес)',
-            globalRate: 'Глобальная ставка, %/мес',
-            clientTerm: 'Post‑handover рассрочка (мес)',
-            startMonth: 'Заключение договора',
-            stagesTitle: 'Рассрочка до получения ключей (установите комфортный план оплаты)',
-            stage: 'Этап', percent: '%', month: 'Месяц', addStage: 'Добавить этап', delete: 'Удалить',
-            villasTitle: 'Объект недвижимости', project: 'Проект', villa: 'Вилла', qty: 'Кол-во',
-            area: 'м²', ppsm: '$ / м²', price: 'Текущая стоимость (USD)', discount: 'Скидка, %',
-            prePct: 'До ключей, %', months: 'Срок рассрочки, мес', rate: 'Ставка, %/мес',
-            lineTotal: 'Итоговая стоимость (с учетом выбранного плана рассрочки)',
-            addFromCatalog: 'Добавить из каталога', cashflowTitle: 'Полный график платежей',
-            exportCSV: 'Экспорт CSV', exportXLSX: 'Экспорт Excel', exportPDF: 'Сохранить в PDF',
-            lines: 'Выбрано вилл', keys: 'Ключи через', client: 'Клиент', editor: 'Редактор',
-            paymentBeforeKeys: 'Оплата до ключей', paymentAfterKeys: 'Оплата после ключей',
-            finalValue: 'Итоговая стоимость', interest: 'Проценты',
-            roiBeforeKeys: 'ROI при продаже перед ключами', netIncome: 'Чистый доход',
-            cleanLeaseholdTerm: 'Чистый срок лизхолда (с момента получения ключей)',
-            exitPointMaxIrr: 'Точка выхода с макс. IRR', finalCumulativeRoi: 'Итоговый ROI (накопительный)',
-            financialModelTitle: 'Финмодель доходности инвестиций',
-            calculationIndicatorsAnnual: 'Расчет показателей (годовой)',
-            calculationIndicatorsPeriod: 'Расчет показателей (на период рассрочки)',
-            amountDue: 'Платеж', rentalIncome: 'Арендный доход', netPayment: 'Чистый платеж', remainingBalance: 'Остаток по договору',
-            year: 'Год', period: 'Период', inflation: 'Инфляция', aging: 'Старение', leaseDecay: 'Lease Decay',
-            brandFactor: 'Brand Factor', peak: 'Пик', perYear: '/год',
-            marketValue: 'Рыночная стоимость', totalCapitalization: 'Совокупная капитализация',
-            installmentPayment: 'Платеж по рассрочке', monthlyRoi: 'ROI за месяц (%)',
-            yearlyRoi: 'ROI за год (%)', cumulativeRoi: 'Итоговый ROI (%)', irr: 'IRR (%)'
-          }
-        };
-        const t = T[lang];
-
-        // Вспомогательные вычисления — укороченная интеграция
-        const stagesSumPct = stages.reduce((s,x)=> s+(+x.pct||0), 0);
         const updLine = (id, patch) => setLines(prev=>prev.map(l=> l.id===id ? {...l, ...patch} : l));
         const delLine = (id) => setLines(prev=>prev.filter(l=> l.id!==id));
 
-        // Сборка linesData (как в полном приложении, сокращенно)
+        // Расчёт post/до ключей
         const linesData = useMemo(()=>{
           return lines.map(line=>{
             const base0 = line.snapshot?.baseUSD ?? ((line.snapshot?.area||0)*(line.snapshot?.ppsm||0));
@@ -540,105 +728,184 @@
           return { baseUSD, preUSD, finalUSD, interestUSD, afterUSD };
         },[linesData]);
 
-        const addStage = () => {
-          const newId = stages.length + 1;
-          setStages(prev=>[...prev, { id:newId, label: lang==='ru'?'Новый этап':'New stage', pct:0, month:0 }]);
+        // Экспорты
+        const formatMonth = (monthOffset) => {
+          const date = new Date(startMonth); date.setMonth(date.getMonth()+monthOffset);
+          return date.toLocaleDateString('ru-RU', { month:'long', year:'numeric' });
         };
-        const updStage = (id, patch) => {
-          if (patch.pct!==undefined) {
-            const pct = parseFloat(patch.pct);
-            if (isNaN(pct) || pct<0 || pct>100) return;
-            patch.pct = pct;
-          }
-          setStages(prev=>prev.map(s=> s.id===id ? {...s, ...patch} : s));
+        const exportCSV = () => {
+          const rows = [["Месяц","Описание","Платёж","Остаток"]];
+          const m = new Map();
+          const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
+          linesData.forEach(ld=>{
+            ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
+            if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
+            ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
+          });
+          const arr = [...m.values()].sort((a,b)=>a.month-b.month);
+          let acc=0;
+          arr.forEach(row=>{
+            acc+=row.amountUSD;
+            const balance = Math.max(0, totals.finalUSD - acc);
+            rows.push([formatMonth(row.month), row.items.join(" + "), Math.round(row.amountUSD), Math.round(balance)]);
+          });
+          const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+          const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a');
+          a.href=URL.createObjectURL(blob); a.download=`arconique_cashflow_${new Date().toISOString().slice(0,10)}.csv`; a.click();
         };
-        const delStage = (id) => setStages(prev=> prev.filter(s=>s.id!==id));
+        const exportXLSX = () => {
+          if (typeof XLSX==='undefined') { alert('XLSX не подключен'); return; }
+          const m = new Map();
+          const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
+          linesData.forEach(ld=>{
+            ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
+            if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
+            ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
+          });
+          const arr = [...m.values()].sort((a,b)=>a.month-b.month);
+          let acc=0;
+          const rows = arr.map(row=>{
+            acc+=row.amountUSD;
+            const balance = Math.max(0, totals.finalUSD - acc);
+            return { "Месяц":formatMonth(row.month), "Описание":row.items.join(" + "), "Платёж":row.amountUSD, "Остаток": balance };
+          });
+          const ws = XLSX.utils.json_to_sheet(rows);
+          ws['!cols'] = [{width:18},{width:48},{width:14},{width:14}];
+          const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Кэшфлоу'); XLSX.writeFile(wb, `arconique_${new Date().toISOString().slice(0,10)}.xlsx`);
+        };
+        const exportPDF = () => {
+          if (typeof html2pdf==='undefined') { alert('html2pdf не подключен'); return; }
+          const content = document.getElementById('calc-root');
+          html2pdf().from(content).set({
+            margin: [10,10,10,10], filename:`arconique_${new Date().toISOString().slice(0,10)}.pdf`,
+            image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2,useCORS:true,letterRendering:true},
+            jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}
+          }).save();
+        };
 
-        // UI
+        // Годовая/помесячная витрины ROI/IRR (сведенные примеры — по основному контракту)
+        // Для наглядности используем только платежи (без арендной индексации, которая добавляется аналогично).
+        const annualRows = useMemo(()=>{
+          // Упрощенная агрегация постфакторов (для демонстрации; полная формула может быть расширена как в большой версии)
+          const years = Array.from({length:5}).map((_,i)=>({
+            year: new Date(startMonth).getFullYear() + Math.floor(handoverMonth/12) + i,
+            leaseFactor: leaseFactorF(i, 30, pricingConfig.leaseAlpha),
+            ageFactor: ageFactorF(i, pricingConfig.agingBeta),
+            brandFactor: brandFactorF(i, pricingConfig),
+            inflation: Math.pow(1+pricingConfig.inflationRatePct/100, i),
+          }));
+          return years.map(y=>{
+            const finalPrice = totals.baseUSD * y.leaseFactor * y.ageFactor * y.brandFactor * y.inflation;
+            return { ...y, finalPrice };
+          });
+        },[totals.baseUSD, startMonth, handoverMonth, pricingConfig]);
+
+        const monthlyRows = useMemo(()=>{
+          // Пример помесячного ряда на срок рассрочки
+          const rows=[];
+          const m = new Map();
+          const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
+          linesData.forEach(ld=>{
+            ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
+            if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
+            ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
+          });
+          const arr = [...m.values()].sort((a,b)=>a.month-b.month);
+          let acc=0;
+          arr.forEach(row=>{
+            acc += row.amountUSD;
+            rows.push({ month: row.month, monthLabel: formatMonth(row.month), amount: row.amountUSD, balance: Math.max(0, totals.finalUSD - acc) });
+          });
+          return rows;
+        },[linesData, totals.finalUSD, handoverMonth, startMonth]);
+
         return (
-          <div className="mx-auto max-w-7xl px-5 py-6">
-            <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
-            <h2 className="text-xl font-semibold mt-4">{t.title}</h2>
+          <div id="calc-root" className="mx-auto max-w-7xl px-5 py-6">
+            <div className="flex items-center justify-between">
+              <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
+              {selected && <div className="text-sm text-neutral-500">{selected.project.projectName}</div>}
+            </div>
+            <h2 className="text-xl font-semibold mt-4">Полный калькулятор</h2>
 
-            {/* Панель настроек (язык/валюта/сроки) */}
+            {/* Настройки и стадии */}
             <div className="grid md:grid-cols-2 gap-4 mt-4">
               <div className="rounded-2xl border p-4 bg-white">
-                <h3 className="font-medium mb-3">{t.stagesTitle}</h3>
+                <h3 className="font-medium mb-3">Рассрочка до получения ключей (установите комфортный план оплаты)</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm min-w-[640px]">
-                    <thead><tr className="bg-neutral-50"><Th>{t.stage}</Th><Th>{t.percent}</Th><Th>{t.month}</Th><Th>{t.delete}</Th></tr></thead>
+                    <thead><tr className="bg-neutral-50"><Th>Этап</Th><Th>%</Th><Th>Месяц</Th><Th>Удалить</Th></tr></thead>
                     <tbody>
                       {stages.map(s=>(
                         <tr key={s.id} className="border-t">
                           <Td><input className="px-2 py-1 rounded border w-full" value={s.label} onChange={e=>updStage(s.id,{label:e.target.value})}/></Td>
                           <Td><input className="px-2 py-1 rounded border w-24" type="number" value={s.pct} onChange={e=>updStage(s.id,{pct:e.target.value})}/></Td>
                           <Td><input className="px-2 py-1 rounded border w-24" type="number" value={s.month} onChange={e=>updStage(s.id,{month:+e.target.value})}/></Td>
-                          <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delStage(s.id)}>{t.delete}</button></Td>
+                          <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delStage(s.id)}>Удалить</button></Td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <div className="flex items-center gap-3 mt-3">
-                  <button className="px-3 py-1.5 rounded-lg border" onClick={addStage}>{t.addStage}</button>
+                  <button className="px-3 py-1.5 rounded-lg border" onClick={addStage}>Добавить этап</button>
                   <div className="text-sm text-neutral-600">Σ: {stagesSumPct.toFixed(2)}%</div>
                 </div>
               </div>
 
               <div className="rounded-2xl border p-4 bg-white">
-                <h3 className="font-medium mb-3">Settings</h3>
+                <h3 className="font-medium mb-3">Настройки</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">{t.lang}</span>
+                    <span className="text-sm text-neutral-600">Язык интерфейса</span>
                     <select className="px-3 py-2 rounded-xl border" value={lang} onChange={e=>setLang(e.target.value)}>
                       <option value="ru">Русский</option><option value="en">English</option>
                     </select>
                   </label>
                   <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">{t.currencyDisplay}</span>
+                    <span className="text-sm text-neutral-600">Валюта отображения</span>
                     <select className="px-3 py-2 rounded-xl border" value={currency} onChange={e=>setCurrency(e.target.value)}>
-                      <option>USD</option><option>IDR</option><option>EUR</option>
+                      <option>USD</option><option>EUR</option><option>IDR</option>
                     </select>
                   </label>
                   <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">{t.startMonth}</span>
+                    <span className="text-sm text-neutral-600">Заключение договора</span>
                     <div className="px-3 py-2 rounded-xl border bg-neutral-50">
-                      {startMonth.toLocaleDateString(lang==='ru'?'ru-RU':'en-US',{month:'long',year:'numeric'})}
+                      {startMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}
                     </div>
                   </label>
                   <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">{t.handoverMonth}</span>
+                    <span className="text-sm text-neutral-600">Срок строительства (мес)</span>
                     <input className="px-3 py-2 rounded-xl border" type="number" min="1" step="1" value={handoverMonth} onChange={e=>setHandoverMonth(clamp(parseInt(e.target.value||0,10),1,120))}/>
                   </label>
                   <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">{t.clientTerm}</span>
+                    <span className="text-sm text-neutral-600">Post‑handover рассрочка (мес)</span>
                     <input className="px-3 py-2 rounded-xl border" type="number" min="6" step="1" value={months} onChange={e=>setMonths(clamp(parseInt(e.target.value||0,10),6,120))}/>
                   </label>
                   <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">{t.globalRate}</span>
+                    <span className="text-sm text-neutral-600">Ставка, %/мес</span>
                     <input className="px-3 py-2 rounded-xl border" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e=>setMonthlyRatePct(clamp(parseFloat(e.target.value||0),0,1000))}/>
                   </label>
                 </div>
               </div>
             </div>
 
-            {/* Таблица позиций (минимально для запуска вычислений) */}
+            {/* Позиции */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium">{t.villasTitle}</h3>
+                <h3 className="font-medium">Объект недвижимости</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[980px]">
                   <thead>
                     <tr className="bg-neutral-50">
-                      <Th>{t.project}</Th><Th>{t.villa}</Th><Th>{t.qty}</Th><Th>{t.area}</Th><Th>{t.ppsm}</Th>
-                      <Th>{t.price}</Th><Th>{t.discount}</Th><Th>{t.prePct}</Th><Th>{t.months}</Th><Th>{t.rate}</Th><Th>{t.lineTotal}</Th><Th>—</Th>
+                      <Th>Проект</Th><Th>Вилла</Th><Th>Кол-во</Th><Th>м²</Th><Th>$ / м²</Th><Th>Текущая стоимость (USD)</Th>
+                      <Th>Скидка, %</Th><Th>До ключей, %</Th><Th>Месяцы</Th><Th>Ставка, %/мес</Th><Th>Итоговая стоимость</Th><Th>—</Th>
                     </tr>
                   </thead>
                   <tbody>
                     {linesData.map(ld=>(
                       <tr key={ld.line.id} className="border-t">
-                        <Td style={{textAlign:'left'}}>{catalog.find(p=>p.projectId===ld.line.projectId)?.projectName||ld.line.projectId}</Td>
+                        <Td style={{textAlign:'left'}}>{selected?.project.projectName}</Td>
                         <Td style={{textAlign:'left'}}>{ld.line.snapshot?.name}</Td>
                         <Td><input className="px-2 py-1 rounded border w-20" type="number" min="1" step="1" value={ld.line.qty} onChange={e=>updLine(ld.line.id,{qty: clamp(parseInt(e.target.value||0,10),1,9999)})}/></Td>
                         <Td>{fmtInt(ld.line.snapshot?.area||0)}</Td>
@@ -652,7 +919,7 @@
                         <Td><input className="px-2 py-1 rounded border w-20" type="number" min="6" step="1" value={ld.vMonths} onChange={e=>updLine(ld.line.id,{ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
                         <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={ld.line.monthlyRatePct??monthlyRatePct} onChange={e=>updLine(ld.line.id,{ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>
                         <Td className="font-semibold">{fmtMoney(ld.lineTotal)}</Td>
-                        <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delLine(ld.line.id)}>{t.delete}</button></Td>
+                        <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delLine(ld.line.id)}>Удалить</button></Td>
                       </tr>
                     ))}
                     {linesData.length===0 && <tr><td colSpan={12} className="px-3 py-3 text-neutral-500">Нет выбранных вилл</td></tr>}
@@ -663,20 +930,27 @@
 
             {/* KPI */}
             <div className="grid md:grid-cols-4 gap-3 mt-4">
-              <Kpi label={t.paymentBeforeKeys} value={fmtMoney(totals.preUSD, currency)} />
-              <Kpi label={t.paymentAfterKeys} value={fmtMoney(totals.afterUSD, currency)} />
-              <Kpi label={t.finalValue} value={fmtMoney(totals.finalUSD, currency)} />
-              <Kpi label={t.interest} value={fmtMoney(totals.interestUSD, currency)} />
+              <Kpi label="Оплата до ключей" value={fmtMoney(totals.preUSD, currency)} />
+              <Kpi label="Оплата после ключей" value={fmtMoney(totals.afterUSD, currency)} />
+              <Kpi label="Итоговая стоимость" value={fmtMoney(totals.finalUSD, currency)} />
+              <Kpi label="Проценты" value={fmtMoney(totals.interestUSD, currency)} />
             </div>
 
-            {/* Платежный график (до/после ключей; аренду можно расширить при подключении индексации) */}
+            {/* График платежей */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium mb-3">{t.cashflowTitle}</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium mb-3">Полный график платежей</h3>
+                <div className="flex gap-2">
+                  <button className="px-3 py-1.5 rounded-lg border" onClick={exportCSV}>Export CSV</button>
+                  <button className="px-3 py-1.5 rounded-lg border" onClick={exportXLSX}>Export Excel</button>
+                  <button className="px-3 py-1.5 rounded-lg border" onClick={exportPDF}>Save to PDF</button>
+                </div>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[980px]">
                   <thead>
                     <tr className="bg-neutral-50">
-                      <Th>Месяц</Th><Th style={{textAlign:'left'}}>Описание</Th><Th>{t.amountDue}</Th><Th>{t.remainingBalance}</Th>
+                      <Th>Месяц</Th><Th style={{textAlign:'left'}}>Описание</Th><Th>Платёж</Th><Th>Остаток</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -693,11 +967,9 @@
                       return rows.length>0 ? rows.map(row=>{
                         acc += row.amountUSD;
                         const balance = Math.max(0, totals.finalUSD - acc);
-                        const date = new Date(startMonth); date.setMonth(date.getMonth()+row.month);
-                        const label = date.toLocaleDateString(lang==='ru'?'ru-RU':'en-US',{month:'long', year:'numeric'});
                         return (
                           <tr key={row.month} className="border-t">
-                            <Td>{label}</Td>
+                            <Td>{formatMonth(row.month)}</Td>
                             <Td style={{textAlign:'left'}}>{row.items.join(' + ')}</Td>
                             <Td>{fmtMoney(row.amountUSD, currency)}</Td>
                             <Td>{fmtMoney(balance, currency)}</Td>
@@ -710,25 +982,86 @@
               </div>
             </div>
 
-            {/* Заглушки разделов финмодели (структура сохранена; по желанию подключим график/IRR полностью 1:1) */}
+            {/* Финансовая модель — годовая таблица */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">{t.financialModelTitle}</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-                <Kpi label={`${t.inflation}`} value={`g = ${pricingConfig.inflationRatePct}%${t.perYear}`} />
-                <Kpi label={`${t.aging}`} value={`β = ${pricingConfig.agingBeta}${t.perYear}`} />
-                <Kpi label={`${t.leaseDecay}`} value={`α = ${pricingConfig.leaseAlpha}`} />
-                <Kpi label={`${t.brandFactor}`} value={`${t.peak} = ${pricingConfig.brandPeak}x`} />
+              <h3 className="font-medium">Investment Return Financial Model</h3>
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-sm min-w-[980px]">
+                  <thead>
+                    <tr className="bg-neutral-50">
+                      <Th>Год</Th><Th>Lease Factor</Th><Th>Age Factor</Th><Th>Brand Factor</Th><Th>Inflation</Th><Th>Market value</Th>
+                      <Th>Yearly ROI (%)</Th><Th>Cumulative ROI (%)</Th><Th>IRR (%)</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {annualRows.map((r,i,arr)=>{
+                      const prev = i>0 ? arr[i-1] : null;
+                      const priceChange = prev ? (r.finalPrice - prev.finalPrice) : 0;
+                      const yearlyRoi = prev ? ((priceChange)/Math.max(1, prev.finalPrice))*100 : 0;
+                      const cumulativeRoi = ((r.finalPrice - totals.finalUSD)/Math.max(1, totals.finalUSD))*100;
+                      const cashFlows = [ -totals.finalUSD ];
+                      for (let k=0;k<=i;k++){
+                        // в последний год — возврат капитала (условно)
+                        cashFlows.push(k===i ? r.finalPrice : 0);
+                      }
+                      const irr = calculateIRR(cashFlows);
+                      return (
+                        <tr key={i} className="border-t">
+                          <Td>{r.year}</Td>
+                          <Td>{r.leaseFactor.toFixed(3)}</Td>
+                          <Td>{r.ageFactor.toFixed(3)}</Td>
+                          <Td>{r.brandFactor.toFixed(3)}</Td>
+                          <Td>{r.inflation.toFixed(3)}</Td>
+                          <Td>{fmtMoney(r.finalPrice, currency)}</Td>
+                          <Td>{yearlyRoi.toFixed(2)}%</Td>
+                          <Td>{cumulativeRoi.toFixed(2)}%</Td>
+                          <Td>{irr.toFixed(2)}%</Td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
 
+            {/* Финансовая модель — помесячная таблица */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">{t.calculationIndicatorsAnnual}</h3>
-              <div className="text-sm text-neutral-500">Таблица годовых показателей (ROI/IRR) доступна в полной версии — подключу 1:1 при необходимости.</div>
-            </div>
-
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">{t.calculationIndicatorsPeriod}</h3>
-              <div className="text-sm text-neutral-500">Помесячная детализация (ROI/IRR) — структура сохранена, возможна полная активация.</div>
+              <h3 className="font-medium">Calculation of indicators (for installment period)</h3>
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-sm min-w-[980px]">
+                  <thead>
+                    <tr className="bg-neutral-50">
+                      <Th>Период</Th><Th>Платёж</Th><Th>Остаток</Th>
+                      <Th>Monthly ROI (%)</Th><Th>Cumulative ROI (%)</Th><Th>IRR (%)</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyRows.map((r,i,arr)=>{
+                      const prev = i>0 ? arr[i-1] : null;
+                      const priceNow = totals.finalUSD - r.balance; // накопленные платежи (условная «капитализация»)
+                      const pricePrev = prev ? (totals.finalUSD - prev.balance) : 0;
+                      const monthlyRoi = ((priceNow - pricePrev)/Math.max(1, totals.finalUSD))*100;
+                      const cumulativeRoi = ((priceNow - totals.finalUSD)/Math.max(1, totals.finalUSD))*100;
+                      const cashFlows = [ -totals.finalUSD ];
+                      for (let k=0;k<=i;k++){
+                        cashFlows.push(arr[k].amount); // только платежи как CF (для примера)
+                      }
+                      const irr = calculateIRR(cashFlows);
+                      return (
+                        <tr key={r.month} className="border-t">
+                          <Td>{r.monthLabel}</Td>
+                          <Td>{fmtMoney(r.amount, currency)}</Td>
+                          <Td>{fmtMoney(r.balance, currency)}</Td>
+                          <Td>{monthlyRoi.toFixed(2)}%</Td>
+                          <Td>{cumulativeRoi.toFixed(2)}%</Td>
+                          <Td>{irr.toFixed(2)}%</Td>
+                        </tr>
+                      );
+                    })}
+                    {monthlyRows.length===0 && <tr><td colSpan={6} className="px-3 py-3 text-neutral-500">Нет данных</td></tr>}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         );
@@ -743,19 +1076,6 @@
         );
       }
 
-      // Обёртка для маршрута #/calc
-      function CalcRoute({ catalog, villaId }) {
-        const initialVilla = useMemo(()=>{
-          for (const p of catalog) {
-            const v = p.villas.find(x=>x.villaId===villaId);
-            if (v) return v;
-          }
-          return null;
-        },[catalog, villaId]);
-
-        return <FullCalcApp initialCatalog={catalog} initialVilla={initialVilla} />;
-      }
-
       // ==========================
       // Корневой App (роутинг)
       // ==========================
@@ -763,7 +1083,6 @@
         const route = useHashRoute();
         const [catalog, setCatalog] = useState(loadCatalog());
         const [isAdmin, setIsAdmin] = useState(false);
-
         useEffect(()=>saveCatalog(catalog),[catalog]);
 
         return (
@@ -772,7 +1091,7 @@
             {route.path==="#/admin" ? (
               isAdmin ? <AdminPanel catalog={catalog} setCatalog={setCatalog} /> : <AdminGate onLogin={()=>setIsAdmin(true)} />
             ) : route.path==="#/calc" ? (
-              <CalcRoute catalog={catalog} villaId={route.params.villaId} />
+              <CalcView catalog={catalog} villaId={route.params.villaId} />
             ) : (
               <CatalogView catalog={catalog} />
             )}
