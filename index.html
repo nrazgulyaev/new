@@ -7,34 +7,53 @@
     <title>Arconique · Каталог / Админ / Калькулятор</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./styles.css" />
+    <style>
+      /* На время диагностики покажем прелоадер, пока React не отрисуется */
+      #root::before{
+        content:"Загрузка приложения…";
+        display:block;
+        padding:24px;
+        color:#475569;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
 
-    <!-- React 18 (DEV) для диагностики. Для продакшена можно заменить на production.min.js -->
+    <!-- React 18 (DEV) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-    <!-- Babel Standalone (нужен, т.к. app.js содержит JSX). В продакшене лучше предсобрать. -->
+    <!-- Babel Standalone -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Ваше приложение -->
-    <script type="text/babel" data-presets="react" src="./app.js"></script>
+    <!-- Приложение: важны type="text/babel" и data-presets="env,react" -->
+    <script type="text/babel" data-presets="env,react" src="./app.js"></script>
 
-    <!-- Простой оверлей ошибок (чтобы не было “белого экрана” без причины) -->
+    <!-- Оверлей ошибок -->
     <script>
-      window.addEventListener('error', (e) => {
+      function showOverlay(text) {
         const pre = document.createElement('pre');
-        pre.style.cssText = 'position:fixed;left:0;right:0;bottom:0;max-height:50vh;overflow:auto;background:#111;color:#f66;margin:0;padding:12px;font:12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco';
-        pre.textContent = 'Runtime error: ' + (e.error?.stack || e.message);
+        pre.style.cssText = 'position:fixed;left:0;right:0;bottom:0;max-height:50vh;overflow:auto;background:#111;color:#f66;margin:0;padding:12px;font:12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco;z-index:99999';
+        pre.textContent = text;
         document.body.appendChild(pre);
+      }
+      window.addEventListener('error', (e) => {
+        showOverlay('Runtime error: ' + (e.error?.stack || e.message));
       });
       window.addEventListener('unhandledrejection', (e) => {
-        const pre = document.createElement('pre');
-        pre.style.cssText = 'position:fixed;left:0;right:0;bottom:0;max-height:50vh;overflow:auto;background:#111;color:#f66;margin:0;padding:12px;font:12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco';
-        pre.textContent = 'Unhandled rejection: ' + (e.reason?.stack || e.reason || 'unknown');
-        document.body.appendChild(pre);
+        showOverlay('Unhandled rejection: ' + (e.reason?.stack || e.reason || 'unknown'));
       });
+      // Снимаем прелоадер после монтирования React (как только изменится DOM root)
+      const ro = new MutationObserver(() => {
+        const root = document.getElementById('root');
+        if (root && root.childNodes.length) {
+          root.style.removeProperty('content');
+          document.head.querySelector('style')?.remove(); // убираем стиль прелоадера
+          ro.disconnect();
+        }
+      });
+      ro.observe(document.getElementById('root'), { childList: true });
     </script>
   </body>
 </html>
