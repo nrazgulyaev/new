@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Arconique · Каталог / Админ / Калькулятор</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Экспорт (включите при необходимости) -->
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <link rel="icon" href="data:," />
@@ -25,7 +24,6 @@
       const PIN_CODE = "334346";
       const LS_CATALOG = "arq_catalog_v2";
 
-      const uid = () => Math.random().toString(36).slice(2, 9);
       const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
       const fmtInt = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(n || 0));
       const fmt2 = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(+n || 0);
@@ -35,18 +33,16 @@
       const loadCatalog = () => {
         try {
           const raw = localStorage.getItem(LS_CATALOG);
-          if (!raw) return defaultCatalog();
+          if (!raw) return defaults();
           const parsed = JSON.parse(raw);
-          return Array.isArray(parsed) ? parsed : defaultCatalog();
+          return Array.isArray(parsed) ? parsed : defaults();
         } catch {
-          return defaultCatalog();
+          return defaults();
         }
       };
-      const saveCatalog = (catalog) => {
-        try { localStorage.setItem(LS_CATALOG, JSON.stringify(catalog)); } catch {}
-      };
+      const saveCatalog = (catalog) => { try { localStorage.setItem(LS_CATALOG, JSON.stringify(catalog)); } catch {} };
 
-      function defaultCatalog() {
+      function defaults() {
         return [
           {
             projectId: "ahau-gardens",
@@ -54,60 +50,9 @@
             theme: "light",
             includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
             villas: [
-              {
-                villaId: "ahau-a1-2br",
-                name: "A1",
-                status: "hold",
-                rooms: "2",
-                land: 201.7,
-                area: 142.7,
-                f1: 107.1,
-                f2: 38.89,
-                roof: 0,
-                garden: 57.5,
-                ppsm: 2200,
-                baseUSD: 282828,
-                monthlyPriceGrowthPct: 2,
-                leaseholdEndDate: "2055-01-01",
-                dailyRateUSD: 220,
-                rentalPriceIndexPct: 5
-              },
-              {
-                villaId: "ahau-a6-2br",
-                name: "A6",
-                status: "reserved",
-                rooms: "2",
-                land: 201.7,
-                area: 142.7,
-                f1: 107.1,
-                f2: 38.89,
-                roof: 0,
-                garden: 57.5,
-                ppsm: 2250,
-                baseUSD: 289229,
-                monthlyPriceGrowthPct: 2,
-                leaseholdEndDate: "2055-01-01",
-                dailyRateUSD: 230,
-                rentalPriceIndexPct: 5
-              },
-              {
-                villaId: "ahau-b1-2rt",
-                name: "B1",
-                status: "hold",
-                rooms: "2+rt",
-                land: 100.5,
-                area: 192.0,
-                f1: 83.1,
-                f2: 67.96,
-                roof: 40.9,
-                garden: 24.51,
-                ppsm: null,
-                baseUSD: null,
-                monthlyPriceGrowthPct: 2,
-                leaseholdEndDate: "2055-01-01",
-                dailyRateUSD: 260,
-                rentalPriceIndexPct: 5
-              }
+              { villaId: "ahau-a1-2br", name: "A1", status: "hold", rooms: "2", land: 201.7, area: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2200, baseUSD: 282828, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 220, rentalPriceIndexPct: 5 },
+              { villaId: "ahau-a6-2br", name: "A6", status: "reserved", rooms: "2", land: 201.7, area: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2250, baseUSD: 289229, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 230, rentalPriceIndexPct: 5 },
+              { villaId: "ahau-b1-2rt", name: "B1", status: "hold", rooms: "2+rt", land: 100.5, area: 192.0, f1: 83.1, f2: 67.96, roof: 40.9, garden: 24.51, ppsm: null, baseUSD: null, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 260, rentalPriceIndexPct: 5 }
             ]
           },
           {
@@ -116,36 +61,8 @@
             theme: "light",
             includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
             villas: [
-              {
-                villaId: "enso-l1-2br",
-                name: "L1",
-                status: "hold",
-                rooms: "2",
-                land: 174.6,
-                area: 104.1,
-                f1: 0, f2: 0, roof: 0, garden: 40.73,
-                ppsm: 2410,
-                baseUSD: 244775,
-                monthlyPriceGrowthPct: 2,
-                leaseholdEndDate: "2054-12-01",
-                dailyRateUSD: 220,
-                rentalPriceIndexPct: 5
-              },
-              {
-                villaId: "enso-v1-2br",
-                name: "V1",
-                status: "hold",
-                rooms: "2",
-                land: 165.8,
-                area: 114.1,
-                f1: 0, f2: 0, roof: 0, garden: 43.4,
-                ppsm: 2549,
-                baseUSD: 262018,
-                monthlyPriceGrowthPct: 2,
-                leaseholdEndDate: "2054-12-01",
-                dailyRateUSD: 230,
-                rentalPriceIndexPct: 5
-              }
+              { villaId: "enso-l1-2br", name: "L1", status: "hold", rooms: "2", land: 174.6, area: 104.1, f1: 0, f2: 0, roof: 0, garden: 40.73, ppsm: 2410, baseUSD: 244775, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2054-12-01", dailyRateUSD: 220, rentalPriceIndexPct: 5 },
+              { villaId: "enso-v1-2br", name: "V1", status: "hold", rooms: "2", land: 165.8, area: 114.1, f1: 0, f2: 0, roof: 0, garden: 43.4, ppsm: 2549, baseUSD: 262018, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2054-12-01", dailyRateUSD: 230, rentalPriceIndexPct: 5 }
             ]
           },
           {
@@ -154,21 +71,7 @@
             theme: "light",
             includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
             villas: [
-              {
-                villaId: "eternal-p1-3rt",
-                name: "P1",
-                status: "hold",
-                rooms: "3+rt",
-                land: 124,
-                area: 218,
-                f1: 109.8, f2: 76.07, roof: 32.09, garden: 44.21,
-                ppsm: 2200,
-                baseUSD: 431531,
-                monthlyPriceGrowthPct: 2,
-                leaseholdEndDate: "2055-01-01",
-                dailyRateUSD: 550,
-                rentalPriceIndexPct: 5
-              }
+              { villaId: "eternal-p1-3rt", name: "P1", status: "hold", rooms: "3+rt", land: 124, area: 218, f1: 109.8, f2: 76.07, roof: 32.09, garden: 44.21, ppsm: 2200, baseUSD: 431531, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 550, rentalPriceIndexPct: 5 }
             ]
           }
         ];
@@ -408,19 +311,6 @@
               </div>
             </div>
 
-            {showAddProject && (
-              <div className="mb-4 grid gap-2 border rounded-2xl p-4">
-                <label className="grid gap-1">
-                  <span className="text-sm text-neutral-600">Название проекта</span>
-                  <input className="px-3 py-2 rounded-xl border" value={newProjectName} onChange={e=>setNewProjectName(e.target.value)} />
-                </label>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1.5 rounded-lg bg-neutral-900 text-white" onClick={addProject}>Сохранить</button>
-                  <button className="px-3 py-1.5 rounded-lg border" onClick={()=>setShowAddProject(false)}>Отмена</button>
-                </div>
-              </div>
-            )}
-
             <div className="grid gap-8">
               {catalog.map(project=>(
                 <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} rounded-3xl border p-4`}>
@@ -434,7 +324,7 @@
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <button className="px-3 py-1.5 rounded-lg border" onClick={()=>openAddVilla(project.projectId)}>Добавить виллу</button>
+                      <button className="px-3 py-1.5 rounded-lg border" onClick={()=>setVillaModal({open:true,projectId:project.projectId,init:{ status:"available", monthlyPriceGrowthPct:2, rentalPriceIndexPct:5 }})}>Добавить виллу</button>
                       <button className="px-3 py-1.5 rounded-lg border text-red-600" onClick={()=>deleteProject(project.projectId)}>Удалить проект</button>
                     </div>
                   </div>
@@ -464,7 +354,7 @@
                             <Td>
                               <div className="w-[160px] flex gap-2">
                                 <a className="px-3 py-1.5 rounded-lg text-xs bg-neutral-900 text-white" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
-                                <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>openEditVilla(project.projectId, v)}>Править</button>
+                                <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>setVillaModal({open:true, projectId:project.projectId, init:{...v}})}>Править</button>
                                 <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>deleteVilla(project.projectId, v.villaId)}>Удалить</button>
                               </div>
                             </Td>
@@ -482,7 +372,20 @@
               open={villaModal.open}
               initial={villaModal.init}
               onClose={()=>setVillaModal({ open:false, projectId:null, init:null })}
-              onSave={saveVilla}
+              onSave={(data)=>{
+                const projectId = villaModal.projectId;
+                const name = (data.name||"").trim();
+                if (!name) { alert("Введите название виллы"); return; }
+                const next = catalog.map(p=>{
+                  if (p.projectId !== projectId) return p;
+                  const villaId = data.villaId || (projectId+"-"+name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,""));
+                  const exists = p.villas.some(v=>v.villaId===villaId);
+                  const record = { ...data, villaId };
+                  return { ...p, villas: exists ? p.villas.map(v=> v.villaId===villaId ? record : v) : [...p.villas, record] };
+                });
+                setCatalog(next); saveCatalog(next);
+                setVillaModal({ open:false, projectId:null, init:null });
+              }}
             />
           </div>
         );
@@ -550,12 +453,9 @@
         );
       }
 
-      const leaseFactorF = (year, totalYears, alpha) => {
-        try { if (totalYears<=0 || year<0) return 1; return Math.pow((totalYears - year)/totalYears, alpha); } catch { return 1; }
-      };
-      const ageFactorF = (year, beta) => {
-        try { if (year<0 || beta<0) return 1; return Math.exp(-beta * year); } catch { return 1; }
-      };
+      // FACTORS
+      const leaseFactorF = (year, totalYears, alpha) => { try { if (totalYears<=0 || year<0) return 1; return Math.pow((totalYears - year)/totalYears, alpha); } catch { return 1; } };
+      const ageFactorF   = (year, beta) => { try { if (year<0 || beta<0) return 1; return Math.exp(-beta * year); } catch { return 1; } };
       const brandFactorF = (year, cfg) => {
         try {
           const { brandPeak, brandRampYears, brandPlateauYears, brandDecayYears, brandTail } = cfg;
@@ -589,6 +489,8 @@
       };
 
       function CalcView({ catalog, villaId }) {
+        // — упорядочил блоки как в вашей версии: Настройки/Стадии → Объект недвижимости → KPI → График → Финмодель → Годовая таблица → Помесячная → Полный график платежей.
+
         const selected = useMemo(()=>{
           for (const p of catalog) {
             const v = p.villas.find(x=>x.villaId===villaId);
@@ -748,6 +650,7 @@
           return null;
         }, [catalog, lines]);
 
+        // ——— KPI
         const leaseTerm = React.useMemo(()=>{
           return selectedVilla?.leaseholdEndDate ? getCleanLeaseholdTerm(new Date(selectedVilla.leaseholdEndDate)) : { years: 0, months: 0 };
         }, [selectedVilla, startMonth, handoverMonth]);
@@ -785,60 +688,160 @@
           ? (((optimalExit.totalValue - totals.finalUSD) / totals.finalUSD) * 100)
           : 0;
 
-        const exportCSV = () => {
-          const rows = [["Месяц","Описание","Платёж","Остаток"]];
-          const m = new Map();
-          const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
-          linesData.forEach(ld=>{
-            ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
-            if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
-            ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
-          });
-          const arr = [...m.values()].sort((a,b)=>a.month-b.month);
-          let acc=0;
-          arr.forEach(row=>{
-            acc+=row.amountUSD;
-            const balance = Math.max(0, totals.finalUSD - acc);
-            rows.push([formatMonth(row.month), row.items.join(" + "), Math.round(row.amountUSD), Math.round(balance)]);
-          });
-          const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
-          const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a');
-          a.href=URL.createObjectURL(blob); a.download=`arconique_cashflow_${new Date().toISOString().slice(0,10)}.csv`; a.click();
-        };
-        const exportXLSX = () => {
-          if (typeof XLSX==='undefined') { alert('XLSX не подключен'); return; }
-          const m = new Map();
-          const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
-          linesData.forEach(ld=>{
-            ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
-            if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
-            ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
-          });
-          const arr = [...m.values()].sort((a,b)=>a.month-b.month);
-          let acc=0;
-          const rows = arr.map(row=>{
-            acc+=row.amountUSD;
-            const balance = Math.max(0, totals.finalUSD - acc);
-            return { "Месяц":formatMonth(row.month), "Описание":row.items.join(" + "), "Платёж":row.amountUSD, "Остаток": balance };
-          });
-          const ws = XLSX.utils.json_to_sheet(rows);
-          ws['!cols'] = [{width:18},{width:48},{width:14},{width:14}];
-          const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Кэшфлоу'); XLSX.writeFile(wb, `arconique_${new Date().toISOString().slice(0,10)}.xlsx`);
-        };
-        const exportPDF = () => {
-          if (typeof html2pdf==='undefined') { alert('html2pdf не подключен'); return; }
-          const content = document.getElementById('calc-root');
-          html2pdf().from(content).set({
-            margin: [10,10,10,10], filename:`arconique_${new Date().toISOString().slice(0,10)}.pdf`,
-            image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2,useCORS:true,letterRendering:true},
-            jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}
-          }).save();
-        };
+        // ——— ОБЪЕКТ НЕДВИЖИМОСТИ (блок размещён сразу после настроек/стадий)
+        const positionsBlock = (
+          <div className="rounded-2xl border p-4 bg-white mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium">Объект недвижимости</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[980px]">
+                <thead>
+                  <tr className="bg-neutral-50">
+                    <Th>Проект</Th><Th>Вилла</Th><Th>Кол-во</Th><Th>м²</Th><Th>$ / м²</Th><Th>Текущая стоимость (USD)</Th>
+                    <Th>Скидка, %</Th><Th>До ключей, %</Th><Th>Месяцы</Th><Th>Ставка, %/мес</Th><Th>Итоговая стоимость</Th><Th>—</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linesData.map(ld=>(
+                    <tr key={ld.line.id} className="border-t">
+                      <Td style={{textAlign:'left'}}>{selected?.project.projectName}</Td>
+                      <Td style={{textAlign:'left'}}>{ld.line.snapshot?.name}</Td>
+                      <Td><input className="px-2 py-1 rounded border w-20" type="number" min="1" step="1" value={ld.line.qty} onChange={e=>updLine(ld.line.id,{qty: clamp(parseInt(e.target.value||0,10),1,9999)})}/></Td>
+                      <Td>{fmtInt(ld.line.snapshot?.area||0)}</Td>
+                      <Td>{fmtInt(ld.line.snapshot?.ppsm||0)}</Td>
+                      <Td>{fmtMoney(ld.base)}</Td>
+                      <Td><input className="px-2 py-1 rounded border w-20" type="number" min="0" max="20" step="0.1" value={ld.line.discountPct||0} onChange={e=>updLine(ld.line.id,{discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
+                      <Td>
+                        <input type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, ld.prePct||0))} onChange={e=>updLine(ld.line.id,{prePct: parseInt(e.target.value,10)})}/>
+                        <div className="text-xs text-neutral-600">{Math.max(50,Math.min(100, ld.prePct||0))}%</div>
+                      </Td>
+                      <Td><input className="px-2 py-1 rounded border w-20" type="number" min="6" step="1" value={ld.vMonths} onChange={e=>updLine(ld.line.id,{ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
+                      <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={ld.line.monthlyRatePct??monthlyRatePct} onChange={e=>updLine(ld.line.id,{ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>
+                      <Td className="font-semibold">{fmtMoney(ld.lineTotal)}</Td>
+                      <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delLine(ld.line.id)}>Удалить</button></Td>
+                    </tr>
+                  ))}
+                  {linesData.length===0 && <tr><td colSpan={12} className="px-3 py-3 text-neutral-500">Нет выбранных вилл</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
 
+        // ——— График стоимости/аренды (как раньше)
+        const pricingChart = selectedVilla && (() => {
+          const pricing = generatePricingData(selectedVilla, firstLine);
+          if (pricing.length === 0) return null;
+          const occ = (firstLine?.occupancyPct ?? 75) / 100;
+          const baseDaily = firstLine?.dailyRateUSD ?? selectedVilla?.dailyRateUSD ?? 0;
+          const indexPct = firstLine?.rentalPriceIndexPct ?? selectedVilla?.rentalPriceIndexPct ?? 0;
+          const avgDaysYear = 30.44 * 12;
+          const rentalData = pricing.map((d) => {
+            const daily = getIndexedRentalPrice(baseDaily, indexPct, d.year);
+            const workingMonths = d.year===0 ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
+            return { year: d.year, rentalIncome: daily * 0.55 * occ * 30.44 * workingMonths };
+          });
+          const maxPrice = Math.max(...pricing.map(d=>d.finalPrice));
+          const maxRental = Math.max(...rentalData.map(d=>d.rentalIncome));
+          const globalMax = Math.max(maxPrice, maxRental);
+          const globalMin = 0;
+          const scaleY = (val) => 250 - ((val - globalMin) / Math.max(1, (globalMax - globalMin))) * 200;
+
+          return (
+            <div className="rounded-2xl border p-4 bg-white mt-4">
+              <h3 className="font-medium">Villa cost and rental income dynamics</h3>
+              <p className="text-sm text-neutral-500">Impact of factors on price and rental yield</p>
+              <div className="pricing-chart-svg mt-3">
+                <svg width="100%" height="300" viewBox="0 0 800 300">
+                  <line x1="50" y1="50" x2="50" y2="250" stroke="#666" strokeWidth="1" />
+                  <line x1="50" y1="250" x2="750" y2="250" stroke="#666" strokeWidth="1" />
+
+                  <polyline fill="none" stroke="#2196F3" strokeWidth="2" points={pricing.map((d,i)=>`${50 + i*35},${scaleY(d.finalPrice)}`).join(" ")} />
+                  {pricing.map((d,i)=><circle key={`p-${i}`} cx={50 + i*35} cy={scaleY(d.finalPrice)} r="3" fill="#2196F3" />)}
+
+                  <polyline fill="none" stroke="#4CAF50" strokeWidth="2" points={rentalData.map((d,i)=>`${50 + i*35},${scaleY(d.rentalIncome)}`).join(" ")} />
+                  {rentalData.map((d,i)=><circle key={`r-${i}`} cx={50 + i*35} cy={scaleY(d.rentalIncome)} r="3" fill="#4CAF50" />)}
+
+                  {[0,0.25,0.5,0.75,1].map((r,i)=>{
+                    const val = globalMin + r*(globalMax-globalMin);
+                    const y = 250 - r*200;
+                    return (
+                      <g key={i}>
+                        <line x1="45" y1={y} x2="50" y2={y} stroke="#666" strokeWidth="1" />
+                        <text x="40" y={y+4} fontSize="10" textAnchor="end" fill="#666">{fmtMoney(val, currency)}</text>
+                      </g>
+                    );
+                  })}
+
+                  {pricing.map((d,i)=>{
+                    const realYear = Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year);
+                    return <text key={`x-${i}`} x={50 + i*35} y="270" fontSize="12" textAnchor="middle" fill="#666">{realYear}</text>;
+                  })}
+
+                  <rect x="600" y="20" width="15" height="15" fill="#2196F3" />
+                  <text x="620" y="32" fontSize="12" fill="#333">Market value</text>
+                  <rect x="600" y="40" width="15" height="15" fill="#4CAF50" />
+                  <text x="620" y="52" fontSize="12" fill="#333">Rental income</text>
+                </svg>
+              </div>
+            </div>
+          );
+        })();
+
+        // ——— Годовая таблица (полные колонки)
+        const annualRows = useMemo(()=>{
+          if (!selectedVilla || !firstLine) return [];
+          const pricing = generatePricingData(selectedVilla, firstLine);
+          if (pricing.length === 0) return [];
+          const occ = (firstLine?.occupancyPct ?? 75) / 100;
+          const baseDaily = firstLine?.dailyRateUSD ?? selectedVilla?.dailyRateUSD ?? 0;
+          const indexPct = firstLine?.rentalPriceIndexPct ?? selectedVilla?.rentalPriceIndexPct ?? 0;
+          const avgDays = 30.44;
+
+          return pricing.map((d, idx)=>{
+            let workingMonths;
+            if (idx === 0) {
+              const startM = handoverMonth + 3;
+              workingMonths = handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, startM));
+            } else {
+              workingMonths = 12;
+            }
+            const daily = getIndexedRentalPrice(baseDaily, indexPct, d.year);
+            const rentalIncome = daily * 0.55 * occ * avgDays * workingMonths * (firstLine?.qty || 1);
+            const totalCapitalization = d.finalPrice + rentalIncome;
+
+            const prev = idx>0 ? pricing[idx-1] : null;
+            const priceChange = prev ? (d.finalPrice - prev.finalPrice) : 0;
+            const yearlyRoi = prev ? ((rentalIncome + priceChange) / Math.max(1, prev.finalPrice)) * 100 : 0;
+
+            let cumRent = 0;
+            for (let y=0;y<=idx;y++){
+              const wd = (y===0) ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
+              const dly = getIndexedRentalPrice(baseDaily, indexPct, y);
+              cumRent += dly * 0.55 * occ * avgDays * wd * (firstLine?.qty || 1);
+            }
+            const cumulativeRoi = totals.finalUSD>0 ? ((cumRent + d.finalPrice - totals.finalUSD) / totals.finalUSD) * 100 : 0;
+
+            const cashFlows = [-totals.finalUSD];
+            for (let y=0;y<=idx;y++){
+              const wd = (y===0) ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
+              const dly = getIndexedRentalPrice(baseDaily, indexPct, y);
+              const rent = dly * 0.55 * occ * avgDays * wd * (firstLine?.qty || 1);
+              if (y===idx) cashFlows.push(rent + d.finalPrice); else cashFlows.push(rent);
+            }
+            const irr = calculateIRR(cashFlows);
+
+            return { displayYear: Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year), ...d, rentalIncome, totalCapitalization, yearlyRoi, cumulativeRoi, irr };
+          });
+        },[selectedVilla, firstLine, pricingConfig, handoverMonth, startMonth, totals.finalUSD]);
+
+        // ——— Помесячная таблица (полные колонки)
         const generateMonthlyPricingData = (villa, line) => {
           if (!villa) return [];
           const baseAtHandover = calculateMarketPriceAtHandover(villa, line);
-          const totalMonths = handoverMonth + (linesData[0]?.vMonths || months);
+          const vMonths = linesData[0]?.vMonths || months;
+          const totalMonths = handoverMonth + vMonths;
           const occ = (line?.occupancyPct ?? 75) / 100;
           const baseDaily = line?.dailyRateUSD ?? villa?.dailyRateUSD ?? 0;
           const indexPct = line?.rentalPriceIndexPct ?? villa?.rentalPriceIndexPct ?? 0;
@@ -862,7 +865,7 @@
               inflationFactor = Math.pow(1 + pricingConfig.inflationRatePct / 100, yearOffset);
               lf = leaseFactorF(yearOffset, 30, pricingConfig.leaseAlpha);
               af = ageFactorF(yearOffset, pricingConfig.agingBeta);
-              bf = brandFactorF(yearOffset, pricingConfig.brandPeak ? pricingConfig : { brandPeak:1.2, brandRampYears:3, brandPlateauYears:4, brandDecayYears:8, brandTail:1.0 });
+              bf = brandFactorF(yearOffset, pricingConfig);
               finalPrice = baseAtHandover * inflationFactor * lf * af * bf;
             }
 
@@ -881,7 +884,6 @@
             const monthlyRoi = totalPaymentsToDate>0 ? ((rentalIncome + priceChange) / totalPaymentsToDate) * 100 : 0;
             const cumulativeRoi = totals.finalUSD>0 ? ((finalPrice - totals.finalUSD) / totals.finalUSD) * 100 : 0;
 
-            // IRR до текущего месяца (месячные периоды, доход — аренда, на текущем выходе добавляем финальную стоимость)
             const cashFlows = [-totals.finalUSD];
             for (let j=0;j<=m;j++){
               const rj = (j >= handoverMonth + 3)
@@ -901,60 +903,95 @@
           return result;
         };
 
-        const annualRows = useMemo(()=>{
-          if (!selectedVilla || !firstLine) return [];
-          const pricing = generatePricingData(selectedVilla, firstLine);
-          if (pricing.length === 0) return [];
-          const occ = (firstLine?.occupancyPct ?? 75) / 100;
-          const baseDaily = firstLine?.dailyRateUSD ?? selectedVilla?.dailyRateUSD ?? 0;
-          const indexPct = firstLine?.rentalPriceIndexPct ?? selectedVilla?.rentalPriceIndexPct ?? 0;
-          const avgDays = 30.44;
-
-          const yearly = pricing.map((d, idx)=>{
-            let workingMonths;
-            if (idx === 0) {
-              const startM = handoverMonth + 3;
-              workingMonths = Math.max(0, 12 - Math.max(0, startM));
-              if (handoverMonth >= 12) workingMonths = 0;
-            } else {
-              workingMonths = 12;
-            }
-            const daily = getIndexedRentalPrice(baseDaily, indexPct, d.year);
-            const rentalIncome = daily * 0.55 * occ * avgDays * workingMonths * (firstLine?.qty || 1);
-
-            const totalCapitalization = d.finalPrice + rentalIncome;
-            const prev = idx>0 ? pricing[idx-1] : null;
-            const priceChange = prev ? (d.finalPrice - prev.finalPrice) : 0;
-            const yearlyRoi = prev ? ((rentalIncome + priceChange) / Math.max(1, prev.finalPrice)) * 100 : 0;
-
-            let cumRent = 0;
-            for (let y=0;y<=idx;y++){
-              const wd = (y===0)
-                ? (handoverMonth >= 12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3)))
-                : 12;
-              const dly = getIndexedRentalPrice(baseDaily, indexPct, y);
-              cumRent += dly * 0.55 * occ * avgDays * wd * (firstLine?.qty || 1);
-            }
-            const cumulativeRoi = totals.finalUSD>0 ? ((cumRent + d.finalPrice - totals.finalUSD) / totals.finalUSD) * 100 : 0;
-
-            const cashFlows = [-totals.finalUSD];
-            for (let y=0;y<=idx;y++){
-              const wd = (y===0) ? (handoverMonth >= 12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
-              const dly = getIndexedRentalPrice(baseDaily, indexPct, y);
-              const rent = dly * 0.55 * occ * avgDays * wd * (firstLine?.qty || 1);
-              if (y===idx) cashFlows.push(rent + d.finalPrice); else cashFlows.push(rent);
-            }
-            const irr = calculateIRR(cashFlows);
-
-            return { displayYear: Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year), ...d, rentalIncome, totalCapitalization, yearlyRoi, cumulativeRoi, irr };
-          });
-          return yearly;
-        },[selectedVilla, firstLine, pricingConfig, handoverMonth, startMonth, totals.finalUSD]);
-
         const monthlyRows = useMemo(()=>{
           if (!selectedVilla || !firstLine) return [];
           return generateMonthlyPricingData(selectedVilla, firstLine);
         },[selectedVilla, firstLine, pricingConfig, handoverMonth, months, monthlyRatePct, linesData, totals.finalUSD]);
+
+        // ——— Построение «Полного графика платежей» (с Арендным доходом и Чистым платежом)
+        const fullCashflowTable = (()=> {
+          const m = new Map(); // month => {items, amountUSD}
+          const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
+
+          linesData.forEach(ld=>{
+            ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
+            if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
+            ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
+          });
+
+          // rental income per month (суммируем по всем линиям)
+          const rentalMap = new Map();
+          lines.forEach(ln=>{
+            const occ = (ln.occupancyPct ?? 75)/100;
+            const baseDaily = ln.dailyRateUSD ?? 0;
+            const idxPct = ln.rentalPriceIndexPct ?? 0;
+            for (let mon = handoverMonth+3; mon <= handoverMonth + (linesData[0]?.vMonths || months); mon++){
+              const yOff = Math.floor((mon - handoverMonth)/12);
+              const daily = getIndexedRentalPrice(baseDaily, idxPct, yOff);
+              const val = daily * 0.55 * occ * getDaysInMonth(mon) * (ln.qty || 1);
+              rentalMap.set(mon, (rentalMap.get(mon)||0) + val);
+            }
+          });
+
+          const rows = [...m.values()].sort((a,b)=>a.month-b.month);
+          let acc=0;
+          return (
+            <div className="rounded-2xl border p-4 bg-white mt-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Полный график платежей</h3>
+                <div className="flex gap-2">
+                  <button className="px-3 py-1.5 rounded-lg border" onClick={()=>{
+                    const head = ["Месяц","Описание","Платеж","Арендный доход","Чистый платеж/доход в месяц","Остаток по договору"];
+                    const out = [head];
+                    let sum=0;
+                    rows.forEach(row=>{
+                      sum += row.amountUSD;
+                      const balance = Math.max(0, totals.finalUSD - sum);
+                      const rent = rentalMap.get(row.month)||0;
+                      const net = row.amountUSD - rent;
+                      out.push([formatMonth(row.month), row.items.join(" + "), Math.round(row.amountUSD), Math.round(rent), Math.round(net), Math.round(balance)]);
+                    });
+                    const csv = out.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+                    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a');
+                    a.href=URL.createObjectURL(blob); a.download=`arconique_cashflow_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+                  }}>Export CSV</button>
+                </div>
+              </div>
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-sm min-w-[1200px]">
+                  <thead>
+                    <tr className="bg-neutral-50">
+                      <Th>Месяц</Th>
+                      <Th style={{textAlign:'left'}}>Описание</Th>
+                      <Th>Платеж</Th>
+                      <Th>Арендный доход</Th>
+                      <Th>Чистый платеж/доход в месяц</Th>
+                      <Th>Остаток по договору</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.length>0 ? rows.map(row=>{
+                      acc += row.amountUSD;
+                      const balance = Math.max(0, totals.finalUSD - acc);
+                      const rent = rentalMap.get(row.month)||0;
+                      const net = row.amountUSD - rent;
+                      return (
+                        <tr key={row.month} className="border-t">
+                          <Td>{formatMonth(row.month)}</Td>
+                          <Td style={{textAlign:'left'}}>{row.items.join(' + ')}</Td>
+                          <Td>{fmtMoney(row.amountUSD, currency)}</Td>
+                          <Td>{fmtMoney(rent, currency)}</Td>
+                          <Td className={net>=0 ? 'text-red-600' : 'text-emerald-600'}>{fmtMoney(net, currency)}</Td>
+                          <Td>{fmtMoney(balance, currency)}</Td>
+                        </tr>
+                      );
+                    }) : <tr><td colSpan={6} className="px-3 py-3 text-neutral-500">Нет платежей</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })();
 
         return (
           <div id="calc-root" className="mx-auto max-w-7xl px-5 py-6">
@@ -964,6 +1001,7 @@
             </div>
             <h2 className="text-xl font-semibold mt-4">Полный калькулятор</h2>
 
+            {/* Настройки + Стадии */}
             <div className="grid md:grid-cols-2 gap-4 mt-4">
               <div className="rounded-2xl border p-4 bg-white">
                 <h3 className="font-medium mb-3">Рассрочка до получения ключей (установите комфортный план оплаты)</h3>
@@ -1005,9 +1043,7 @@
                   </label>
                   <label className="grid gap-1">
                     <span className="text-sm text-neutral-600">Заключение договора</span>
-                    <div className="px-3 py-2 rounded-xl border bg-neutral-50">
-                      {startMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}
-                    </div>
+                    <div className="px-3 py-2 rounded-xl border bg-neutral-50">{startMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</div>
                   </label>
                   <label className="grid gap-1">
                     <span className="text-sm text-neutral-600">Срок строительства (мес)</span>
@@ -1025,6 +1061,10 @@
               </div>
             </div>
 
+            {/* Объект недвижимости */}
+            {positionsBlock}
+
+            {/* KPI блок в стиле первой версии */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-neutral-500">Client</div>
@@ -1038,14 +1078,12 @@
                   <div className="text-lg font-semibold mt-1">{leaseTerm.years} years {leaseTerm.months} months</div>
                 </div>
               </div>
-
               <div className="grid md:grid-cols-4 gap-3 mt-3">
                 <Kpi label="Payment before keys" value={fmtMoney(totals.preUSD, currency)} />
                 <Kpi label="Payment after keys" value={fmtMoney(totals.afterUSD, currency)} />
                 <Kpi label="Final value" value={fmtMoney(totals.finalUSD, currency)} />
                 <Kpi label="Проценты" value={fmtMoney(totals.interestUSD, currency)} />
               </div>
-
               <div className="grid md:grid-cols-3 gap-3 mt-3">
                 <Kpi label="ROI when selling before keys" value={`${roiBeforeKeysAnnual.toFixed(1)}%`} />
                 <Kpi label="Net income" value={fmtMoney(netIncomeBeforeKeys, currency)} />
@@ -1058,69 +1096,10 @@
               </div>
             </div>
 
-            {selectedVilla && (
-              <div className="rounded-2xl border p-4 bg-white mt-4">
-                <h3 className="font-medium">Villa cost and rental income dynamics</h3>
-                <p className="text-sm text-neutral-500">Impact of factors on price and rental yield</p>
-                {(() => {
-                  const pricing = generatePricingData(selectedVilla, firstLine);
-                  if (pricing.length === 0) return <div className="text-neutral-500 text-sm mt-2">Недостаточно данных для графика</div>;
+            {/* График стоимости/аренды */}
+            {pricingChart}
 
-                  const occ = (firstLine?.occupancyPct ?? 75) / 100;
-                  const baseDaily = firstLine?.dailyRateUSD ?? selectedVilla?.dailyRateUSD ?? 0;
-                  const indexPct = firstLine?.rentalPriceIndexPct ?? selectedVilla?.rentalPriceIndexPct ?? 0;
-                  const avgDaysYear = 30.44 * 12;
-                  const rentalData = pricing.map((d) => {
-                    const daily = getIndexedRentalPrice(baseDaily, indexPct, d.year);
-                    let workingMonths = (d.year === 0) ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
-                    return { year: d.year, rentalIncome: daily * 0.55 * occ * 30.44 * workingMonths };
-                  });
-
-                  const maxPrice = Math.max(...pricing.map(d=>d.finalPrice));
-                  const maxRental = Math.max(...rentalData.map(d=>d.rentalIncome));
-                  const globalMax = Math.max(maxPrice, maxRental);
-                  const globalMin = 0;
-                  const scaleY = (val) => 250 - ((val - globalMin) / Math.max(1, (globalMax - globalMin))) * 200;
-
-                  return (
-                    <div className="pricing-chart-svg mt-3">
-                      <svg width="100%" height="300" viewBox="0 0 800 300">
-                        <line x1="50" y1="50" x2="50" y2="250" stroke="#666" strokeWidth="1" />
-                        <line x1="50" y1="250" x2="750" y2="250" stroke="#666" strokeWidth="1" />
-
-                        <polyline fill="none" stroke="#2196F3" strokeWidth="2" points={pricing.map((d,i)=>`${50 + i*35},${scaleY(d.finalPrice)}`).join(" ")} />
-                        {pricing.map((d,i)=><circle key={`p-${i}`} cx={50 + i*35} cy={scaleY(d.finalPrice)} r="3" fill="#2196F3" />)}
-
-                        <polyline fill="none" stroke="#4CAF50" strokeWidth="2" points={rentalData.map((d,i)=>`${50 + i*35},${scaleY(d.rentalIncome)}`).join(" ")} />
-                        {rentalData.map((d,i)=><circle key={`r-${i}`} cx={50 + i*35} cy={scaleY(d.rentalIncome)} r="3" fill="#4CAF50" />)}
-
-                        {[0,0.25,0.5,0.75,1].map((r,i)=>{
-                          const val = globalMin + r*(globalMax-globalMin);
-                          const y = 250 - r*200;
-                          return (
-                            <g key={i}>
-                              <line x1="45" y1={y} x2="50" y2={y} stroke="#666" strokeWidth="1" />
-                              <text x="40" y={y+4} fontSize="10" textAnchor="end" fill="#666">{fmtMoney(val, currency)}</text>
-                            </g>
-                          );
-                        })}
-
-                        {pricing.map((d,i)=>{
-                          const realYear = Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year);
-                          return <text key={`x-${i}`} x={50 + i*35} y="270" fontSize="12" textAnchor="middle" fill="#666">{realYear}</text>;
-                        })}
-
-                        <rect x="600" y="20" width="15" height="15" fill="#2196F3" />
-                        <text x="620" y="32" fontSize="12" fill="#333">Market value</text>
-                        <rect x="600" y="40" width="15" height="15" fill="#4CAF50" />
-                        <text x="620" y="52" fontSize="12" fill="#333">Rental income</text>
-                      </svg>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
+            {/* Финансовая модель */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
               <h3 className="font-medium">Investment Return Financial Model</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
@@ -1131,6 +1110,7 @@
               </div>
             </div>
 
+            {/* Calculation of indicators (annual) */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
               <h3 className="font-medium">Calculation of indicators (annual)</h3>
               <div className="overflow-x-auto mt-3">
@@ -1171,6 +1151,7 @@
               </div>
             </div>
 
+            {/* Calculation of indicators (for installment period) */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
               <h3 className="font-medium">Calculation of indicators (for installment period)</h3>
               <div className="overflow-x-auto mt-3">
@@ -1213,50 +1194,8 @@
               </div>
             </div>
 
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Полный график платежей</h3>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1.5 rounded-lg border" onClick={exportCSV}>Export CSV</button>
-                  <button className="px-3 py-1.5 rounded-lg border" onClick={exportXLSX}>Export Excel</button>
-                  <button className="px-3 py-1.5 rounded-lg border" onClick={exportPDF}>Save to PDF</button>
-                </div>
-              </div>
-              <div className="overflow-x-auto mt-3">
-                <table className="w-full text-sm min-w-[980px]">
-                  <thead>
-                    <tr className="bg-neutral-50">
-                      <Th>Месяц</Th><Th style={{textAlign:'left'}}>Описание</Th><Th>Платёж</Th><Th>Остаток</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(()=> {
-                      const m = new Map();
-                      const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
-                      linesData.forEach(ld=>{
-                        ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
-                        if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
-                        ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
-                      });
-                      const rows = [...m.values()].sort((a,b)=>a.month-b.month);
-                      let acc=0;
-                      return rows.length>0 ? rows.map(row=>{
-                        acc += row.amountUSD;
-                        const balance = Math.max(0, totals.finalUSD - acc);
-                        return (
-                          <tr key={row.month} className="border-t">
-                            <Td>{formatMonth(row.month)}</Td>
-                            <Td style={{textAlign:'left'}}>{row.items.join(' + ')}</Td>
-                            <Td>{fmtMoney(row.amountUSD, currency)}</Td>
-                            <Td>{fmtMoney(balance, currency)}</Td>
-                          </tr>
-                        );
-                      }) : <tr><td colSpan={4} className="px-3 py-3 text-neutral-500">Нет платежей</td></tr>;
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            {/* Полный график платежей с нужными колонками */}
+            {fullCashflowTable}
           </div>
         );
       }
