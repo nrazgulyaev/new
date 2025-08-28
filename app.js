@@ -454,6 +454,7 @@ function AdminView({ catalog, setCatalog }) {
                       <div className="flex gap-2">
                         <button className="btn-secondary" onClick={() => openEditVilla(p.projectId, v)}>Править</button>
                         <button className="btn-secondary" onClick={() => deleteVilla(p.projectId, v.villaId)}>Удалить</button>
+                        <button className="btn" onClick={() => navigateTo("calc", { projectId: p.projectId, villaId: v.villaId, admin: "1" })}>Рассчитать (админ)</button>
                       </div>
                     </Td>
                   </tr>
@@ -483,7 +484,7 @@ function AdminView({ catalog, setCatalog }) {
 }
 
 /* =========================
-   Калькулятор (полный макет)
+   Калькулятор (полный)
 ========================= */
 function useRatesState() {
   const init = loadRates();
@@ -495,7 +496,6 @@ function useRatesState() {
 }
 
 function LineChartSVG({ width = 740, height = 200, padding = 28, series }) {
-  // series: [{name,color,points:[{x:0..1,y:0..1}]}]
   const W = width, H = height, P = padding;
   return (
     <svg width={W} height={H} style={{width:"100%",height:height}}>
@@ -520,14 +520,12 @@ function LineChartSVG({ width = 740, height = 200, padding = 28, series }) {
   );
 }
 
-function CalcView({ catalog, projectId, villaId }) {
-  // Состояния
+function CalcView({ catalog, projectId, villaId, isAdmin }) {
   const [handoverMonth, setHandoverMonth] = useState(""); // YYYY-MM
   const [monthsAfterKeys, setMonthsAfterKeys] = useState(12);
-  const [monthlyRatePct, setMonthlyRatePct] = useState(8.33); // админ‑поле, пока показываем
+  const [monthlyRatePct, setMonthlyRatePct] = useState(8.33);
   const rates = useRatesState();
 
-  // Этапы до ключей (проценты суммируются в beforePct)
   const [stages, setStages] = useState([
     { id: "s1", month: "", pct: 30 },
     { id: "s2", month: "", pct: 30 },
@@ -535,17 +533,10 @@ function CalcView({ catalog, projectId, villaId }) {
     { id: "s4", month: "", pct: 10 },
     { id: "s5", month: "", pct: 5 },
   ]);
-  function addStage() {
-    setStages(s => [...s, { id: "s" + Math.random().toString(36).slice(2,6), month: "", pct: 0 }]);
-  }
-  function updStage(id, patch) {
-    setStages(s => s.map(x => x.id === id ? { ...x, ...patch } : x));
-  }
-  function delStage(id) {
-    setStages(s => s.filter(x => x.id !== id));
-  }
+  const addStage = () => setStages(s => [...s, { id: "s" + Math.random().toString(36).slice(2,6), month: "", pct: 0 }]);
+  const updStage = (id, patch) => setStages(s => s.map(x => x.id === id ? { ...x, ...patch } : x));
+  const delStage = (id) => setStages(s => s.filter(x => x.id !== id));
 
-  // Поиск выбранной виллы
   const selected = useMemo(() => {
     const p = catalog.find(x => x.projectId === projectId);
     if (!p) return null;
@@ -554,17 +545,14 @@ function CalcView({ catalog, projectId, villaId }) {
     return { project: p, villa: v };
   }, [catalog, projectId, villaId]);
 
-  // Подставляем плановую дату ключей
   useEffect(() => {
     if (selected?.project?.plannedCompletion) setHandoverMonth(selected.project.plannedCompletion);
   }, [selected?.project?.plannedCompletion]);
 
-  // Данные виллы
   const villa = selected?.villa || {};
   const leaseEnd = villa.leaseholdEndDate || "";
   const priceUSD0 = Math.max(0, +villa.baseUSD || 0);
 
-  // Редактируемые параметры аренды/скидки
   const [line, setLine] = useState({
     dailyRateUSD: villa.dailyRateUSD || 0,
     occupancyPct: villa.occupancyPct || 0,
@@ -580,7 +568,6 @@ function CalcView({ catalog, projectId, villaId }) {
     });
   }, [villaId, projectId]);
 
-  // Валюта
   function convertAmountUSDToSelected(valueUSD) {
     if (!Number.isFinite(+valueUSD)) return 0;
     if (rates.currency === "IDR") return +valueUSD * (rates.idrPerUsd || 1);
@@ -592,14 +579,12 @@ function CalcView({ catalog, projectId, villaId }) {
     return fmtMoney(amount, rates.currency, max);
   }
 
-  // Процент до ключей
   const beforePct = Math.max(0, Math.min(100, stages.reduce((a, b) => a + (+b.pct || 0), 0)));
   const effectivePriceUSD = Math.max(0, priceUSD0 * (1 - (line.discountPct || 0) / 100));
   const payBeforeUSD = effectivePriceUSD * beforePct / 100;
   const payAfterTotalUSD = Math.max(0, effectivePriceUSD - payBeforeUSD);
   const payAfterMonthlyUSD = monthsAfterKeys > 0 ? (payAfterTotalUSD / monthsAfterKeys) : 0;
 
-  // Вспомогательные: месяцы до ключей и до конца лизхолда
   const keysInMonths = useMemo(() => {
     if (!handoverMonth || !/^\d{4}-\d{2}$/.test(handoverMonth)) return 0;
     const [y, m] = handoverMonth.split("-").map(Number);
@@ -616,7 +601,6 @@ function CalcView({ catalog, projectId, villaId }) {
     return Math.max(0, (y2 - y1) * 12 + (m2 - m1));
   }, [handoverMonth, leaseEnd]);
 
-  // Аренда (месячная база + индексация)
   const monthlyRentalBaseUSD = Math.max(0, (+line.dailyRateUSD || 0) * 30 * ((+line.occupancyPct || 0) / 100));
   function rentForMonthUSD(idx) {
     const years = idx / 12;
@@ -624,11 +608,9 @@ function CalcView({ catalog, projectId, villaId }) {
     return monthlyRentalBaseUSD * growth;
   }
 
-  // Финмодель факторов (упрощённая кривая стоимости)
   const pricingConfig = {
     inflationRatePct: 10,
     agingBeta: 0.025,
-    leaseAlpha: 1.0,
     brandPeak: 1.2,
     brandRampYears: 3,
     brandPlateauYears: 4,
@@ -636,26 +618,24 @@ function CalcView({ catalog, projectId, villaId }) {
     brandTail: 1.0
   };
   function brandFactor(yearsFromStart) {
-    const { brandPeak, brandRampYears, brandPlateauYears, brandDecayYears, brandTail } = pricingConfig;
-    if (yearsFromStart <= brandRampYears) return 1 + (brandPeak - 1) * (yearsFromStart / brandRampYears);
-    if (yearsFromStart <= brandRampYears + brandPlateauYears) return brandPeak;
-    const t = (yearsFromStart - brandRampYears - brandPlateauYears) / brandDecayYears;
-    return Math.max(brandTail, brandPeak - (brandPeak - brandTail) * Math.min(1, Math.max(0, t)));
+    const c = pricingConfig;
+    if (yearsFromStart <= c.brandRampYears) return 1 + (c.brandPeak - 1) * (yearsFromStart / c.brandRampYears);
+    if (yearsFromStart <= c.brandRampYears + c.brandPlateauYears) return c.brandPeak;
+    const t = (yearsFromStart - c.brandRampYears - c.brandPlateauYears) / c.brandDecayYears;
+    return Math.max(c.brandTail, c.brandPeak - (c.brandPeak - c.brandTail) * Math.min(1, Math.max(0, t)));
   }
   function leaseDecayFactor(yearsFromHandover) {
-    // Линейное снижение к 1.0 (или чуть ниже) к концу лизхолда
     const totalYears = monthsToLeaseEnd / 12;
     if (totalYears <= 0) return 1;
     const t = Math.min(1, Math.max(0, yearsFromHandover / totalYears));
-    return 1 - (1 - 0.9) * t; // до 0.9 к концу
+    return 1 - (1 - 0.9) * t;
   }
   function agingFactor(yearsFromHandover) {
     return Math.max(0.85, 1 - pricingConfig.agingBeta * yearsFromHandover);
   }
 
-  // Траектория стоимости и аренды от ключей до конца лизхолда
   const trajectory = useMemo(() => {
-    const points = [];
+    const pts = [];
     for (let m = 0; m <= monthsToLeaseEnd; m++) {
       const years = m / 12;
       const infl = Math.pow(1 + pricingConfig.inflationRatePct / 100, years);
@@ -664,21 +644,18 @@ function CalcView({ catalog, projectId, villaId }) {
       const aging = agingFactor(years);
       const value = effectivePriceUSD * infl * brand * lease * aging;
       const rent = rentForMonthUSD(m);
-      points.push({ month: m, valueUSD: value, rentUSD: rent });
+      pts.push({ month: m, valueUSD: value, rentUSD: rent });
     }
-    return points;
+    return pts;
   }, [monthsToLeaseEnd, effectivePriceUSD, line.dailyRateUSD, line.occupancyPct, line.rentalPriceIndexPct]);
 
-  // KPI (примерные)
-  const finalValueUSD = effectivePriceUSD; // условно
+  const finalValueUSD = effectivePriceUSD;
   const netIncomeUSD = Math.max(0, rentForMonthUSD(0) * 12 - payAfterMonthlyUSD * 12 * ((100 - beforePct) / 50));
   const irrApproxPct = netIncomeUSD > 0 ? 18.3 : 0.0;
   const roiCumulativePct = finalValueUSD > 0 ? (netIncomeUSD / finalValueUSD) * 100 : 0;
 
-  // Полный график платежей
   const schedule = useMemo(() => {
     const rows = [];
-    // До ключей — этапы
     stages.forEach((s, idx) => {
       const amount = effectivePriceUSD * (Math.max(0, +s.pct || 0) / 100);
       rows.push({
@@ -690,26 +667,17 @@ function CalcView({ catalog, projectId, villaId }) {
         remainingUSD: null
       });
     });
-    // После ключей — равные платежи
     let remaining = payAfterTotalUSD;
     for (let i = 0; i < monthsAfterKeys; i++) {
       const rental = rentForMonthUSD(i);
       const payment = payAfterMonthlyUSD;
       const net = payment - rental;
       remaining = Math.max(0, remaining - payment);
-      rows.push({
-        month: (i + 1),
-        desc: "Платёж после ключей",
-        paymentUSD: payment,
-        rentalUSD: rental,
-        netUSD: net,
-        remainingUSD: remaining
-      });
+      rows.push({ month: (i + 1), desc: "Платёж после ключей", paymentUSD: payment, rentalUSD: rental, netUSD: net, remainingUSD: remaining });
     }
     return rows;
-  }, [stages, effectivePriceUSD, monthsAfterKeys, payAfterMonthlyUSD, payAfterTotalUSD, line.dailyRateUSD, line.occupancyPct, line.rentalPriceIndexPct, beforePct]);
+  }, [stages, effectivePriceUSD, monthsAfterKeys, payAfterMonthlyUSD, payAfterTotalUSD, line.rentalPriceIndexPct, line.dailyRateUSD, line.occupancyPct, beforePct]);
 
-  // Годовые показатели (агрегирование траектории и аренды)
   const annual = useMemo(() => {
     const out = [];
     const yearsTotal = Math.ceil(monthsToLeaseEnd / 12);
@@ -736,7 +704,6 @@ function CalcView({ catalog, projectId, villaId }) {
     );
   }
 
-  // Нормализация для графика (0..1)
   const maxValue = Math.max(...trajectory.map(p => p.valueUSD || 0), effectivePriceUSD || 0) || 1;
   const maxRent = Math.max(...trajectory.map(p => p.rentUSD || 0), monthlyRentalBaseUSD || 0) || 1;
   const series = [
@@ -753,14 +720,12 @@ function CalcView({ catalog, projectId, villaId }) {
         </div>
       </div>
 
-      {/* Пилюли‑сводка */}
       <div className="pills">
         <Pill>Выбрано вилл: 1</Pill>
         <Pill>Ключи через {keysInMonths} мес.</Pill>
         <Pill>Срок рассрочки после ключей: {monthsAfterKeys} мес.</Pill>
       </div>
 
-      {/* Верхний ряд: слева этапы до ключей, справа настройки */}
       <section className="grid-2 card">
         <div>
           <h3 className="h3">Рассрочка до получения ключей</h3>
@@ -804,14 +769,15 @@ function CalcView({ catalog, projectId, villaId }) {
             <label className="label">EUR за 1 USD</label>
             <input className="input w-28" type="number" min="0" step="0.01" value={rates.eurPerUsd} onChange={e => rates.setEurPerUsd(Math.max(0, +e.target.value || 0))} />
           </div>
-          <div className="row inline">
-            <label className="label">Ставка, %/мес</label>
-            <input className="input w-24" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e => setMonthlyRatePct(Math.max(0, +e.target.value || 0))} />
-          </div>
+          {isAdmin && (
+            <div className="row inline">
+              <label className="label">Ставка, %/мес</label>
+              <input className="input w-24" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e => setMonthlyRatePct(Math.max(0, +e.target.value || 0))} />
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Объект недвижимости */}
       <section className="card">
         <h3 className="h3">Объект недвижимости</h3>
         <div className="table-wrap">
@@ -826,7 +792,7 @@ function CalcView({ catalog, projectId, villaId }) {
                 <Th>Стоимость проживания в сутки (USD)</Th>
                 <Th>Средняя заполняемость за месяц (%)</Th>
                 <Th>Рост цены аренды в год (%)</Th>
-                <Th>Скидка, %</Th>
+                {isAdmin ? <Th>Скидка, %</Th> : null}
               </tr>
             </thead>
             <tbody>
@@ -839,7 +805,9 @@ function CalcView({ catalog, projectId, villaId }) {
                 <Td><input className="input w-24" type="number" min="0" step="1" value={line.dailyRateUSD} onChange={e => setLine(s => ({ ...s, dailyRateUSD: Math.max(0, +e.target.value || 0) }))}/></Td>
                 <Td><input className="input w-24" type="number" min="0" max="100" step="0.1" value={line.occupancyPct} onChange={e => setLine(s => ({ ...s, occupancyPct: clamp(+e.target.value || 0, 0, 100) }))}/></Td>
                 <Td><input className="input w-24" type="number" min="0" max="100" step="0.1" value={line.rentalPriceIndexPct} onChange={e => setLine(s => ({ ...s, rentalPriceIndexPct: clamp(+e.target.value || 0, 0, 100) }))}/></Td>
-                <Td><input className="input w-20" type="number" min="0" max="100" step="0.1" value={line.discountPct} onChange={e => setLine(s => ({ ...s, discountPct: clamp(+e.target.value || 0, 0, 100) }))}/></Td>
+                {isAdmin ? (
+                  <Td><input className="input w-20" type="number" min="0" max="100" step="0.1" value={line.discountPct} onChange={e => setLine(s => ({ ...s, discountPct: clamp(+e.target.value || 0, 0, 100) }))}/></Td>
+                ) : null}
               </tr>
             </tbody>
           </table>
@@ -852,7 +820,6 @@ function CalcView({ catalog, projectId, villaId }) {
         </ul>
       </section>
 
-      {/* KPI‑блоки */}
       <section className="card">
         <h3 className="h3">Показатели</h3>
         <div className="kpi-grid">
@@ -861,11 +828,11 @@ function CalcView({ catalog, projectId, villaId }) {
             <div className="kpi-title">Оплата до ключей</div><div className="kpi-value">{display(payBeforeUSD)}</div>
             <div className="kpi-sub">Оплата после ключей</div><div className="kpi-value">{display(payAfterTotalUSD)}</div>
           </div>
-          <div className="kpi"><div className="kpi-title">Проценты (мес.)</div><div className="kpi-value">{fmt2(monthlyRatePct)}%</div></div>
-          <div className="kpi"><div className="kpi-title">Итоговая стоимость</div><div className="kpi-value">{display(finalValueUSD)}</div></div>
+          {isAdmin && <div className="kpi"><div className="kpi-title">Проценты (мес.)</div><div className="kpi-value">{fmt2(monthlyRatePct)}%</div></div>}
+          <div className="kpi"><div className="kpi-title">Итоговая стоимость</div><div className="kpi-value">{display(effectivePriceUSD)}</div></div>
           <div className="kpi">
             <div className="kpi-title">ROI при продаже перед ключами</div>
-            <div className="kpi-value">{fmt2(((finalValueUSD - payAfterTotalUSD) / Math.max(1, payBeforeUSD)) * 100)}%</div>
+            <div className="kpi-value">{fmt2(((effectivePriceUSD - payAfterTotalUSD) / Math.max(1, payBeforeUSD)) * 100)}%</div>
             <div className="kpi-sub">Чистый доход</div>
             <div className="kpi-value">{display(netIncomeUSD)}</div>
           </div>
@@ -878,7 +845,6 @@ function CalcView({ catalog, projectId, villaId }) {
         </div>
       </section>
 
-      {/* Полный график платежей */}
       <section className="card">
         <h3 className="h3">Полный график платежей</h3>
         <div className="table-wrap">
@@ -899,7 +865,6 @@ function CalcView({ catalog, projectId, villaId }) {
         </div>
       </section>
 
-      {/* Финмодель доходности инвестиций */}
       <section className="card">
         <h3 className="h3">Финмодель доходности инвестиций</h3>
         <div className="spec-list" style={{display:"grid", gridTemplateColumns:"repeat(2, minmax(0,1fr))", gap:"12px"}}>
@@ -913,7 +878,6 @@ function CalcView({ catalog, projectId, villaId }) {
         </div>
       </section>
 
-      {/* Расчет показателей (годовой) */}
       <section className="card">
         <h3 className="h3">Расчет показателей (годовой)</h3>
         <div className="table-wrap">
@@ -928,7 +892,6 @@ function CalcView({ catalog, projectId, villaId }) {
         </div>
       </section>
 
-      {/* Расчет показателей (на период рассрочки) */}
       <section className="card">
         <h3 className="h3">Расчет показателей (на период рассрочки)</h3>
         <div className="table-wrap">
@@ -968,7 +931,8 @@ function App() {
   if (route.route === "calc") {
     const projectId = route.params.get("projectId");
     const villaId = route.params.get("villaId");
-    return <CalcView catalog={catalog} projectId={projectId} villaId={villaId} />;
+    const isAdmin = route.params.get("admin") === "1";
+    return <CalcView catalog={catalog} projectId={projectId} villaId={villaId} isAdmin={isAdmin} />;
   }
   return <CatalogView catalog={catalog} />;
 }
