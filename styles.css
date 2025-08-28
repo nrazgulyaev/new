@@ -78,3 +78,82 @@ body{margin:0;background:var(--beige);color:var(--ink);font-family:ui-sans-serif
 /* Modal entrance */
 .modal-backdrop{animation:fadeIn .18s ease both}
 .modal{animation:modalIn .22s ease both}
+
+/* Restore classic catalog look */
+
+/* Layout */
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.h1{font-size:28px;font-weight:600;margin:0}
+.h2{font-size:20px;font-weight:600;margin:0 0 12px 0}
+
+/* Card */
+.card{
+  background:#fff;
+  border:1px solid #e7e2d8;
+  border-radius:16px;
+  box-shadow:0 4px 18px rgba(0,0,0,.06);
+  padding:18px;
+  margin:16px 0;
+}
+
+/* Project head */
+.project-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:8px}
+.project-title{display:flex;flex-direction:column;gap:6px}
+.project-meta{display:flex;flex-wrap:wrap;gap:6px}
+.pill{
+  display:inline-block;
+  background:#f2eadc;
+  color:#1f2937;
+  border:1px solid #e7e2d8;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+}
+
+/* Buttons */
+.btn{
+  background:#1f2937;color:#fff;border:0;border-radius:10px;
+  padding:8px 14px;cursor:pointer;transition:opacity .2s
+}
+.btn:hover{opacity:.9}
+.btn-secondary{
+  background:#fff;color:#1f2937;border:1px solid #e7e2d8;border-radius:10px;
+  padding:8px 14px;cursor:pointer;transition:background .2s
+}
+.btn-secondary:hover{background:#f8f5ef}
+
+/* Table */
+.table-wrap{width:100%;overflow:auto}
+.table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+.th,.td{padding:10px 12px;border-bottom:1px solid #eee;vertical-align:top}
+thead .th{background:#faf7f0;font-weight:600}
+tbody tr:hover{background:#fafafa}
+.w-1{width:1%;white-space:nowrap}
+
+/* Status at right with clear chips */
+.status{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid transparent}
+.status-available{background:#e7f8f0;color:#065f46;border-color:#c7eedf}
+.status-reserved{background:#fff7e6;color:#92400e;border-color:#ffe2b3}
+.status-hold{background:#eef2f7;color:#334155;border-color:#dbe2ec}
+
+/* Includes list */
+.spec-list{list-style:none;padding:0;margin:8px 0 0 0;display:flex;flex-direction:column;gap:6px}
+.spec-list li{color:#475569;font-size:14px}
+
+/* Pills summary row */
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+
+/* Inputs (for inline fields in tables) */
+.input{
+  display:inline-block;border:1px solid #e7e2d8;border-radius:10px;padding:6px 8px;
+  background:#fff;min-height:34px;font-size:14px;color:#0f172a;width:auto
+}
+
+/* Reveal animation stays but won't hide content accidentally */
+.reveal{opacity:1;transform:none;transition:opacity .4s, transform .4s}
+.reveal.is-visible{opacity:1;transform:none}
+
+/* Small tweaks for tighter catalog table */
+.table .th:nth-child(1), .table .td:nth-child(1){white-space:nowrap}
+.table .th, .table .td{line-height:1.35}
