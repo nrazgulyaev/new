@@ -303,7 +303,7 @@ function AdminPanel({ catalog, setCatalog }) {
       <div className="grid gap-8">
         {catalog.map(project=>(
           <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} rounded-3xl border p-4`}>
-            <div className="flex items-end justify-between gap-3">
+            <div className="flex items:end justify-between gap-3">
               <div>
                 <h3 className={`text-xl font-semibold ${project.theme==="dark"?"text-white":"text-neutral-900"}`}>{project.projectName}</h3>
                 {project.includes?.length>0 && (
@@ -503,15 +503,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     return null;
   },[catalog, villaId]);
 
-  if (!selected) {
-    return (
-      <div className="container">
-        <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
-        <div className="mt-4">Вилла не найдена.</div>
-      </div>
-    );
-  }
-
+  // Hooks объявлены до любых ранних return
   const [currency, setCurrency] = useState('USD');
   const [handoverMonth, setHandoverMonth] = useState(12);
   const [months, setMonths] = useState(12);
@@ -555,6 +547,15 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     });
   },[selected, line]);
 
+  // Теперь безопасно ранние return — порядок хуков не меняется
+  if (!selected) {
+    return (
+      <div className="container">
+        <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
+        <div className="mt-4">Вилла не найдена.</div>
+      </div>
+    );
+  }
   if (!line) {
     return (
       <div className="container">
@@ -1044,7 +1045,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       </div>
 
       {/* Годовая таблица */}
-      <div className="rounded-2xl border p-4 bg-white mt-4">
+      <div className="rounded-2xl border p-4 bg:white mt-4">
         <h3 className="font-medium">Расчет показателей (годовой)</h3>
         <div className="overflow-x-auto mt-3">
           <table className="w-full text-sm min-w-[1200px]">
@@ -1085,10 +1086,10 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       </div>
 
       {/* Помесячная таблица */}
-      <div className="rounded-2xl border p-4 bg-white mt-4">
+      <div className="rounded-2xl border p-4 bg:white mt-4">
         <h3 className="font-medium">Расчет показателей (на период рассрочки)</h3>
         <div className="overflow-x-auto mt-3">
-          <table className="w-full text-sm min-w-[1400px]">
+          <table className="w-full text-sm min-w:[1400px]">
             <thead>
               <tr className="bg-neutral-50">
                 <Th>Period</Th>
