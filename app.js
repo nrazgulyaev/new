@@ -9,8 +9,6 @@ const LS_CATALOG = "arq_catalog_v2";
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const fmtInt = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(n || 0));
 const fmt2 = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(+n || 0);
-const fmtMoney = (n, c = "USD") =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(Math.round(n || 0));
 
 const loadCatalog = () => {
   try {
@@ -30,6 +28,7 @@ function defaults() {
       projectId: "ahau-gardens",
       projectName: "Ahau Gardens by Arconique",
       theme: "light",
+      plannedCompletion: "", // YYYY-MM
       includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
       villas: [
         { villaId: "ahau-a1-2br", name: "A1", status: "hold", rooms: "2", land: 201.7, area: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2200, baseUSD: 282828, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 220, rentalPriceIndexPct: 5 },
@@ -41,6 +40,7 @@ function defaults() {
       projectId: "enso-villas",
       projectName: "ENSO by Arconique",
       theme: "light",
+      plannedCompletion: "",
       includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
       villas: [
         { villaId: "enso-l1-2br", name: "L1", status: "hold", rooms: "2", land: 174.6, area: 104.1, f1: 0, f2: 0, roof: 0, garden: 40.73, ppsm: 2410, baseUSD: 244775, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2054-12-01", dailyRateUSD: 220, rentalPriceIndexPct: 5 },
@@ -51,6 +51,7 @@ function defaults() {
       projectId: "eternal-villas",
       projectName: "Eternal Villas by Arconique",
       theme: "light",
+      plannedCompletion: "",
       includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
       villas: [
         { villaId: "eternal-p1-3rt", name: "P1", status: "hold", rooms: "3+rt", land: 124, area: 218, f1: 109.8, f2: 76.07, roof: 32.09, garden: 44.21, ppsm: 2200, baseUSD: 431531, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 550, rentalPriceIndexPct: 5 }
@@ -225,12 +226,17 @@ function AdminPanel({ catalog, setCatalog }) {
   const [villaModal, setVillaModal] = useState({ open:false, projectId:null, init:null });
   const fileRef = React.useRef(null);
 
+  const updateProject = (projectId, patch) => {
+    const next = catalog.map(p=> p.projectId===projectId ? { ...p, ...patch } : p);
+    setCatalog(next); saveCatalog(next);
+  };
+
   const addProject = () => {
     const name = (newProjectName||"").trim();
     if (!name) return;
     const projectId = name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
     if (catalog.some(p=>p.projectId===projectId)) { alert("Проект с таким ID уже есть"); return; }
-    const next = [...catalog, { projectId, projectName: name, theme:"light", includes:[], villas: [] }];
+    const next = [...catalog, { projectId, projectName: name, theme:"light", plannedCompletion:"", includes:[], villas: [] }];
     setCatalog(next); saveCatalog(next); setNewProjectName(""); setShowAddProject(false);
   };
 
@@ -305,9 +311,15 @@ function AdminPanel({ catalog, setCatalog }) {
                     {project.includes.map((x,i)=><li key={i}>• {x}</li>)}
                   </ul>
                 )}
+                <div className="mt-2 text-sm">
+                  <label className="inline-flex items-center gap-2">
+                    <span className="text-neutral-600">Срок завершения строительства</span>
+                    <input type="month" className="px-2 py-1 rounded border" value={project.plannedCompletion||""} onChange={(e)=>updateProject(project.projectId,{ plannedCompletion:e.target.value })} />
+                  </label>
+                </div>
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-1.5 rounded-lg border" onClick={()=>openAddVilla(project.projectId)}>Добавить виллу</button>
+                <button className="px-3 py-1.5 rounded-lg border" onClick={()=>setVillaModal({ open:true, projectId:project.projectId, init:{ status:"available", monthlyPriceGrowthPct:2, rentalPriceIndexPct:5 }})}>Добавить виллу</button>
                 <button className="px-3 py-1.5 rounded-lg border text-red-600" onClick={()=>deleteProject(project.projectId)}>Удалить проект</button>
               </div>
             </div>
@@ -339,7 +351,7 @@ function AdminPanel({ catalog, setCatalog }) {
                           {v.status==="available"
                             ? <a className="px-3 py-1.5 rounded-lg text-xs bg-neutral-900 text-white" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
                             : <span className="px-3 py-1.5 rounded-lg text-xs border bg-white">Недоступно</span>}
-                          <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>openEditVilla(project.projectId, v)}>Править</button>
+                          <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>setVillaModal({ open:true, projectId:project.projectId, init:{...v} })}>Править</button>
                           <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>deleteVilla(project.projectId, v.villaId)}>Удалить</button>
                         </div>
                       </Td>
@@ -400,6 +412,8 @@ function CatalogView({ catalog }) {
                     {project.includes.map((x,i)=><li key={i}>• {x}</li>)}
                   </ul>
                 )}
+                {project.plannedCompletion &&
+                  <div className="mt-1 text-xs text-neutral-600">План завершения: {project.plannedCompletion}</div>}
               </div>
             </div>
 
@@ -480,7 +494,7 @@ const calculateIRR = (cashFlows, maxIterations=100, tolerance=1e-4) => {
   } catch { return 0; }
 };
 
-function CalcView({ catalog, villaId, isAdmin }) {
+function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUsd, setEurPerUsd }) {
   const selected = useMemo(()=>{
     for (const p of catalog) {
       const v = p.villas.find(x=>x.villaId===villaId);
@@ -489,14 +503,23 @@ function CalcView({ catalog, villaId, isAdmin }) {
     return null;
   },[catalog, villaId]);
 
-  // Настройки
-  const [lang, setLang] = useState('ru');
   const [currency, setCurrency] = useState('USD');
   const [handoverMonth, setHandoverMonth] = useState(12);
   const [months, setMonths] = useState(12);
   const [monthlyRatePct, setMonthlyRatePct] = useState(8.33);
   const [startMonth] = useState(new Date());
   const [pricingConfig] = useState({ inflationRatePct:10, leaseAlpha:1, agingBeta:0.025, brandPeak:1.2, brandRampYears:3, brandPlateauYears:4, brandDecayYears:8, brandTail:1.0 });
+
+  // Автоподстановка срока по plannedCompletion
+  useEffect(()=>{
+    const pc = selected?.project?.plannedCompletion;
+    if (!pc) return;
+    const [py, pm] = pc.split("-").map(Number);
+    if (!py || !pm) return;
+    const planned = new Date(py, pm-1, 1);
+    const m = (planned.getFullYear()-startMonth.getFullYear())*12 + (planned.getMonth()-startMonth.getMonth());
+    setHandoverMonth(Math.max(0, m));
+  },[selected?.project?.plannedCompletion, startMonth]);
 
   // Стадии
   const [stages, setStages] = useState([
@@ -511,77 +534,65 @@ function CalcView({ catalog, villaId, isAdmin }) {
   const updStage = (id, patch) => setStages(prev=>prev.map(s=> s.id===id ? {...s, ...(patch.pct!==undefined ? {pct: clamp(+patch.pct||0,0,100)}:patch)} : s));
   const delStage = (id) => setStages(prev=>prev.filter(s=>s.id!==id));
 
-  // Позиции
-  const [lines, setLines] = useState([]);
+  // Позиция (без «Кол-во»)
+  const [line, setLine] = useState(null);
   useEffect(()=>{
     if (!selected) return;
-    if (lines.length>0) return;
-    const { project, villa } = selected;
-    setLines([{
-      id:1, projectId: project.projectId, villaId: villa.villaId, qty:1, prePct:70, ownTerms:false,
+    if (line) return;
+    const v = selected.villa;
+    setLine({
+      id:1, prePct:70, ownTerms:false,
       months:null, monthlyRatePct:null, firstPostUSD:0, discountPct:0,
-      monthlyPriceGrowthPct: villa.monthlyPriceGrowthPct||2,
-      dailyRateUSD: villa.dailyRateUSD||150, occupancyPct:75, rentalPriceIndexPct: villa.rentalPriceIndexPct||5,
-      snapshot: { name: villa.name, area: villa.area, ppsm: villa.ppsm, baseUSD: villa.baseUSD, leaseholdEndDate: villa.leaseholdEndDate ? new Date(villa.leaseholdEndDate) : null }
-    }]);
-  },[selected, lines.length]);
-
-  const updLine = (id, patch) => setLines(prev=>prev.map(l=> l.id===id ? {...l, ...patch} : l));
-  const delLine = (id) => setLines(prev=>prev.filter(l=> l.id!==id));
-
-  // Расчеты линий
-  const linesData = useMemo(()=>{
-    return lines.map(line=>{
-      const base0 = line.snapshot?.baseUSD ?? ((line.snapshot?.area||0)*(line.snapshot?.ppsm||0));
-      const disc = clamp(+line.discountPct||0,0,20);
-      const base = base0 * (1 - disc/100);
-      const prePct = clamp(line.prePct ?? 0, 50, 100);
-
-      const vMonths = line.ownTerms && line.months ? line.months : months;
-      const rate = (line.ownTerms && line.monthlyRatePct!=null) ? (line.monthlyRatePct/100) : (monthlyRatePct/100);
-      const firstPostUSD = Math.max(0,+line.firstPostUSD||0);
-
-      const k = stagesSumPct===0 ? 0 : prePct/stagesSumPct;
-      const preSchedule = stages.map(s=>({
-        month: Math.max(0, Math.min(handoverMonth, Math.round(+s.month||0))),
-        label: s.label,
-        amountUSD: base * (((+s.pct||0)*k)/100),
-      })).filter(r=>r.amountUSD>0).sort((a,b)=>a.month-b.month);
-
-      const preTotalOne = preSchedule.reduce((s,r)=>s+r.amountUSD,0);
-
-      let bal = Math.max(0, base - preTotalOne - firstPostUSD);
-      let totalInterest = 0;
-      const principalShare = vMonths>0 ? bal/vMonths : 0;
-      const postRows = [];
-      for (let i=1;i<=vMonths;i++){
-        const interest = bal*rate; totalInterest += interest;
-        const payment = principalShare + interest;
-        postRows.push({ month: handoverMonth+i, label:`${i}`, principalUSD:principalShare, interestUSD:interest, paymentUSD:payment, balanceAfterUSD: Math.max(0, bal-principalShare) });
-        bal -= principalShare;
-      }
-
-      const lineTotalOne = base + totalInterest;
-
-      const qty = Math.max(1, parseInt(line.qty||1,10));
-      const preScheduleQ = preSchedule.map(r=>({...r, amountUSD:r.amountUSD*qty}));
-      const postRowsQ = postRows.map(r=>({...r, principalUSD:r.principalUSD*qty, interestUSD:r.interestUSD*qty, paymentUSD:r.paymentUSD*qty}));
-      const preTotal = preTotalOne*qty;
-      const baseQ = base*qty;
-      const lineTotal = lineTotalOne*qty;
-
-      return { line, qty, baseOne:base, base:baseQ, preSchedule:preScheduleQ, preTotal, firstPostUSD:firstPostUSD*qty, postRows:postRowsQ, lineTotal, vMonths, rate, discountPct:disc, prePct };
+      monthlyPriceGrowthPct: v.monthlyPriceGrowthPct||2,
+      dailyRateUSD: v.dailyRateUSD||150, occupancyPct:75, rentalPriceIndexPct: v.rentalPriceIndexPct||5,
+      snapshot: { name: v.name, area: v.area, ppsm: v.ppsm, baseUSD: v.baseUSD, leaseholdEndDate: v.leaseholdEndDate ? new Date(v.leaseholdEndDate) : null }
     });
-  },[lines, stages, stagesSumPct, handoverMonth, months, monthlyRatePct]);
+  },[selected, line]);
 
-  const totals = useMemo(()=>{
-    const baseUSD  = linesData.reduce((s,x)=> s+x.base, 0);
-    const preUSD   = linesData.reduce((s,x)=> s+x.preTotal, 0);
-    const finalUSD = linesData.reduce((s,x)=> s+x.lineTotal,0);
-    const interestUSD = finalUSD - baseUSD;
-    const afterUSD = finalUSD - preUSD;
-    return { baseUSD, preUSD, finalUSD, interestUSD, afterUSD };
-  },[linesData]);
+  const updLine = (patch) => setLine(prev=> ({...prev, ...patch}));
+
+  // Денежные расчёты по линии (qty = 1)
+  const toMoney = (usd) => {
+    if (usd==null || isNaN(usd)) return "-";
+    if (currency==="USD") return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Math.round(usd));
+    if (currency==="IDR") return "IDR " + Intl.NumberFormat("ru-RU").format(Math.round(usd * idrPerUsd));
+    return new Intl.NumberFormat("en-US",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.round(usd * eurPerUsd));
+  };
+
+  const lineData = useMemo(()=>{
+    if (!line) return null;
+    const base0 = line.snapshot?.baseUSD ?? ((line.snapshot?.area||0)*(line.snapshot?.ppsm||0));
+    const disc = clamp(+line.discountPct||0,0,20);
+    const base = base0 * (1 - disc/100);
+    const prePct = clamp(line.prePct ?? 0, 50, 100);
+
+    const vMonths = line.ownTerms && line.months ? line.months : months;
+    const rate = (line.ownTerms && line.monthlyRatePct!=null) ? (line.monthlyRatePct/100) : (monthlyRatePct/100);
+    const firstPostUSD = Math.max(0,+line.firstPostUSD||0);
+
+    const k = stagesSumPct===0 ? 0 : prePct/stagesSumPct;
+    const preSchedule = stages.map(s=>({
+      month: Math.max(0, Math.min(handoverMonth, Math.round(+s.month||0))),
+      label: s.label,
+      amountUSD: base * (((+s.pct||0)*k)/100),
+    })).filter(r=>r.amountUSD>0).sort((a,b)=>a.month-b.month);
+
+    const preTotal = preSchedule.reduce((s,r)=>s+r.amountUSD,0);
+
+    let bal = Math.max(0, base - preTotal - firstPostUSD);
+    let totalInterest = 0;
+    const principalShare = vMonths>0 ? bal/vMonths : 0;
+    const postRows = [];
+    for (let i=1;i<=vMonths;i++){
+      const interest = bal*rate; totalInterest += interest;
+      const payment = principalShare + interest;
+      postRows.push({ month: handoverMonth+i, label:`${i}`, principalUSD:principalShare, interestUSD:interest, paymentUSD:payment, balanceAfterUSD: Math.max(0, bal-principalShare) });
+      bal -= principalShare;
+    }
+
+    const finalUSD = base + totalInterest;
+    return { base, preSchedule, preTotal, firstPostUSD, postRows, finalUSD, totalInterest, vMonths, rate };
+  },[line, stages, stagesSumPct, handoverMonth, months, monthlyRatePct]);
 
   // Вспомогательные
   const getCleanLeaseholdTerm = (leaseholdEndDate) => {
@@ -606,9 +617,12 @@ function CalcView({ catalog, villaId, isAdmin }) {
     return (baseDailyUSD || 0) * Math.pow(1 + (indexPct || 0) / 100, yearOffset);
   };
   const generatePricingData = (villa, line) => {
-    if (!villa?.leaseholdEndDate) return [];
-    const leaseEnd = new Date(villa.leaseholdEndDate);
-    const totalYears = Math.max(0, Math.ceil((leaseEnd - startMonth) / (365 * 24 * 60 * 60 * 1000)));
+    const leaseEndStr = selected?.villa?.leaseholdEndDate;
+    if (!leaseEndStr) return [];
+    const leaseEnd = new Date(leaseEndStr);
+    const handoverDate = new Date(startMonth);
+    handoverDate.setMonth(handoverDate.getMonth() + handoverMonth);
+    const totalYears = Math.max(0, Math.ceil((leaseEnd - handoverDate) / (365*24*60*60*1000)));
     const data = [];
     const baseAtHandover = calculateMarketPriceAtHandover(villa, line);
     for (let year = 0; year <= totalYears; year++) {
@@ -631,72 +645,30 @@ function CalcView({ catalog, villaId, isAdmin }) {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
 
-  const firstLine = lines[0];
-  const selectedVilla = React.useMemo(()=>{
-    if (!firstLine) return null;
-    for (const p of catalog) {
-      const v = p.villas.find(x=>x.villaId===firstLine.villaId);
-      if (v) return v;
-    }
-    return null;
-  }, [catalog, lines]);
+  if (!lineData) return null;
 
-  const leaseTerm = React.useMemo(()=>{
-    return selectedVilla?.leaseholdEndDate ? getCleanLeaseholdTerm(new Date(selectedVilla.leaseholdEndDate)) : { years: 0, months: 0 };
-  }, [selectedVilla, startMonth, handoverMonth]);
-
+  const basePrice0 = selected ? (selected.villa.baseUSD || ((selected.villa.area||0)*(selected.villa.ppsm||0))) : 0;
   const monthBeforeKeys = Math.max(0, handoverMonth - 1);
-  const basePrice0 = selectedVilla ? (selectedVilla.baseUSD || ((selectedVilla.area||0)*(selectedVilla.ppsm||0))) : 0;
-  const monthlyGrowthRate = ((firstLine?.monthlyPriceGrowthPct ?? selectedVilla?.monthlyPriceGrowthPct ?? 2) / 100);
+  const monthlyGrowthRate = ((line?.monthlyPriceGrowthPct ?? selected?.villa?.monthlyPriceGrowthPct ?? 2) / 100);
   const priceBeforeKeys = basePrice0 * Math.pow(1 + monthlyGrowthRate, monthBeforeKeys);
-  const roiBeforeKeysAnnual = totals.finalUSD > 0
-    ? (((priceBeforeKeys - totals.finalUSD) / totals.finalUSD) * (12 / Math.max(1, monthBeforeKeys + 1)) * 100)
+  const roiBeforeKeysAnnual = lineData.finalUSD > 0
+    ? (((priceBeforeKeys - lineData.finalUSD) / lineData.finalUSD) * (12 / Math.max(1, monthBeforeKeys + 1)) * 100)
     : 0;
-  const netIncomeBeforeKeys = priceBeforeKeys - totals.finalUSD;
+  const netIncomeBeforeKeys = priceBeforeKeys - lineData.finalUSD;
 
-  const optimalExit = React.useMemo(()=>{
-    const pricing = selectedVilla ? generatePricingData(selectedVilla, firstLine) : [];
-    if (!pricing.length) return { year: 0, irr: 0, totalValue: 0 };
-    let best = { year: 0, irr: -Infinity, totalValue: 0 };
-    for (let i = 1; i < pricing.length; i++) {
-      const cf = [-totals.finalUSD, ...Array(i).fill(0), pricing[i].finalPrice];
-      const irr = calculateIRR(cf);
-      if (irr > best.irr) best = { year: pricing[i].year, irr, totalValue: pricing[i].finalPrice };
-    }
-    return best;
-  }, [selectedVilla, firstLine, totals.finalUSD, pricingConfig, handoverMonth, startMonth]);
-  const exitYearAbs = Math.floor(startMonth.getFullYear() + handoverMonth/12 + (optimalExit?.year||0));
-  const finalCumulativeROI = totals.finalUSD > 0
-    ? (((optimalExit.totalValue - totals.finalUSD) / totals.finalUSD) * 100)
-    : 0;
-
-  // Таблицы и графики
+  // Сводка платежей (одна линия)
   const m = new Map();
   const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
-  const linesDataLocal = linesData; // alias
-  linesDataLocal.forEach(ld=>{
-    ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
-    if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
-    ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
-  });
-  const rentalMap = new Map();
-  lines.forEach(ln=>{
-    const occ = (ln.occupancyPct ?? 75)/100;
-    const baseDaily = ln.dailyRateUSD ?? 0;
-    const idxPct = ln.rentalPriceIndexPct ?? 0;
-    for (let mon = handoverMonth+3; mon <= handoverMonth + (linesDataLocal[0]?.vMonths || months); mon++){
-      const yOff = Math.floor((mon - handoverMonth)/12);
-      const daily = getIndexedRentalPrice(baseDaily, idxPct, yOff);
-      const val = daily * 0.55 * occ * getDaysInMonth(mon) * (ln.qty || 1);
-      rentalMap.set(mon, (rentalMap.get(mon)||0) + val);
-    }
-  });
+  lineData.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${line?.snapshot?.name||'Villa'}: ${r.label}`));
+  if (lineData.firstPostUSD>0) push(handoverMonth+1, lineData.firstPostUSD, `${line?.snapshot?.name||'Villa'}: Первый платёж`);
+  lineData.postRows.forEach(r=> push(r.month, r.paymentUSD, `${line?.snapshot?.name||'Villa'}: Месяц ${r.label}`));
   const rows = [...m.values()].sort((a,b)=>a.month-b.month);
 
-  const pricing = selectedVilla ? generatePricingData(selectedVilla, firstLine) : [];
-  const occ = (firstLine?.occupancyPct ?? 75) / 100;
-  const baseDaily = firstLine?.dailyRateUSD ?? selectedVilla?.dailyRateUSD ?? 0;
-  const indexPct = firstLine?.rentalPriceIndexPct ?? selectedVilla?.rentalPriceIndexPct ?? 0;
+  // График
+  const pricing = generatePricingData(selected?.villa, line);
+  const occ = (line?.occupancyPct ?? 75) / 100;
+  const baseDaily = line?.dailyRateUSD ?? selected?.villa?.dailyRateUSD ?? 0;
+  const indexPct = line?.rentalPriceIndexPct ?? selected?.villa?.rentalPriceIndexPct ?? 0;
   const rentalData = pricing.map((d) => {
     const daily = getIndexedRentalPrice(baseDaily, indexPct, d.year);
     const workingMonths = d.year===0 ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
@@ -705,16 +677,13 @@ function CalcView({ catalog, villaId, isAdmin }) {
   const globalMax = Math.max(1, Math.max(...pricing.map(d=>d.finalPrice), ...(rentalData.length?[Math.max(...rentalData.map(d=>d.rentalIncome))]:[1])));
   const scaleY = (val) => 250 - (val/globalMax) * 200;
 
+  // Годовые/помесячные ряды
   const annualRows = useMemo(()=>{
-    if (!selectedVilla || !firstLine) return [];
-    const occ = (firstLine?.occupancyPct ?? 75) / 100;
-    const baseDaily = firstLine?.dailyRateUSD ?? selectedVilla?.dailyRateUSD ?? 0;
-    const indexPct = firstLine?.rentalPriceIndexPct ?? selectedVilla?.rentalPriceIndexPct ?? 0;
     const avgDays = 30.44;
     return pricing.map((d, idx)=>{
       let workingMonths = idx===0 ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
       const daily = getIndexedRentalPrice(baseDaily, indexPct, d.year);
-      const rentalIncome = daily * 0.55 * occ * avgDays * workingMonths * (firstLine?.qty || 1);
+      const rentalIncome = daily * 0.55 * occ * avgDays * workingMonths;
       const totalCapitalization = d.finalPrice + rentalIncome;
       const prev = idx>0 ? pricing[idx-1] : null;
       const priceChange = prev ? (d.finalPrice - prev.finalPrice) : 0;
@@ -723,44 +692,31 @@ function CalcView({ catalog, villaId, isAdmin }) {
       for (let y=0;y<=idx;y++){
         const wd = (y===0) ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
         const dly = getIndexedRentalPrice(baseDaily, indexPct, y);
-        cumRent += dly * 0.55 * occ * avgDays * wd * (firstLine?.qty || 1);
+        cumRent += dly * 0.55 * occ * avgDays * wd;
       }
-      const cumulativeRoi = totals.finalUSD>0 ? ((cumRent + d.finalPrice - totals.finalUSD) / totals.finalUSD) * 100 : 0;
-      const cashFlows = [-totals.finalUSD];
-      for (let y=0;y<=idx;y++){
-        const wd = (y===0) ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
-        const dly = getIndexedRentalPrice(baseDaily, indexPct, y);
-        const rent = dly * 0.55 * occ * 30.44 * wd * (firstLine?.qty || 1);
-        if (y===idx) cashFlows.push(rent + d.finalPrice); else cashFlows.push(rent);
-      }
-      const irr = calculateIRR(cashFlows);
+      const cumulativeRoi = lineData.finalUSD>0 ? ((cumRent + d.finalPrice - lineData.finalUSD) / lineData.finalUSD) * 100 : 0;
+      const cf = [-lineData.finalUSD, ...Array(idx).fill(0), rentalIncome + d.finalPrice];
+      const irr = calculateIRR(cf);
       return { displayYear: Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year), ...d, rentalIncome, totalCapitalization, yearlyRoi, cumulativeRoi, irr };
     });
-  },[selectedVilla, firstLine, pricingConfig, handoverMonth, startMonth, totals.finalUSD]);
+  },[pricing, baseDaily, indexPct, occ, handoverMonth, startMonth, lineData.finalUSD]);
 
-  const generateMonthlyPricingData = (villa, line) => {
-    if (!villa) return [];
-    const baseAtHandover = calculateMarketPriceAtHandover(villa, line);
-    const vMonths = linesDataLocal[0]?.vMonths || months;
+  const generateMonthlyPricingData = () => {
+    const baseAtHandover = calculateMarketPriceAtHandover(selected?.villa, line);
+    const vMonths = lineData.vMonths;
     const totalMonths = handoverMonth + vMonths;
-    const occ = (line?.occupancyPct ?? 75) / 100;
-    const baseDaily = line?.dailyRateUSD ?? villa?.dailyRateUSD ?? 0;
-    const indexPct = line?.rentalPriceIndexPct ?? villa?.rentalPriceIndexPct ?? 0;
 
-    const preMap = new Map();
-    const postMap = new Map();
-    linesDataLocal.forEach(ld=>{
-      ld.preSchedule.forEach(r=> preMap.set(r.month, (preMap.get(r.month)||0) + r.amountUSD));
-      ld.postRows.forEach(r=> postMap.set(r.month, (postMap.get(r.month)||0) + r.paymentUSD));
-    });
+    const preMap = new Map(), postMap = new Map();
+    lineData.preSchedule.forEach(r=> preMap.set(r.month, (preMap.get(r.month)||0) + r.amountUSD));
+    lineData.postRows.forEach(r=> postMap.set(r.month, (postMap.get(r.month)||0) + r.paymentUSD));
 
     const result = [];
     let totalPaymentsToDate = 0;
     for (let m = 0; m <= totalMonths; m++) {
       let inflationFactor = 1, lf=1, af=1, bf=1, finalPrice = 0;
       if (m <= handoverMonth) {
-        const base = (villa.baseUSD || ((villa.area||0)*(villa.ppsm||0)));
-        finalPrice = base * Math.pow(1 + ((line?.monthlyPriceGrowthPct ?? villa?.monthlyPriceGrowthPct ?? 2)/100), m);
+        const base = basePrice0;
+        finalPrice = base * Math.pow(1 + ((line?.monthlyPriceGrowthPct ?? selected?.villa?.monthlyPriceGrowthPct ?? 2)/100), m);
       } else {
         const yearOffset = (m - handoverMonth) / 12;
         inflationFactor = Math.pow(1 + pricingConfig.inflationRatePct / 100, yearOffset);
@@ -777,22 +733,16 @@ function CalcView({ catalog, villaId, isAdmin }) {
       if (m >= handoverMonth + 3) {
         const yearOffset = (m - handoverMonth) / 12;
         const daily = getIndexedRentalPrice(baseDaily, indexPct, Math.floor(yearOffset));
-        rentalIncome = daily * 0.55 * occ * getDaysInMonth(m) * (line?.qty || 1);
+        rentalIncome = daily * 0.55 * occ * getDaysInMonth(m);
       }
 
       const prev = result[result.length-1];
       const priceChange = prev ? (finalPrice - prev.finalPrice) : 0;
       const monthlyRoi = totalPaymentsToDate>0 ? ((rentalIncome + priceChange) / totalPaymentsToDate) * 100 : 0;
-      const cumulativeRoi = totals.finalUSD>0 ? ((finalPrice - totals.finalUSD) / totals.finalUSD) * 100 : 0;
+      const cumulativeRoi = lineData.finalUSD>0 ? ((finalPrice - lineData.finalUSD) / lineData.finalUSD) * 100 : 0;
 
-      const cashFlows = [-totals.finalUSD];
-      for (let j=0;j<=m;j++){
-        const rj = (j >= handoverMonth + 3)
-          ? (getIndexedRentalPrice(baseDaily, indexPct, Math.floor((j - handoverMonth)/12)) * 0.55 * occ * getDaysInMonth(j) * (line?.qty || 1))
-          : 0;
-        if (j===m) cashFlows.push(rj + finalPrice); else cashFlows.push(rj);
-      }
-      const irr = calculateIRR(cashFlows);
+      const cf = [-lineData.finalUSD, ...Array(m).fill(0), rentalIncome + finalPrice];
+      const irr = calculateIRR(cf);
 
       result.push({
         month: m, monthLabel: formatMonth(m),
@@ -803,14 +753,21 @@ function CalcView({ catalog, villaId, isAdmin }) {
     }
     return result;
   };
+  const monthlyRows = useMemo(()=>generateMonthlyPricingData(),[lineData, pricingConfig, handoverMonth, months]);
 
-  const monthlyRows = useMemo(()=>{
-    if (!selectedVilla || !firstLine) return [];
-    return generateMonthlyPricingData(selectedVilla, firstLine);
-  },[selectedVilla, firstLine, pricingConfig, handoverMonth, months, monthlyRatePct, linesDataLocal, totals.finalUSD]);
+  const leaseTerm = getCleanLeaseholdTerm(line?.snapshot?.leaseholdEndDate || (selected?.villa?.leaseholdEndDate ? new Date(selected.villa.leaseholdEndDate) : null));
+  const exitYearAbs = annualRows.length ? annualRows[annualRows.length-1].displayYear : Math.floor(startMonth.getFullYear() + handoverMonth/12);
+  const finalCumulativeROI = annualRows.length ? annualRows[annualRows.length-1].cumulativeRoi : 0;
 
-  // UI — порядок секций
-  let acc=0;
+  // ВЕРСТКА: порядок
+  let acc = 0;
+  const rentalMap = new Map();
+  for (let mon = handoverMonth+3; mon <= handoverMonth + (lineData.vMonths || months); mon++){
+    const yOff = Math.floor((mon - handoverMonth)/12);
+    const daily = getIndexedRentalPrice(baseDaily, indexPct, yOff);
+    const val = daily * 0.55 * occ * getDaysInMonth(mon);
+    rentalMap.set(mon, (rentalMap.get(mon)||0) + val);
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-5 py-6">
@@ -849,33 +806,45 @@ function CalcView({ catalog, villaId, isAdmin }) {
           <h3 className="font-medium mb-3">Настройки</h3>
           <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1">
-              <span className="text-sm text-neutral-600">Язык интерфейса</span>
-              <select className="px-3 py-2 rounded-xl border" value={lang} onChange={e=>setLang(e.target.value)}>
-                <option value="ru">Русский</option><option value="en">English</option>
-              </select>
-            </label>
-            <label className="grid gap-1">
               <span className="text-sm text-neutral-600">Валюта отображения</span>
               <select className="px-3 py-2 rounded-xl border" value={currency} onChange={e=>setCurrency(e.target.value)}>
-                <option>USD</option><option>EUR</option><option>IDR</option>
+                <option>USD</option><option>IDR</option><option>EUR</option>
               </select>
             </label>
+            {isAdmin && (
+              <>
+                <label className="grid gap-1">
+                  <span className="text-sm text-neutral-600">IDR за 1 USD</span>
+                  <input className="px-3 py-2 rounded-xl border" type="number" value={idrPerUsd} onChange={e=>setIdrPerUsd(+e.target.value||0)} />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-sm text-neutral-600">EUR за 1 USD</span>
+                  <input className="px-3 py-2 rounded-xl border" type="number" value={eurPerUsd} onChange={e=>setEurPerUsd(+e.target.value||0)} />
+                </label>
+              </>
+            )}
             <label className="grid gap-1">
               <span className="text-sm text-neutral-600">Заключение договора</span>
               <div className="px-3 py-2 rounded-xl border bg-neutral-50">{startMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</div>
             </label>
-            <label className="grid gap-1">
-              <span className="text-sm text-neutral-600">Срок строительства (мес)</span>
-              <input className="px-3 py-2 rounded-xl border" type="number" min="1" step="1" value={handoverMonth} onChange={e=>setHandoverMonth(clamp(parseInt(e.target.value||0,10),1,120))}/>
-            </label>
-            <label className="grid gap-1">
-              <span className="text-sm text-neutral-600">Post‑handover рассрочка (мес)</span>
-              <input className="px-3 py-2 rounded-xl border" type="number" min="6" step="1" value={months} onChange={e=>setMonths(clamp(parseInt(e.target.value||0,10),6,120))}/>
-            </label>
-            <label className="grid gap-1">
-              <span className="text-sm text-neutral-600">Ставка, %/мес</span>
-              <input className="px-3 py-2 rounded-xl border" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e=>setMonthlyRatePct(clamp(parseFloat(e.target.value||0),0,1000))}/>
-            </label>
+
+            {selected?.project?.plannedCompletion
+              ? <label className="grid gap-1">
+                  <span className="text-sm text-neutral-600">Дата завершения строительства</span>
+                  <div className="px-3 py-2 rounded-xl border bg-neutral-50">{selected.project.plannedCompletion}</div>
+                </label>
+              : <label className="grid gap-1">
+                  <span className="text-sm text-neutral-600">Срок строительства (мес)</span>
+                  <input className="px-3 py-2 rounded-xl border" type="number" min="1" step="1" value={handoverMonth} onChange={e=>setHandoverMonth(clamp(parseInt(e.target.value||0,10),1,120))}/>
+                </label>
+            }
+
+            {isAdmin && (
+              <label className="grid gap-1">
+                <span className="text-sm text-neutral-600">Ставка, %/мес</span>
+                <input className="px-3 py-2 rounded-xl border" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e=>setMonthlyRatePct(clamp(parseFloat(e.target.value||0),0,1000))}/>
+              </label>
+            )}
           </div>
         </div>
       </div>
@@ -887,31 +856,30 @@ function CalcView({ catalog, villaId, isAdmin }) {
           <table className="w-full text-sm min-w-[980px]">
             <thead>
               <tr className="bg-neutral-50">
-                <Th>Проект</Th><Th>Вилла</Th><Th>Кол-во</Th><Th>м²</Th><Th>$ / м²</Th><Th>Текущая стоимость (USD)</Th>
-                <Th>Скидка, %</Th><Th>До ключей, %</Th><Th>Месяцы</Th><Th>Ставка, %/мес</Th><Th>Итоговая стоимость</Th><Th>—</Th>
+                <Th>Проект</Th><Th>Вилла</Th><Th>м²</Th><Th>$ / м²</Th><Th>Текущая стоимость (USD)</Th>
+                {isAdmin && <Th>Скидка, %</Th>}
+                <Th>До ключей, %</Th><Th>Месяцы</Th>{isAdmin && <Th>Ставка, %/мес (линия)</Th>}<Th>Итоговая стоимость</Th><Th>—</Th>
               </tr>
             </thead>
             <tbody>
-              {linesData.map(ld=>(
-                <tr key={ld.line.id} className="border-t">
-                  <Td style={{textAlign:'left'}}>{selected?.project.projectName}</Td>
-                  <Td style={{textAlign:'left'}}>{ld.line.snapshot?.name}</Td>
-                  <Td><input className="px-2 py-1 rounded border w-20" type="number" min="1" step="1" value={ld.line.qty} onChange={e=>updLine(ld.line.id,{qty: clamp(parseInt(e.target.value||0,10),1,9999)})}/></Td>
-                  <Td>{fmtInt(ld.line.snapshot?.area||0)}</Td>
-                  <Td>{fmtInt(ld.line.snapshot?.ppsm||0)}</Td>
-                  <Td>{fmtMoney(ld.base, 'USD')}</Td>
-                  <Td><input className="px-2 py-1 rounded border w-20" type="number" min="0" max="20" step="0.1" value={ld.line.discountPct||0} onChange={e=>updLine(ld.line.id,{discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
-                  <Td>
-                    <input type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, ld.prePct||0))} onChange={e=>updLine(ld.line.id,{prePct: parseInt(e.target.value,10)})}/>
-                    <div className="text-xs text-neutral-600">{Math.max(50,Math.min(100, ld.prePct||0))}%</div>
-                  </Td>
-                  <Td><input className="px-2 py-1 rounded border w-20" type="number" min="6" step="1" value={ld.vMonths} onChange={e=>updLine(ld.line.id,{ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
-                  <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={ld.line.monthlyRatePct??monthlyRatePct} onChange={e=>updLine(ld.line.id,{ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>
-                  <Td className="font-semibold">{fmtMoney(ld.lineTotal, 'USD')}</Td>
-                  <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delLine(ld.line.id)}>Удалить</button></Td>
-                </tr>
-              ))}
-              {linesData.length===0 && <tr><td colSpan={12} className="px-3 py-3 text-neutral-500">Нет выбранных вилл</td></tr>}
+              <tr className="border-t">
+                <Td style={{textAlign:'left'}}>{selected?.project.projectName}</Td>
+                <Td style={{textAlign:'left'}}>{line?.snapshot?.name}</Td>
+                <Td>{fmtInt(line?.snapshot?.area||0)}</Td>
+                <Td>{fmtInt(line?.snapshot?.ppsm||0)}</Td>
+                <Td>{toMoney(lineData.base)}</Td>
+                {isAdmin && (
+                  <Td><input className="px-2 py-1 rounded border w-20" type="number" min="0" max="20" step="0.1" value={line?.discountPct||0} onChange={e=>updLine({discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
+                )}
+                <Td>
+                  <input type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, line?.prePct||0))} onChange={e=>updLine({prePct: parseInt(e.target.value,10)})}/>
+                  <div className="text-xs text-neutral-600">{Math.max(50,Math.min(100, line?.prePct||0))}%</div>
+                </Td>
+                <Td><input className="px-2 py-1 rounded border w-20" type="number" min="6" step="1" value={lineData.vMonths} onChange={e=>updLine({ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
+                {isAdmin && <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={line?.monthlyRatePct??monthlyRatePct} onChange={e=>updLine({ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>}
+                <Td className="font-semibold">{toMoney(lineData.finalUSD)}</Td>
+                <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>null}>—</button></Td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -920,37 +888,37 @@ function CalcView({ catalog, villaId, isAdmin }) {
       {/* KPI */}
       <div className="kpi-wrap mt-4">
         <div className="kpi-pills">
-          <span className="pill">Выбрано вилл: {lines.length || 0}</span>
+          <span className="pill">Выбрана 1 вилла</span>
           <span className="pill">Ключи через {handoverMonth} мес.</span>
-          <span className="pill">Срок рассрочки после получения ключей: {months} мес.</span>
+          <span className="pill">Срок рассрочки после получения ключей: {lineData.vMonths} мес.</span>
         </div>
         <div className="kpi-grid">
           <div className="kpi-item">
             <div className="title">Общая сумма</div>
-            <div className="value">{fmtMoney(totals.baseUSD, 'USD')}</div>
+            <div className="value">{toMoney(lineData.base)}</div>
           </div>
 
           <div className="kpi-item stack">
             <div>
               <div className="title">Оплата до ключей</div>
-              <div className="value">{fmtMoney(totals.preUSD, 'USD')}</div>
+              <div className="value">{toMoney(lineData.preTotal)}</div>
             </div>
             <div>
               <div className="title">Оплата после ключей</div>
-              <div className="value">{fmtMoney(totals.afterUSD, 'USD')}</div>
+              <div className="value">{toMoney(lineData.finalUSD - lineData.preTotal)}</div>
             </div>
           </div>
 
           {isAdmin && (
             <div className="kpi-item">
               <div className="title">Проценты (только админ)</div>
-              <div className="value">{fmtMoney(totals.interestUSD, 'USD')}</div>
+              <div className="value">{toMoney(lineData.totalInterest)}</div>
             </div>
           )}
 
           <div className="kpi-item">
             <div className="title">Итоговая стоимость</div>
-            <div className="value">{fmtMoney(totals.finalUSD, 'USD')}</div>
+            <div className="value">{toMoney(lineData.finalUSD)}</div>
           </div>
 
           <div className="kpi-item stack">
@@ -960,7 +928,7 @@ function CalcView({ catalog, villaId, isAdmin }) {
             </div>
             <div>
               <div className="title">Чистый доход</div>
-              <div className="value">{fmtMoney(netIncomeBeforeKeys, 'USD')}</div>
+              <div className="value">{toMoney(netIncomeBeforeKeys)}</div>
             </div>
           </div>
 
@@ -976,7 +944,7 @@ function CalcView({ catalog, villaId, isAdmin }) {
             </div>
             <div>
               <div className="title">IRR</div>
-              <div className="value">{optimalExit.irr.toFixed(1)}%</div>
+              <div className="value">{annualRows.length ? annualRows[annualRows.length-1].irr.toFixed(1) + "%" : "—"}</div>
             </div>
             <div>
               <div className="title">Итоговый ROI (накопительный)</div>
@@ -996,7 +964,7 @@ function CalcView({ catalog, villaId, isAdmin }) {
             let sum=0;
             rows.forEach(row=>{
               sum += row.amountUSD;
-              const balance = Math.max(0, totals.finalUSD - sum);
+              const balance = Math.max(0, lineData.finalUSD - sum);
               const rent = rentalMap.get(row.month)||0;
               const net = row.amountUSD - rent;
               out.push([formatMonth(row.month), row.items.join(" + "), Math.round(row.amountUSD), Math.round(rent), Math.round(net), Math.round(balance)]);
@@ -1021,17 +989,17 @@ function CalcView({ catalog, villaId, isAdmin }) {
             <tbody>
               {rows.length>0 ? rows.map(row=>{
                 acc += row.amountUSD;
-                const balance = Math.max(0, totals.finalUSD - acc);
+                const balance = Math.max(0, lineData.finalUSD - acc);
                 const rent = rentalMap.get(row.month)||0;
                 const net = row.amountUSD - rent;
                 return (
                   <tr key={row.month} className="border-t">
                     <Td>{formatMonth(row.month)}</Td>
                     <Td style={{textAlign:'left'}}>{row.items.join(' + ')}</Td>
-                    <Td>{fmtMoney(row.amountUSD, currency)}</Td>
-                    <Td>{fmtMoney(rent, currency)}</Td>
-                    <Td className={net>=0 ? 'text-red-600' : 'text-emerald-600'}>{fmtMoney(net, currency)}</Td>
-                    <Td>{fmtMoney(balance, currency)}</Td>
+                    <Td>{toMoney(row.amountUSD)}</Td>
+                    <Td>{toMoney(rent)}</Td>
+                    <Td className={net>=0 ? 'text-red-600' : 'text-emerald-600'}>{toMoney(net)}</Td>
+                    <Td>{toMoney(balance)}</Td>
                   </tr>
                 );
               }) : <tr><td colSpan={6} className="px-3 py-3 text-neutral-500">Нет платежей</td></tr>}
@@ -1096,9 +1064,9 @@ function CalcView({ catalog, villaId, isAdmin }) {
                   <Td>{r.ageFactor.toFixed(3)}</Td>
                   <Td>{r.brandFactor.toFixed(3)}</Td>
                   <Td>{r.inflation.toFixed(3)}</Td>
-                  <Td>{fmtMoney(r.finalPrice, 'USD')}</Td>
-                  <Td>{fmtMoney(r.rentalIncome, 'USD')}</Td>
-                  <Td>{fmtMoney(r.totalCapitalization, 'USD')}</Td>
+                  <Td>{toMoney(r.finalPrice)}</Td>
+                  <Td>{toMoney(r.rentalIncome)}</Td>
+                  <Td>{toMoney(r.totalCapitalization)}</Td>
                   <Td>{r.yearlyRoi.toFixed(2)}%</Td>
                   <Td>{r.cumulativeRoi.toFixed(2)}%</Td>
                   <Td>{r.irr.toFixed(2)}%</Td>
@@ -1138,10 +1106,10 @@ function CalcView({ catalog, villaId, isAdmin }) {
                   <Td>{(r.ageFactor||1).toFixed(3)}</Td>
                   <Td>{(r.brandFactor||1).toFixed(3)}</Td>
                   <Td>{(r.inflationFactor||1).toFixed(3)}</Td>
-                  <Td>{fmtMoney(r.finalPrice, 'USD')}</Td>
-                  <Td>{fmtMoney(r.rentalIncome, 'USD')}</Td>
-                  <Td>{fmtMoney(r.totalInvestorCapital, 'USD')}</Td>
-                  <Td>{r.paymentAmount>0 ? fmtMoney(r.paymentAmount, 'USD') : '-'}</Td>
+                  <Td>{toMoney(r.finalPrice)}</Td>
+                  <Td>{toMoney(r.rentalIncome)}</Td>
+                  <Td>{toMoney(r.totalInvestorCapital)}</Td>
+                  <Td>{r.paymentAmount>0 ? toMoney(r.paymentAmount) : '-'}</Td>
                   <Td>{r.monthlyRoi.toFixed(2)}%</Td>
                   <Td>{r.cumulativeRoi.toFixed(2)}%</Td>
                   <Td>{r.irr.toFixed(2)}%</Td>
@@ -1168,6 +1136,11 @@ function App() {
   const route = useHashRoute();
   const [catalog, setCatalog] = useState(loadCatalog());
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Кросс‑приложенческие курсы валют
+  const [idrPerUsd, setIdrPerUsd] = useState(16300);
+  const [eurPerUsd, setEurPerUsd] = useState(0.88);
+
   useEffect(()=>saveCatalog(catalog),[catalog]);
 
   return (
@@ -1176,7 +1149,15 @@ function App() {
       {route.path==="#/admin" ? (
         isAdmin ? <AdminPanel catalog={catalog} setCatalog={setCatalog} /> : <AdminGate onLogin={()=>setIsAdmin(true)} />
       ) : route.path==="#/calc" ? (
-        <CalcView catalog={catalog} villaId={route.params.villaId} isAdmin={isAdmin} />
+        <CalcView
+          catalog={catalog}
+          villaId={route.params.villaId}
+          isAdmin={isAdmin}
+          idrPerUsd={idrPerUsd}
+          setIdrPerUsd={setIdrPerUsd}
+          eurPerUsd={eurPerUsd}
+          setEurPerUsd={setEurPerUsd}
+        />
       ) : (
         <CatalogView catalog={catalog} />
       )}
