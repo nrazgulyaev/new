@@ -303,7 +303,7 @@ function AdminPanel({ catalog, setCatalog }) {
       <div className="grid gap-8">
         {catalog.map(project=>(
           <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} rounded-3xl border p-4`}>
-            <div className="flex items:end justify-between gap-3">
+            <div className="flex items-end justify-between gap-3">
               <div>
                 <h3 className={`text-xl font-semibold ${project.theme==="dark"?"text-white":"text-neutral-900"}`}>{project.projectName}</h3>
                 {project.includes?.length>0 && (
@@ -503,7 +503,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     return null;
   },[catalog, villaId]);
 
-  // Hooks объявлены до любых ранних return
+  // Hooks (все здесь, перед любыми return)
   const [currency, setCurrency] = useState('USD');
   const [handoverMonth, setHandoverMonth] = useState(12);
   const [months, setMonths] = useState(12);
@@ -547,25 +547,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     });
   },[selected, line]);
 
-  // Теперь безопасно ранние return — порядок хуков не меняется
-  if (!selected) {
-    return (
-      <div className="container">
-        <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
-        <div className="mt-4">Вилла не найдена.</div>
-      </div>
-    );
-  }
-  if (!line) {
-    return (
-      <div className="container">
-        <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
-        <div className="mt-4">Загрузка…</div>
-      </div>
-    );
-  }
-
-  const updLine = (patch) => setLine(prev=> ({...prev, ...patch}));
+  const updLine = (patch) => setLine(prev=> prev ? ({...prev, ...patch}) : prev);
 
   const toMoney = (usd) => {
     if (usd==null || isNaN(usd)) return "-";
@@ -574,7 +556,12 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     return new Intl.NumberFormat("en-US",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.round(usd * eurPerUsd));
   };
 
+  const basePrice0 = selected ? (selected.villa.baseUSD || ((selected.villa.area||0)*(selected.villa.ppsm||0))) : 0;
+
   const lineData = useMemo(()=>{
+    if (!line) {
+      return { base:0, preSchedule:[], preTotal:0, firstPostUSD:0, postRows:[], finalUSD:0, totalInterest:0, vMonths:months, rate:(monthlyRatePct/100) };
+    }
     const base0 = line.snapshot?.baseUSD ?? ((line.snapshot?.area||0)*(line.snapshot?.ppsm||0));
     const disc = clamp(+line.discountPct||0,0,20);
     const base = base0 * (1 - disc/100);
@@ -630,7 +617,8 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     return (baseDailyUSD || 0) * Math.pow(1 + (indexPct || 0) / 100, yearOffset);
   };
   const generatePricingData = (villa, line) => {
-    const leaseEndStr = selected?.villa?.leaseholdEndDate;
+    if (!villa) return [];
+    const leaseEndStr = villa.leaseholdEndDate;
     if (!leaseEndStr) return [];
     const leaseEnd = new Date(leaseEndStr);
     const handoverDate = new Date(startMonth);
@@ -659,7 +647,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
 
-  const basePrice0 = selected ? (selected.villa.baseUSD || ((selected.villa.area||0)*(selected.villa.ppsm||0))) : 0;
   const monthBeforeKeys = Math.max(0, handoverMonth - 1);
   const monthlyGrowthRate = ((line?.monthlyPriceGrowthPct ?? selected?.villa?.monthlyPriceGrowthPct ?? 2) / 100);
   const priceBeforeKeys = basePrice0 * Math.pow(1 + monthlyGrowthRate, monthBeforeKeys);
@@ -777,11 +764,21 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     rentalMap.set(mon, (rentalMap.get(mon)||0) + val);
   }
 
+  // Рендер (единственная точка return)
+  if (!selected || !line) {
+    return (
+      <div className="container">
+        <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
+        <div className="mt-4">Загрузка…</div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-5 py-6">
       <div className="flex items-center justify-between">
         <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
-        {selected && <div className="text-sm text-neutral-500">{selected.project.projectName}</div>}
+        <div className="text-sm text-neutral-500">{selected.project.projectName}</div>
       </div>
       <h2 className="text-xl font-semibold mt-4">Полный калькулятор</h2>
 
@@ -836,7 +833,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
               <div className="px-3 py-2 rounded-xl border bg-neutral-50">{startMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</div>
             </label>
 
-            {selected?.project?.plannedCompletion
+            {selected.project.plannedCompletion
               ? <label className="grid gap-1">
                   <span className="text-sm text-neutral-600">Дата завершения строительства</span>
                   <div className="px-3 py-2 rounded-xl border bg-neutral-50">{selected.project.plannedCompletion}</div>
@@ -871,20 +868,20 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
             </thead>
             <tbody>
               <tr className="border-t">
-                <Td style={{textAlign:'left'}}>{selected?.project.projectName}</Td>
-                <Td style={{textAlign:'left'}}>{line?.snapshot?.name}</Td>
-                <Td>{fmtInt(line?.snapshot?.area||0)}</Td>
-                <Td>{fmtInt(line?.snapshot?.ppsm||0)}</Td>
+                <Td style={{textAlign:'left'}}>{selected.project.projectName}</Td>
+                <Td style={{textAlign:'left'}}>{line.snapshot?.name}</Td>
+                <Td>{fmtInt(line.snapshot?.area||0)}</Td>
+                <Td>{fmtInt(line.snapshot?.ppsm||0)}</Td>
                 <Td>{toMoney(lineData.base)}</Td>
                 {isAdmin && (
-                  <Td><input className="px-2 py-1 rounded border w-20" type="number" min="0" max="20" step="0.1" value={line?.discountPct||0} onChange={e=>updLine({discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
+                  <Td><input className="px-2 py-1 rounded border w-20" type="number" min="0" max="20" step="0.1" value={line.discountPct||0} onChange={e=>updLine({discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
                 )}
                 <Td>
-                  <input type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, line?.prePct||0))} onChange={e=>updLine({prePct: parseInt(e.target.value,10)})}/>
-                  <div className="text-xs text-neutral-600">{Math.max(50,Math.min(100, line?.prePct||0))}%</div>
+                  <input type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, line.prePct||0))} onChange={e=>updLine({prePct: parseInt(e.target.value,10)})}/>
+                  <div className="text-xs text-neutral-600">{Math.max(50,Math.min(100, line.prePct||0))}%</div>
                 </Td>
                 <Td><input className="px-2 py-1 rounded border w-20" type="number" min="6" step="1" value={lineData.vMonths} onChange={e=>updLine({ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
-                {isAdmin && <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={line?.monthlyRatePct??monthlyRatePct} onChange={e=>updLine({ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>}
+                {isAdmin && <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={line.monthlyRatePct??monthlyRatePct} onChange={e=>updLine({ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>}
                 <Td className="font-semibold">{toMoney(lineData.finalUSD)}</Td>
                 <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>null}>—</button></Td>
               </tr>
@@ -1045,7 +1042,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       </div>
 
       {/* Годовая таблица */}
-      <div className="rounded-2xl border p-4 bg:white mt-4">
+      <div className="rounded-2xl border p-4 bg-white mt-4">
         <h3 className="font-medium">Расчет показателей (годовой)</h3>
         <div className="overflow-x-auto mt-3">
           <table className="w-full text-sm min-w-[1200px]">
@@ -1086,10 +1083,10 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       </div>
 
       {/* Помесячная таблица */}
-      <div className="rounded-2xl border p-4 bg:white mt-4">
+      <div className="rounded-2xl border p-4 bg-white mt-4">
         <h3 className="font-medium">Расчет показателей (на период рассрочки)</h3>
         <div className="overflow-x-auto mt-3">
-          <table className="w-full text-sm min-w:[1400px]">
+          <table className="w-full text-sm min-w-[1400px]">
             <thead>
               <tr className="bg-neutral-50">
                 <Th>Period</Th>
