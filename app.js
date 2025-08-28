@@ -503,6 +503,15 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     return null;
   },[catalog, villaId]);
 
+  if (!selected) {
+    return (
+      <div className="container">
+        <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
+        <div className="mt-4">Вилла не найдена.</div>
+      </div>
+    );
+  }
+
   const [currency, setCurrency] = useState('USD');
   const [handoverMonth, setHandoverMonth] = useState(12);
   const [months, setMonths] = useState(12);
@@ -510,7 +519,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
   const [startMonth] = useState(new Date());
   const [pricingConfig] = useState({ inflationRatePct:10, leaseAlpha:1, agingBeta:0.025, brandPeak:1.2, brandRampYears:3, brandPlateauYears:4, brandDecayYears:8, brandTail:1.0 });
 
-  // Автоподстановка срока по plannedCompletion
   useEffect(()=>{
     const pc = selected?.project?.plannedCompletion;
     if (!pc) return;
@@ -521,7 +529,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     setHandoverMonth(Math.max(0, m));
   },[selected?.project?.plannedCompletion, startMonth]);
 
-  // Стадии
   const [stages, setStages] = useState([
     {id:1,label:'Договор',pct:30,month:0},
     {id:2,label:'50% готовности',pct:30,month:6},
@@ -534,7 +541,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
   const updStage = (id, patch) => setStages(prev=>prev.map(s=> s.id===id ? {...s, ...(patch.pct!==undefined ? {pct: clamp(+patch.pct||0,0,100)}:patch)} : s));
   const delStage = (id) => setStages(prev=>prev.filter(s=>s.id!==id));
 
-  // Позиция (без «Кол-во»)
   const [line, setLine] = useState(null);
   useEffect(()=>{
     if (!selected) return;
@@ -549,9 +555,17 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     });
   },[selected, line]);
 
+  if (!line) {
+    return (
+      <div className="container">
+        <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
+        <div className="mt-4">Загрузка…</div>
+      </div>
+    );
+  }
+
   const updLine = (patch) => setLine(prev=> ({...prev, ...patch}));
 
-  // Денежные расчёты по линии (qty = 1)
   const toMoney = (usd) => {
     if (usd==null || isNaN(usd)) return "-";
     if (currency==="USD") return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Math.round(usd));
@@ -560,7 +574,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
   };
 
   const lineData = useMemo(()=>{
-    if (!line) return null;
     const base0 = line.snapshot?.baseUSD ?? ((line.snapshot?.area||0)*(line.snapshot?.ppsm||0));
     const disc = clamp(+line.discountPct||0,0,20);
     const base = base0 * (1 - disc/100);
@@ -594,12 +607,11 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     return { base, preSchedule, preTotal, firstPostUSD, postRows, finalUSD, totalInterest, vMonths, rate };
   },[line, stages, stagesSumPct, handoverMonth, months, monthlyRatePct]);
 
-  // Вспомогательные
   const getCleanLeaseholdTerm = (leaseholdEndDate) => {
     if (!leaseholdEndDate) return { years: 0, months: 0 };
     const handoverDate = new Date(startMonth);
     handoverDate.setMonth(handoverDate.getMonth() + handoverMonth);
-    const diffTime = leaseholdEndDate.getTime() - handoverDate.getTime();
+    const diffTime = new Date(leaseholdEndDate).getTime() - handoverDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     if (diffDays <= 0) return { years: 0, months: 0 };
     const years = Math.floor(diffDays / 365);
@@ -622,7 +634,8 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     const leaseEnd = new Date(leaseEndStr);
     const handoverDate = new Date(startMonth);
     handoverDate.setMonth(handoverDate.getMonth() + handoverMonth);
-    const totalYears = Math.max(0, Math.ceil((leaseEnd - handoverDate) / (365*24*60*60*1000)));
+    const monthsDiff = Math.max(0, (leaseEnd.getFullYear() - handoverDate.getFullYear()) * 12 + (leaseEnd.getMonth() - handoverDate.getMonth()));
+    const totalYears = Math.ceil(monthsDiff / 12);
     const data = [];
     const baseAtHandover = calculateMarketPriceAtHandover(villa, line);
     for (let year = 0; year <= totalYears; year++) {
@@ -645,8 +658,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
 
-  if (!lineData) return null;
-
   const basePrice0 = selected ? (selected.villa.baseUSD || ((selected.villa.area||0)*(selected.villa.ppsm||0))) : 0;
   const monthBeforeKeys = Math.max(0, handoverMonth - 1);
   const monthlyGrowthRate = ((line?.monthlyPriceGrowthPct ?? selected?.villa?.monthlyPriceGrowthPct ?? 2) / 100);
@@ -656,7 +667,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     : 0;
   const netIncomeBeforeKeys = priceBeforeKeys - lineData.finalUSD;
 
-  // Сводка платежей (одна линия)
   const m = new Map();
   const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
   lineData.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${line?.snapshot?.name||'Villa'}: ${r.label}`));
@@ -664,7 +674,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
   lineData.postRows.forEach(r=> push(r.month, r.paymentUSD, `${line?.snapshot?.name||'Villa'}: Месяц ${r.label}`));
   const rows = [...m.values()].sort((a,b)=>a.month-b.month);
 
-  // График
   const pricing = generatePricingData(selected?.villa, line);
   const occ = (line?.occupancyPct ?? 75) / 100;
   const baseDaily = line?.dailyRateUSD ?? selected?.villa?.dailyRateUSD ?? 0;
@@ -677,7 +686,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
   const globalMax = Math.max(1, Math.max(...pricing.map(d=>d.finalPrice), ...(rentalData.length?[Math.max(...rentalData.map(d=>d.rentalIncome))]:[1])));
   const scaleY = (val) => 250 - (val/globalMax) * 200;
 
-  // Годовые/помесячные ряды
   const annualRows = useMemo(()=>{
     const avgDays = 30.44;
     return pricing.map((d, idx)=>{
@@ -755,11 +763,10 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
   };
   const monthlyRows = useMemo(()=>generateMonthlyPricingData(),[lineData, pricingConfig, handoverMonth, months]);
 
-  const leaseTerm = getCleanLeaseholdTerm(line?.snapshot?.leaseholdEndDate || (selected?.villa?.leaseholdEndDate ? new Date(selected.villa.leaseholdEndDate) : null));
+  const leaseTerm = getCleanLeaseholdTerm(line?.snapshot?.leaseholdEndDate || selected?.villa?.leaseholdEndDate);
   const exitYearAbs = annualRows.length ? annualRows[annualRows.length-1].displayYear : Math.floor(startMonth.getFullYear() + handoverMonth/12);
   const finalCumulativeROI = annualRows.length ? annualRows[annualRows.length-1].cumulativeRoi : 0;
 
-  // ВЕРСТКА: порядок
   let acc = 0;
   const rentalMap = new Map();
   for (let mon = handoverMonth+3; mon <= handoverMonth + (lineData.vMonths || months); mon++){
@@ -1136,8 +1143,6 @@ function App() {
   const route = useHashRoute();
   const [catalog, setCatalog] = useState(loadCatalog());
   const [isAdmin, setIsAdmin] = useState(false);
-
-  // Кросс‑приложенческие курсы валют
   const [idrPerUsd, setIdrPerUsd] = useState(16300);
   const [eurPerUsd, setEurPerUsd] = useState(0.88);
 
