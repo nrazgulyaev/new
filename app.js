@@ -151,10 +151,6 @@ function CatalogManager({
     dailyRateUSD: 150, occupancyPct: 70, rentalPriceIndexPct: 5
   });
 
-  // Компактное раскрытие карточек
-  const [openDetails, setOpenDetails] = useState({});
-  const toggleDetails = (id) => setOpenDetails(s => ({ ...s, [id]: !s[id] }));
-
   // Статусная плашка
   function StatusPill({ status }) {
     const label = status === "available" ? "в наличии" : status === "reserved" ? "забронировано" : "на паузе";
@@ -240,25 +236,17 @@ function CatalogManager({
               </div>
             </div>
 
-            {/* Включено + план/прогресс (компактно) */}
-            <div className="villa-details" style={{ marginBottom: 8 }}>
-              {project.plannedCompletion && (
-                <div className="detail-row">
-                  <span className="label">Планируемая дата завершения</span>
-                  <span className="value">{ymLabel(project.plannedCompletion)}</span>
-                </div>
-              )}
-              {Number.isFinite(project.constructionProgressPct) && (
-                <div className="detail-row">
-                  <span className="label">Прогресс строительства</span>
-                  <span className="value">{project.constructionProgressPct}%</span>
-                </div>
-              )}
+            {/* В стоимость включено (RU) */}
+            <div className="project-includes">
+              <div className="includes-title">В стоимость включено</div>
+              <ul className="includes-list">
+                {(project.includes || []).map((item, i) => (<li key={i}>{item}</li>))}
+              </ul>
             </div>
 
             <div className="villas-grid">
               {project.villas.map(v => (
-                <div key={v.villaId} className="villa-card villa-compact">
+                <div key={v.villaId} className="villa-card villa-line">
                   <div className="villa-header">
                     <h4>{v.name}</h4>
                     <div className="villa-actions">
@@ -267,20 +255,29 @@ function CatalogManager({
                     </div>
                   </div>
 
-                  {/* Основные в одну строку */}
-                  <div className="specs">
-                    <div className="chip">{v.area ?? 0} м²</div>
-                    <div className="chip">${v.ppsm ?? 0} / м²</div>
-                    <div className="chip strong">{fmtMoney(v.baseUSD ?? 0, "USD")}</div>
+                  {/* Линейка параметров (строка) */}
+                  <div className="spec-row">
+                    <span className="spec"><strong>{v.area ?? 0}</strong> м²</span>
+                    <span className="dot">·</span>
+                    <span className="spec">$ {v.ppsm ?? 0} / м²</span>
+                    <span className="dot">·</span>
+                    <span className="spec price">{fmtMoney(v.baseUSD ?? 0, "USD")}</span>
+
+                    {v.rooms ? (<><span className="dot">·</span><span className="spec">{v.rooms} комн.</span></>) : null}
+                    {v.land ? (<><span className="dot">·</span><span className="spec">земля {v.land} м²</span></>) : null}
+                    {(v.f1 || v.f2) ? (<><span className="dot">·</span><span className="spec">этажи {v.f1 || 0}/{v.f2 || 0}</span></>) : null}
+                    {v.roof ? (<><span className="dot">·</span><span className="spec">rooftop {v.roof} м²</span></>) : null}
+                    {v.garden ? (<><span className="dot">·</span><span className="spec">сад+бассейн {v.garden} м²</span></>) : null}
                   </div>
 
-                  {/* Короткий второй ряд */}
-                  <div className="specs subtle">
-                    {v.rooms ? <div className="chip">{v.rooms} комн.</div> : null}
-                    {v.land ? <div className="chip">земля {v.land} м²</div> : null}
-                    {(v.f1 || v.f2) ? <div className="chip">этажи {v.f1 || 0}/{v.f2 || 0}</div> : null}
-                    {v.roof ? <div className="chip">rooftop {v.roof} м²</div> : null}
-                    {v.garden ? <div className="chip">сад+бассейн {v.garden} м²</div> : null}
+                  {/* Вторая строка — аренда/лизхолд компактно */}
+                  <div className="spec-row subtle">
+                    <span className="spec">Сутки ${v.dailyRateUSD ?? 0}</span>
+                    <span className="dot">·</span>
+                    <span className="spec">Заполняемость {v.occupancyPct ?? 0}%</span>
+                    <span className="dot">·</span>
+                    <span className="spec">Индекс аренды {v.rentalPriceIndexPct ?? 0}%/год</span>
+                    {v.leaseholdEndDate ? (<><span className="dot">·</span><span className="spec">Лизхолд до {new Date(v.leaseholdEndDate).toLocaleDateString("ru-RU",{year:"numeric",month:"long"})}</span></>) : null}
                   </div>
 
                   <div className="villa-actions" style={{ marginTop: 8, display: "flex", gap: 8 }}>
@@ -288,25 +285,7 @@ function CatalogManager({
                       ? <button className="btn primary small" onClick={() => onCalculate(project, v)}>Рассчитать</button>
                       : <span className="badge">Недоступно</span>
                     }
-                    <button className="btn small" onClick={() => toggleDetails(v.villaId)}>
-                      {openDetails[v.villaId] ? "Свернуть" : "Подробнее"}
-                    </button>
                   </div>
-
-                  {openDetails[v.villaId] && (
-                    <div className="more">
-                      <div className="more-grid">
-                        <div><span className="label">1 этаж</span><span className="value">{v.f1 ?? 0} м²</span></div>
-                        <div><span className="label">2 этаж</span><span className="value">{v.f2 ?? 0} м²</span></div>
-                        <div><span className="label">Rooftop</span><span className="value">{v.roof ?? 0} м²</span></div>
-                        <div><span className="label">Garden & pool</span><span className="value">{v.garden ?? 0} м²</span></div>
-                        <div><span className="label">Сутки</span><span className="value">${v.dailyRateUSD ?? 0}</span></div>
-                        <div><span className="label">Заполняемость</span><span className="value">{v.occupancyPct ?? 0}%</span></div>
-                        <div><span className="label">Индекс аренды</span><span className="value">{v.rentalPriceIndexPct ?? 0}%/год</span></div>
-                        <div><span className="label">Лизхолд до</span><span className="value">{v.leaseholdEndDate ? new Date(v.leaseholdEndDate).toLocaleDateString("ru-RU", { year:"numeric", month:"long" }) : "—"}</span></div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -494,7 +473,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
         amountUSD: base * (((+s.pct || 0) * k) / 100)
       })).filter(r => r.amountUSD > 0).sort((a,b)=>a.month-b.month);
 
-      const qty = Math.max(1, parseInt(line.qty || 1, 10)); // внутренне: всегда 1, колонка скрыта
+      const qty = Math.max(1, parseInt(line.qty || 1, 10));
       const preScheduleQ = preSchedule.map(r => ({...r, amountUSD: r.amountUSD * qty}));
       const postRowsQ = postRows.map(r => ({
         ...r,
@@ -597,7 +576,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     const mph = calculateMarketPriceAtHandover(villa, line);
     const data = [];
     for (let y = 0; y <= totalYears; y++) {
-      const inflationF = Math.pow(1 + 0.10, y); // 10%/год (дефолт)
+      const inflationF = Math.pow(1 + 0.10, y);
       const leaseF = Math.pow((Math.max(1, totalYears) - y) / Math.max(1, totalYears), 1);
       const ageF = Math.exp(-0.025 * y);
       const brandF = (y <= 3) ? 1 + (1.2 - 1) * (y / 3) : (y <= 7 ? 1.2 : (y <= 15 ? 1.2 - (1.2 - 1.0) * ((y - 7) / 8) : 1.0));
@@ -620,8 +599,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
         if (pre) paymentAmount = pre.amountUSD;
       } else {
         const yo = (m - handoverMonth) / 12;
-        const inflation = 0.10;
-        inflationF = Math.pow(1 + inflation, yo);
+        inflationF = Math.pow(1 + 0.10, yo);
         leaseF = 1;
         ageF = Math.exp(-0.025 * yo);
         brandF = (yo <= 3) ? 1 + (1.2 - 1) * (yo / 3) : (yo <= 7 ? 1.2 : (yo <= 15 ? 1.2 - (1.2 - 1.0) * ((yo - 7) / 8) : 1.0));
