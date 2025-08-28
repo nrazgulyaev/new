@@ -48,33 +48,25 @@
       .table th,.table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
       .table th{font-weight:600;color:#111827;background:#faf7f0}
       .status-col{width:140px}
-      .kpi{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-      @media (max-width:1024px){.kpi{grid-template-columns:1fr}}
-      .kpi .left,.kpi .right{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
-      .kpi .header-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-      .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-      @media (max-width:640px){.kpi-grid{grid-template-columns:1fr}}
-      .kpi-item{background:var(--pill);border:1px solid var(--line);border-radius:12px;padding:12px}
-      .kpi-item .title{font-size:12px;color:var(--muted)}
-      .kpi-item .value{font-weight:700}
       .object-card{padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:12px}
       .object-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
       @media (max-width:800px){.object-grid{grid-template-columns:1fr 1fr}}
       @media (max-width:520px){.object-grid{grid-template-columns:1fr}}
-      .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:1000}
-      .modal{width:min(900px,92vw);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
+      .kpi-wrap{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+      .kpi-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+      .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+      @media (max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+      @media (max-width:800px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+      @media (max-width:520px){.kpi-grid{grid-template-columns:1fr}}
+      .kpi-item{background:var(--pill);border:1px solid var(--line);border-radius:12px;padding:12px}
+      .kpi-item .title{font-size:12px;color:var(--muted)}
+      .kpi-item .value{font-weight:700}
+      .stack{display:grid;grid-auto-rows:min-content;gap:8px}
       .status-pill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
       .green{background:#e9f8ef;color:#065f46}
       .amber{background:#fff7e6;color:#8a4b00}
       .gray{background:#f3f4f6;color:#374151}
       .scroll-x{overflow-x:auto}
-      .mb-16{margin-bottom:16px}
-      .mt-8{margin-top:8px}
-      .mt-16{margin-top:16px}
-      .gap-8{gap:8px}
-      .flex{display:flex}
-      .items-center{align-items:center}
-      .justify-between{justify-content:space-between}
     </style>
   </head>
   <body class="bg-white">
@@ -85,7 +77,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
-      const { useEffect, useMemo, useRef, useState } = React;
+      const { useEffect, useMemo, useState } = React;
       const { createRoot } = ReactDOM;
 
       const PIN_CODE = "334346";
@@ -308,7 +300,7 @@
         const [showAddProject, setShowAddProject] = useState(false);
         const [newProjectName, setNewProjectName] = useState("");
         const [villaModal, setVillaModal] = useState({ open:false, projectId:null, init:null });
-        const fileRef = useRef(null);
+        const fileRef = React.useRef(null);
 
         const addProject = () => {
           const name = (newProjectName||"").trim();
@@ -438,13 +430,6 @@
               ))}
             </div>
 
-            <VillaModal
-              open={villaModal.open}
-              initial={villaModal.init}
-              onClose={()=>setVillaModal({ open:false, projectId:null, init:null })}
-              onSave={saveVilla}
-            />
-
             {showAddProject && (
               <div className="fixed inset-0 bg-black/30 grid place-items-center p-4" onMouseDown={()=>setShowAddProject(false)}>
                 <div className="w-full max-w-md rounded-2xl bg-white border" onMouseDown={(e)=>e.stopPropagation()}>
@@ -462,6 +447,13 @@
                 </div>
               </div>
             )}
+
+            <VillaModal
+              open={villaModal.open}
+              initial={villaModal.init}
+              onClose={()=>setVillaModal({ open:false, projectId:null, init:null })}
+              onSave={saveVilla}
+            />
           </div>
         );
       }
@@ -565,8 +557,7 @@
         } catch { return 0; }
       };
 
-      function CalcView({ catalog, villaId }) {
-        // Поиск выбранной виллы
+      function CalcView({ catalog, villaId, isAdmin }) {
         const selected = useMemo(()=>{
           for (const p of catalog) {
             const v = p.villas.find(x=>x.villaId===villaId);
@@ -575,7 +566,6 @@
           return null;
         },[catalog, villaId]);
 
-        // Настройки, как в первой версии: в строку
         const [lang, setLang] = useState('ru');
         const [currency, setCurrency] = useState('USD');
         const [handoverMonth, setHandoverMonth] = useState(12);
@@ -584,7 +574,6 @@
         const [startMonth] = useState(new Date());
         const [pricingConfig] = useState({ inflationRatePct:10, leaseAlpha:1, agingBeta:0.025, brandPeak:1.2, brandRampYears:3, brandPlateauYears:4, brandDecayYears:8, brandTail:1.0 });
 
-        // Стадии до ключей (редактируемые)
         const [stages, setStages] = useState([
           {id:1,label:'Договор',pct:30,month:0},
           {id:2,label:'50% готовности',pct:30,month:6},
@@ -597,7 +586,6 @@
         const updStage = (id, patch) => setStages(prev=>prev.map(s=> s.id===id ? {...s, ...(patch.pct!==undefined ? {pct: clamp(+patch.pct||0,0,100)}:patch)} : s));
         const delStage = (id) => setStages(prev=>prev.filter(s=>s.id!==id));
 
-        // Линии позиций (в базовой версии — одна выбранная)
         const [lines, setLines] = useState([]);
         useEffect(()=>{
           if (!selected) return;
@@ -615,7 +603,6 @@
         const updLine = (id, patch) => setLines(prev=>prev.map(l=> l.id===id ? {...l, ...patch} : l));
         const delLine = (id) => setLines(prev=>prev.filter(l=> l.id!==id));
 
-        // Расчёт по линиям
         const linesData = useMemo(()=>{
           return lines.map(line=>{
             const base0 = line.snapshot?.baseUSD ?? ((line.snapshot?.area||0)*(line.snapshot?.ppsm||0));
@@ -669,7 +656,6 @@
           return { baseUSD, preUSD, finalUSD, interestUSD, afterUSD };
         },[linesData]);
 
-        // Вспомогательные расчёты
         const getCleanLeaseholdTerm = (leaseholdEndDate) => {
           if (!leaseholdEndDate) return { years: 0, months: 0 };
           const handoverDate = new Date(startMonth);
@@ -727,10 +713,10 @@
           return null;
         }, [catalog, lines]);
 
-        // KPI ключевые метрики
         const leaseTerm = React.useMemo(()=>{
           return selectedVilla?.leaseholdEndDate ? getCleanLeaseholdTerm(new Date(selectedVilla.leaseholdEndDate)) : { years: 0, months: 0 };
         }, [selectedVilla, startMonth, handoverMonth]);
+
         const monthBeforeKeys = Math.max(0, handoverMonth - 1);
         const basePrice0 = selectedVilla ? (selectedVilla.baseUSD || ((selectedVilla.area||0)*(selectedVilla.ppsm||0))) : 0;
         const monthlyGrowthRate = ((firstLine?.monthlyPriceGrowthPct ?? selectedVilla?.monthlyPriceGrowthPct ?? 2) / 100);
@@ -740,33 +726,107 @@
           : 0;
         const netIncomeBeforeKeys = priceBeforeKeys - totals.finalUSD;
 
-        // Оптимальный выход и IRR
-        const calculateOptimalExit = (villa, line, contractFinalUSD) => {
-          const pricing = generatePricingData(villa, line);
-          if (pricing.length === 0) return { year: 0, irr: 0, totalValue: 0 };
+        const optimalExit = React.useMemo(()=>{
+          const pricing = selectedVilla ? generatePricingData(selectedVilla, firstLine) : [];
+          if (!pricing.length) return { year: 0, irr: 0, totalValue: 0 };
           let best = { year: 0, irr: -Infinity, totalValue: 0 };
           for (let i = 1; i < pricing.length; i++) {
-            const cashFlows = [-contractFinalUSD];
-            for (let y = 0; y < i; y++) cashFlows.push(0);
-            cashFlows.push(pricing[i].finalPrice);
-            const irr = calculateIRR(cashFlows);
+            const cf = [-totals.finalUSD, ...Array(i).fill(0), pricing[i].finalPrice];
+            const irr = calculateIRR(cf);
             if (irr > best.irr) best = { year: pricing[i].year, irr, totalValue: pricing[i].finalPrice };
           }
           return best;
-        };
-        const optimalExit = React.useMemo(()=>{
-          if (!selectedVilla || !firstLine) return { year: 0, irr: 0, totalValue: 0 };
-          return calculateOptimalExit(selectedVilla, firstLine, totals.finalUSD);
         }, [selectedVilla, firstLine, totals.finalUSD, pricingConfig, handoverMonth, startMonth]);
-        const exitYearAbs = Math.floor(startMonth.getFullYear() + handoverMonth / 12 + optimalExit.year);
+        const exitYearAbs = Math.floor(startMonth.getFullYear() + handoverMonth/12 + (optimalExit?.year||0));
         const finalCumulativeROI = totals.finalUSD > 0
           ? (((optimalExit.totalValue - totals.finalUSD) / totals.finalUSD) * 100)
           : 0;
 
-        // График стоимости/аренды (SVG, как просили)
-        const pricingChart = selectedVilla && (() => {
-          const pricing = generatePricingData(selectedVilla, firstLine);
-          if (pricing.length === 0) return null;
+        // Полный график платежей
+        const fullCashflowTable = (()=> {
+          const m = new Map();
+          const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
+
+          linesData.forEach(ld=>{
+            ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
+            if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
+            ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
+          });
+
+          const rentalMap = new Map();
+          lines.forEach(ln=>{
+            const occ = (ln.occupancyPct ?? 75)/100;
+            const baseDaily = ln.dailyRateUSD ?? 0;
+            const idxPct = ln.rentalPriceIndexPct ?? 0;
+            for (let mon = handoverMonth+3; mon <= handoverMonth + (linesData[0]?.vMonths || months); mon++){
+              const yOff = Math.floor((mon - handoverMonth)/12);
+              const daily = getIndexedRentalPrice(baseDaily, idxPct, yOff);
+              const val = daily * 0.55 * occ * getDaysInMonth(mon) * (ln.qty || 1);
+              rentalMap.set(mon, (rentalMap.get(mon)||0) + val);
+            }
+          });
+
+          const rows = [...m.values()].sort((a,b)=>a.month-b.month);
+          let acc=0;
+          return (
+            <div className="rounded-2xl border p-4 bg-white">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Полный график платежей</h3>
+                <button className="px-3 py-1.5 rounded-lg border" onClick={()=>{
+                  const head = ["Месяц","Описание","Платеж","Арендный доход","Чистый платеж/доход в месяц","Остаток по договору"];
+                  const out = [head];
+                  let sum=0;
+                  rows.forEach(row=>{
+                    sum += row.amountUSD;
+                    const balance = Math.max(0, totals.finalUSD - sum);
+                    const rent = rentalMap.get(row.month)||0;
+                    const net = row.amountUSD - rent;
+                    out.push([formatMonth(row.month), row.items.join(" + "), Math.round(row.amountUSD), Math.round(rent), Math.round(net), Math.round(balance)]);
+                  });
+                  const csv = out.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+                  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a');
+                  a.href=URL.createObjectURL(blob); a.download=`arconique_cashflow_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+                }}>Export CSV</button>
+              </div>
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-sm min-w-[1200px]">
+                  <thead>
+                    <tr className="bg-neutral-50">
+                      <Th>Месяц</Th>
+                      <Th style={{textAlign:'left'}}>Описание</Th>
+                      <Th>Платеж</Th>
+                      <Th>Арендный доход</Th>
+                      <Th>Чистый платеж/доход в месяц</Th>
+                      <Th>Остаток по договору</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.length>0 ? rows.map(row=>{
+                      acc += row.amountUSD;
+                      const balance = Math.max(0, totals.finalUSD - acc);
+                      const rent = rentalMap.get(row.month)||0;
+                      const net = row.amountUSD - rent;
+                      return (
+                        <tr key={row.month} className="border-t">
+                          <Td>{formatMonth(row.month)}</Td>
+                          <Td style={{textAlign:'left'}}>{row.items.join(' + ')}</Td>
+                          <Td>{fmtMoney(row.amountUSD, currency)}</Td>
+                          <Td>{fmtMoney(rent, currency)}</Td>
+                          <Td className={net>=0 ? 'text-red-600' : 'text-emerald-600'}>{fmtMoney(net, currency)}</Td>
+                          <Td>{fmtMoney(balance, currency)}</Td>
+                        </tr>
+                      );
+                    }) : <tr><td colSpan={6} className="px-3 py-3 text-neutral-500">Нет платежей</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })();
+
+        // Финмодель доходности инвестиций + график (в одном блоке)
+        const modelBlock = (() => {
+          const pricing = selectedVilla ? generatePricingData(selectedVilla, firstLine) : [];
           const occ = (firstLine?.occupancyPct ?? 75) / 100;
           const baseDaily = firstLine?.dailyRateUSD ?? selectedVilla?.dailyRateUSD ?? 0;
           const indexPct = firstLine?.rentalPriceIndexPct ?? selectedVilla?.rentalPriceIndexPct ?? 0;
@@ -775,30 +835,34 @@
             const workingMonths = d.year===0 ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
             return { year: d.year, rentalIncome: daily * 0.55 * occ * 30.44 * workingMonths };
           });
-          const maxPrice = Math.max(...pricing.map(d=>d.finalPrice));
-          const maxRental = Math.max(...rentalData.map(d=>d.rentalIncome));
-          const globalMax = Math.max(maxPrice, maxRental);
-          const scaleY = (val) => 250 - ((val) / Math.max(1, globalMax)) * 200;
+          const globalMax = Math.max(1, Math.max(...pricing.map(d=>d.finalPrice), ...(rentalData.length?[Math.max(...rentalData.map(d=>d.rentalIncome))]:[1])));
+          const scaleY = (val) => 250 - (val/globalMax) * 200;
 
           return (
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">Villa cost and rental income dynamics</h3>
-              <div className="mt-3">
-                <svg width="100%" height="300" viewBox="0 0 800 300">
-                  <line x1="50" y1="50" x2="50" y2="250" stroke="#666" strokeWidth="1" />
-                  <line x1="50" y1="250" x2="750" y2="250" stroke="#666" strokeWidth="1" />
-
-                  <polyline fill="none" stroke="#1f2937" strokeWidth="2" points={pricing.map((d,i)=>`${50 + i*35},${scaleY(d.finalPrice)}`).join(" ")} />
-                  {pricing.map((d,i)=><circle key={`p-${i}`} cx={50 + i*35} cy={scaleY(d.finalPrice)} r="3" fill="#1f2937" />)}
-
-                  <polyline fill="none" stroke="#9a6c3a" strokeWidth="2" points={rentalData.map((d,i)=>`${50 + i*35},${scaleY(d.rentalIncome)}`).join(" ")} />
-                  {rentalData.map((d,i)=><circle key={`r-${i}`} cx={50 + i*35} cy={scaleY(d.rentalIncome)} r="3" fill="#9a6c3a" />)}
-
-                  {pricing.map((d,i)=>{
-                    const realYear = Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year);
-                    return <text key={`x-${i}`} x={50 + i*35} y="270" fontSize="12" textAnchor="middle" fill="#666">{realYear}</text>;
-                  })}
-                </svg>
+            <div className="rounded-2xl border p-4 bg-white">
+              <h3 className="font-medium">Investment Return Financial Model</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                <Kpi label="ИНФЛЯЦИЯ" value={`${pricingConfig.inflationRatePct}%/год`} />
+                <Kpi label="СТАРЕНИЕ" value={`${pricingConfig.agingBeta}/год`} />
+                <Kpi label="LEASE DECAY" value={`α = ${pricingConfig.leaseAlpha}`} />
+                <Kpi label="BRAND FACTOR" value={`Peak = ${pricingConfig.brandPeak}×`} />
+              </div>
+              <div className="mt-4">
+                <h4 className="text-sm text-neutral-600 mb-2">Динамика стоимости виллы и арендного дохода</h4>
+                <div className="w-full overflow-x-auto">
+                  <svg width="800" height="300" viewBox="0 0 800 300">
+                    <line x1="50" y1="50" x2="50" y2="250" stroke="#666" strokeWidth="1" />
+                    <line x1="50" y1="250" x2="750" y2="250" stroke="#666" strokeWidth="1" />
+                    <polyline fill="none" stroke="#1f2937" strokeWidth="2" points={pricing.map((d,i)=>`${50 + i*35},${scaleY(d.finalPrice)}`).join(" ")} />
+                    {pricing.map((d,i)=><circle key={`p-${i}`} cx={50 + i*35} cy={scaleY(d.finalPrice)} r="3" fill="#1f2937" />)}
+                    <polyline fill="none" stroke="#9a6c3a" strokeWidth="2" points={rentalData.map((d,i)=>`${50 + i*35},${scaleY(d.rentalIncome)}`).join(" ")} />
+                    {rentalData.map((d,i)=><circle key={`r-${i}`} cx={50 + i*35} cy={scaleY(d.rentalIncome)} r="3" fill="#9a6c3a" />)}
+                    {pricing.map((d,i)=>{
+                      const realYear = Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year);
+                      return <text key={`x-${i}`} x={50 + i*35} y="270" fontSize="12" textAnchor="middle" fill="#666">{realYear}</text>;
+                    })}
+                  </svg>
+                </div>
               </div>
             </div>
           );
@@ -917,91 +981,7 @@
           return generateMonthlyPricingData(selectedVilla, firstLine);
         },[selectedVilla, firstLine, pricingConfig, handoverMonth, months, monthlyRatePct, linesData, totals.finalUSD]);
 
-        // Полный график платежей
-        const fullCashflowTable = (()=> {
-          const m = new Map(); // month => {items, amountUSD}
-          const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
-
-          linesData.forEach(ld=>{
-            ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
-            if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
-            ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
-          });
-
-          const rentalMap = new Map();
-          lines.forEach(ln=>{
-            const occ = (ln.occupancyPct ?? 75)/100;
-            const baseDaily = ln.dailyRateUSD ?? 0;
-            const idxPct = ln.rentalPriceIndexPct ?? 0;
-            for (let mon = handoverMonth+3; mon <= handoverMonth + (linesData[0]?.vMonths || months); mon++){
-              const yOff = Math.floor((mon - handoverMonth)/12);
-              const daily = getIndexedRentalPrice(baseDaily, idxPct, yOff);
-              const val = daily * 0.55 * occ * getDaysInMonth(mon) * (ln.qty || 1);
-              rentalMap.set(mon, (rentalMap.get(mon)||0) + val);
-            }
-          });
-
-          const rows = [...m.values()].sort((a,b)=>a.month-b.month);
-          let acc=0;
-          return (
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Полный график платежей</h3>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1.5 rounded-lg border" onClick={()=>{
-                    const head = ["Месяц","Описание","Платеж","Арендный доход","Чистый платеж/доход в месяц","Остаток по договору"];
-                    const out = [head];
-                    let sum=0;
-                    rows.forEach(row=>{
-                      sum += row.amountUSD;
-                      const balance = Math.max(0, totals.finalUSD - sum);
-                      const rent = rentalMap.get(row.month)||0;
-                      const net = row.amountUSD - rent;
-                      out.push([formatMonth(row.month), row.items.join(" + "), Math.round(row.amountUSD), Math.round(rent), Math.round(net), Math.round(balance)]);
-                    });
-                    const csv = out.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
-                    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a');
-                    a.href=URL.createObjectURL(blob); a.download=`arconique_cashflow_${new Date().toISOString().slice(0,10)}.csv`; a.click();
-                  }}>Export CSV</button>
-                </div>
-              </div>
-              <div className="overflow-x-auto mt-3">
-                <table className="w-full text-sm min-w-[1200px]">
-                  <thead>
-                    <tr className="bg-neutral-50">
-                      <Th>Месяц</Th>
-                      <Th style={{textAlign:'left'}}>Описание</Th>
-                      <Th>Платеж</Th>
-                      <Th>Арендный доход</Th>
-                      <Th>Чистый платеж/доход в месяц</Th>
-                      <Th>Остаток по договору</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.length>0 ? rows.map(row=>{
-                      acc += row.amountUSD;
-                      const balance = Math.max(0, totals.finalUSD - acc);
-                      const rent = rentalMap.get(row.month)||0;
-                      const net = row.amountUSD - rent;
-                      return (
-                        <tr key={row.month} className="border-t">
-                          <Td>{formatMonth(row.month)}</Td>
-                          <Td style={{textAlign:'left'}}>{row.items.join(' + ')}</Td>
-                          <Td>{fmtMoney(row.amountUSD, currency)}</Td>
-                          <Td>{fmtMoney(rent, currency)}</Td>
-                          <Td className={net>=0 ? 'text-red-600' : 'text-emerald-600'}>{fmtMoney(net, currency)}</Td>
-                          <Td>{fmtMoney(balance, currency)}</Td>
-                        </tr>
-                      );
-                    }) : <tr><td colSpan={6} className="px-3 py-3 text-neutral-500">Нет платежей</td></tr>}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-        })();
-
-        // Верстка калькулятора
+        // ВЕРСТКА: ПОРЯДОК КАК ЗАПРОСИЛИ
         return (
           <div className="mx-auto max-w-7xl px-5 py-6">
             <div className="flex items-center justify-between">
@@ -1010,7 +990,7 @@
             </div>
             <h2 className="text-xl font-semibold mt-4">Полный калькулятор</h2>
 
-            {/* Настройки + Стадии */}
+            {/* 1) Верхний ряд: слева Стадии, справа Настройки */}
             <div className="grid md:grid-cols-2 gap-4 mt-4">
               <div className="rounded-2xl border p-4 bg-white">
                 <h3 className="font-medium mb-3">Рассрочка до получения ключей (установите комфортный план оплаты)</h3>
@@ -1070,9 +1050,9 @@
               </div>
             </div>
 
-            {/* Объект недвижимости */}
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <div className="flex items-center justify-between mb-3"><h3 className="font-medium">Объект недвижимости</h3></div>
+            {/* 2) Объект недвижимости */}
+            <div className="object-card mt-4">
+              <h3 className="font-medium mb-2">Объект недвижимости</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[980px]">
                   <thead>
@@ -1089,7 +1069,7 @@
                         <Td><input className="px-2 py-1 rounded border w-20" type="number" min="1" step="1" value={ld.line.qty} onChange={e=>updLine(ld.line.id,{qty: clamp(parseInt(e.target.value||0,10),1,9999)})}/></Td>
                         <Td>{fmtInt(ld.line.snapshot?.area||0)}</Td>
                         <Td>{fmtInt(ld.line.snapshot?.ppsm||0)}</Td>
-                        <Td>{fmtMoney(ld.base)}</Td>
+                        <Td>{fmtMoney(ld.base, 'USD')}</Td>
                         <Td><input className="px-2 py-1 rounded border w-20" type="number" min="0" max="20" step="0.1" value={ld.line.discountPct||0} onChange={e=>updLine(ld.line.id,{discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
                         <Td>
                           <input type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, ld.prePct||0))} onChange={e=>updLine(ld.line.id,{prePct: parseInt(e.target.value,10)})}/>
@@ -1097,7 +1077,7 @@
                         </Td>
                         <Td><input className="px-2 py-1 rounded border w-20" type="number" min="6" step="1" value={ld.vMonths} onChange={e=>updLine(ld.line.id,{ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
                         <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={ld.line.monthlyRatePct??monthlyRatePct} onChange={e=>updLine(ld.line.id,{ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>
-                        <Td className="font-semibold">{fmtMoney(ld.lineTotal)}</Td>
+                        <Td className="font-semibold">{fmtMoney(ld.lineTotal, 'USD')}</Td>
                         <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delLine(ld.line.id)}>Удалить</button></Td>
                       </tr>
                     ))}
@@ -1107,79 +1087,84 @@
               </div>
             </div>
 
-            {/* KPI: верхние пилюли и карточки, как в первой версии */}
-            <div className="kpi mb-16 mt-4">
-              <div className="left">
-                <div className="header-pills">
-                  <span className="pill">Выбрано вилл: {lines.length || 0}</span>
-                  <span className="pill">Ключи через {handoverMonth} мес.</span>
-                  <span className="pill">Срок рассрочки после получения ключей: {months} мес.</span>
+            {/* 3) KPI блок (в указанной структуре) */}
+            <div className="kpi-wrap mt-4">
+              <div className="kpi-pills">
+                <span className="pill">Выбрано вилл: {lines.length || 0}</span>
+                <span className="pill">Ключи через {handoverMonth} мес.</span>
+                <span className="pill">Срок рассрочки после получения ключей: {months} мес.</span>
+              </div>
+              <div className="kpi-grid">
+                <div className="kpi-item">
+                  <div className="title">Общая сумма</div>
+                  <div className="value">{fmtMoney(totals.baseUSD, 'USD')}</div>
                 </div>
 
-                {/* Одна карточка: «до/после ключей» в одном прямоугольнике */}
-                <div className="kpi-item" style={{marginBottom:12}}>
-                  <div className="title">Оплата до ключей</div>
-                  <div className="value">{fmtMoney(totals.preUSD, 'USD')}</div>
-                  <div className="title" style={{marginTop:8}}>Оплата после ключей</div>
-                  <div className="value">{fmtMoney(totals.afterUSD, 'USD')}</div>
-                </div>
-
-                <div className="kpi-grid">
-                  <div className="kpi-item">
-                    <div className="title">Финальная стоимость</div>
-                    <div className="value">{fmtMoney(totals.finalUSD, 'USD')}</div>
+                <div className="kpi-item stack">
+                  <div>
+                    <div className="title">Оплата до ключей</div>
+                    <div className="value">{fmtMoney(totals.preUSD, 'USD')}</div>
                   </div>
+                  <div>
+                    <div className="title">Оплата после ключей</div>
+                    <div className="value">{fmtMoney(totals.afterUSD, 'USD')}</div>
+                  </div>
+                </div>
+
+                {isAdmin && (
                   <div className="kpi-item">
-                    <div className="title">Проценты</div>
+                    <div className="title">Проценты (только админ)</div>
                     <div className="value">{fmtMoney(totals.interestUSD, 'USD')}</div>
                   </div>
-                  <div className="kpi-item">
+                )}
+
+                <div className="kpi-item">
+                  <div className="title">Итоговая стоимость</div>
+                  <div className="value">{fmtMoney(totals.finalUSD, 'USD')}</div>
+                </div>
+
+                <div className="kpi-item stack">
+                  <div>
                     <div className="title">ROI при продаже до ключей</div>
                     <div className="value">{roiBeforeKeysAnnual.toFixed(1)}%</div>
                   </div>
-                  <div className="kpi-item">
+                  <div>
                     <div className="title">Чистый доход</div>
                     <div className="value">{fmtMoney(netIncomeBeforeKeys, 'USD')}</div>
                   </div>
-                  <div className="kpi-item">
-                    <div className="title">Чистый срок лизхолда (с ключей)</div>
-                    <div className="value">{leaseTerm.years} лет {leaseTerm.months} мес.</div>
-                  </div>
-                  <div className="kpi-item">
+                </div>
+
+                <div className="kpi-item">
+                  <div className="title">Чистый срок лизхолда (с момента получения ключей)</div>
+                  <div className="value">{leaseTerm.years} лет {leaseTerm.months} мес.</div>
+                </div>
+
+                <div className="kpi-item stack">
+                  <div>
                     <div className="title">Точка выхода с макс. IRR</div>
                     <div className="value">{exitYearAbs}</div>
                   </div>
-                  <div className="kpi-item">
+                  <div>
                     <div className="title">IRR</div>
                     <div className="value">{optimalExit.irr.toFixed(1)}%</div>
                   </div>
-                  <div className="kpi-item">
-                    <div className="title">Итоговый совокупный ROI</div>
+                  <div>
+                    <div className="title">Итоговый ROI (накопительный)</div>
                     <div className="value">{finalCumulativeROI.toFixed(1)}%</div>
                   </div>
                 </div>
               </div>
-
-              <div className="right">
-                <h3 style={{fontWeight:700, marginBottom:8}}>Villa cost and rental income dynamics</h3>
-                {pricingChart}
-              </div>
             </div>
 
-            {/* Финансовая модель — компактный блок */}
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">Investment Return Financial Model</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-                <Kpi label="Inflation" value={`${pricingConfig.inflationRatePct}%/year`} />
-                <Kpi label="Aging" value={`${pricingConfig.agingBeta}/year`} />
-                <Kpi label="Lease Decay" value={`α = ${pricingConfig.leaseAlpha}`} />
-                <Kpi label="Brand Factor" value={`Peak = ${pricingConfig.brandPeak}x`} />
-              </div>
-            </div>
+            {/* 4) Полный график платежей */}
+            <div className="mt-4">{fullCashflowTable}</div>
 
-            {/* Годовая таблица показателей */}
+            {/* 5) Финмодель доходности инвестиций (факторы + график) */}
+            <div className="mt-4">{modelBlock}</div>
+
+            {/* 6) Расчет показателей (годовой) */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">Calculation of indicators (annual)</h3>
+              <h3 className="font-medium">Расчет показателей (годовой)</h3>
               <div className="overflow-x-auto mt-3">
                 <table className="w-full text-sm min-w-[1200px]">
                   <thead>
@@ -1218,9 +1203,9 @@
               </div>
             </div>
 
-            {/* Помесячная таблица показателей */}
+            {/* 7) Расчет показателей (на период рассрочки) */}
             <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">Calculation of indicators (for installment period)</h3>
+              <h3 className="font-medium">Расчет показателей (на период рассрочки)</h3>
               <div className="overflow-x-auto mt-3">
                 <table className="w-full text-sm min-w-[1400px]">
                   <thead>
@@ -1260,9 +1245,6 @@
                 </table>
               </div>
             </div>
-
-            {/* Полный график платежей */}
-            {fullCashflowTable}
           </div>
         );
       }
@@ -1288,7 +1270,7 @@
             {route.path==="#/admin" ? (
               isAdmin ? <AdminPanel catalog={catalog} setCatalog={setCatalog} /> : <AdminGate onLogin={()=>setIsAdmin(true)} />
             ) : route.path==="#/calc" ? (
-              <CalcView catalog={catalog} villaId={route.params.villaId} />
+              <CalcView catalog={catalog} villaId={route.params.villaId} isAdmin={isAdmin} />
             ) : (
               <CatalogView catalog={catalog} />
             )}
