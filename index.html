@@ -9,9 +9,85 @@
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <link rel="icon" href="data:," />
+    <style>
+      /* Бежево-белая палитра для вашего CSS (перекрывает цвета) */
+      :root{
+        --bg: #faf8f2;
+        --card: #ffffff;
+        --card-hover: #f6f3ec;
+        --card-active: #efe9dd;
+        --line: #e7e2d9;
+        --line-hover: #d9d2c6;
+
+        --muted: #7a7a74;
+        --ink: #262626;
+        --ink-secondary: #565656;
+
+        --primary: #2f2a25;
+        --primary-hover: #1f1b17;
+        --success: #0f766e;
+        --success-hover: #115e59;
+        --warning: #b45309;
+        --warning-hover: #92400e;
+        --danger: #b91c1c;
+        --danger-hover: #991b1b;
+
+        --accent: #3a342e;
+        --accent-hover: #2c2722;
+
+        --radius: 16px;
+        --radius-sm: 8px;
+        --radius-lg: 24px;
+
+        --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.04);
+        --shadow: 0 4px 10px rgba(0,0,0,0.06);
+        --shadow-md: 0 10px 20px rgba(0,0,0,0.08);
+        --shadow-lg: 0 20px 30px rgba(0,0,0,0.10);
+        --shadow-xl: 0 25px 50px rgba(0,0,0,0.12);
+
+        --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-bounce: 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+        --spacing-xs: 4px;
+        --spacing-sm: 8px;
+        --spacing-md: 16px;
+        --spacing-lg: 24px;
+        --spacing-xl: 32px;
+        --spacing-2xl: 48px;
+
+        --block-min-height: 200px;
+        --block-max-height: 600px;
+
+        --z-base: 1;
+        --z-card: 10;
+        --z-modal: 1000;
+        --z-tooltip: 1100;
+        --z-notification: 1200;
+      }
+      body{background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";}
+      /* Вставляю структуру вашего CSS (сжатую) */
+      .wrap{max-width:1400px;margin:24px auto;padding:0 16px}
+      .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);transition:all var(--transition-normal)}
+      .card:hover{background:var(--card-hover);border-color:var(--line-hover);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+      .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+      .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:20px 0}
+      .kpi{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--card)}
+      .kpi .muted{font-size:.9em;color:var(--muted);margin-bottom:8px}
+      .kpi .v{font-size:1.2em;font-weight:700;color:var(--accent)}
+      .calc-table th,.calc-table td{padding:14px 12px;text-align:center;border-bottom:1px solid var(--line)}
+      .stages-table{width:100%;border:1px solid var(--line);border-radius:var(--radius-sm)}
+      .stages-table th,.stages-table td{padding:8px;text-align:center;border-bottom:1px solid var(--line)}
+      .factors-table{width:100%;border-collapse:collapse}
+      .factors-table th,.factors-table td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:center}
+      .cashflow-table{width:100%;border-collapse:collapse}
+      .cashflow-table th,.cashflow-table td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}
+      .pill{padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+    </style>
   </head>
   <body class="bg-white">
-    <div id="root"></div>
+    <div id="root" class="wrap"></div>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -22,60 +98,11 @@
       const { createRoot } = ReactDOM;
 
       const PIN_CODE = "334346";
-      const LS_CATALOG = "arq_catalog_v2";
+      const LS_CATALOG = "arq_catalog_v3";
 
       const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
       const fmtInt = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(n || 0));
       const fmt2 = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(+n || 0);
-      const fmtMoney = (n, c = "USD") =>
-        new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(Math.round(n || 0));
-
-      const loadCatalog = () => {
-        try {
-          const raw = localStorage.getItem(LS_CATALOG);
-          if (!raw) return defaults();
-          const parsed = JSON.parse(raw);
-          return Array.isArray(parsed) ? parsed : defaults();
-        } catch {
-          return defaults();
-        }
-      };
-      const saveCatalog = (catalog) => { try { localStorage.setItem(LS_CATALOG, JSON.stringify(catalog)); } catch {} };
-
-      function defaults() {
-        return [
-          {
-            projectId: "ahau-gardens",
-            projectName: "Ahau Gardens by Arconique",
-            theme: "light",
-            includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
-            villas: [
-              { villaId: "ahau-a1-2br", name: "A1", status: "hold", rooms: "2", land: 201.7, area: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2200, baseUSD: 282828, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 220, rentalPriceIndexPct: 5 },
-              { villaId: "ahau-a6-2br", name: "A6", status: "reserved", rooms: "2", land: 201.7, area: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2250, baseUSD: 289229, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 230, rentalPriceIndexPct: 5 },
-              { villaId: "ahau-b1-2rt", name: "B1", status: "hold", rooms: "2+rt", land: 100.5, area: 192.0, f1: 83.1, f2: 67.96, roof: 40.9, garden: 24.51, ppsm: null, baseUSD: null, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 260, rentalPriceIndexPct: 5 }
-            ]
-          },
-          {
-            projectId: "enso-villas",
-            projectName: "ENSO by Arconique",
-            theme: "light",
-            includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
-            villas: [
-              { villaId: "enso-l1-2br", name: "L1", status: "hold", rooms: "2", land: 174.6, area: 104.1, f1: 0, f2: 0, roof: 0, garden: 40.73, ppsm: 2410, baseUSD: 244775, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2054-12-01", dailyRateUSD: 220, rentalPriceIndexPct: 5 },
-              { villaId: "enso-v1-2br", name: "V1", status: "hold", rooms: "2", land: 165.8, area: 114.1, f1: 0, f2: 0, roof: 0, garden: 43.4, ppsm: 2549, baseUSD: 262018, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2054-12-01", dailyRateUSD: 230, rentalPriceIndexPct: 5 }
-            ]
-          },
-          {
-            projectId: "eternal-villas",
-            projectName: "Eternal Villas by Arconique",
-            theme: "light",
-            includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
-            villas: [
-              { villaId: "eternal-p1-3rt", name: "P1", status: "hold", rooms: "3+rt", land: 124, area: 218, f1: 109.8, f2: 76.07, roof: 32.09, garden: 44.21, ppsm: 2200, baseUSD: 431531, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 550, rentalPriceIndexPct: 5 }
-            ]
-          }
-        ];
-      }
 
       function useHashRoute() {
         const parse = () => {
@@ -89,6 +116,36 @@
         useEffect(() => { const onHash = () => setRoute(parse()); window.addEventListener("hashchange", onHash); return () => window.removeEventListener("hashchange", onHash); }, []);
         return route;
       }
+
+      function defaults() {
+        return [
+          {
+            projectId: "ahau-gardens",
+            projectName: "Ahau Gardens by Arconique",
+            theme: "light",
+            includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
+            villas: [
+              { villaId: "ahau-a1-2br", name: "A1", status: "hold", rooms: "2", land: 201.7, area: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2200, baseUSD: 282828, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 220, rentalPriceIndexPct: 5 },
+              { villaId: "ahau-a6-2br", name: "A6", status: "reserved", rooms: "2", land: 201.7, area: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2250, baseUSD: 289229, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 230, rentalPriceIndexPct: 5 }
+            ]
+          },
+          {
+            projectId: "enso-villas",
+            projectName: "ENSO by Arconique",
+            theme: "light",
+            includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
+            villas: [
+              { villaId: "enso-l1-2br", name: "L1", status: "hold", rooms: "2", land: 174.6, area: 104.1, f1: 0, f2: 0, roof: 0, garden: 40.73, ppsm: 2410, baseUSD: 244775, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2054-12-01", dailyRateUSD: 220, rentalPriceIndexPct: 5 },
+              { villaId: "enso-v1-2br", name: "V1", status: "hold", rooms: "2", land: 165.8, area: 114.1, f1: 0, f2: 0, roof: 0, garden: 43.4, ppsm: 2549, baseUSD: 262018, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2054-12-01", dailyRateUSD: 230, rentalPriceIndexPct: 5 }
+            ]
+          }
+        ];
+      }
+
+      function loadCatalog() {
+        try { const raw = localStorage.getItem(LS_CATALOG); if (!raw) return defaults(); const parsed = JSON.parse(raw); return Array.isArray(parsed)?parsed:defaults(); } catch { return defaults(); }
+      }
+      function saveCatalog(c){ try{ localStorage.setItem(LS_CATALOG, JSON.stringify(c)); }catch{} }
 
       function Header() {
         return (
@@ -118,15 +175,14 @@
       }
 
       function AdminGate({ onLogin }) {
-        const [pin, setPin] = useState("");
-        const [err, setErr] = useState("");
+        const [pin, setPin] = useState(""); const [err, setErr] = useState("");
         return (
-          <div className="mx-auto max-w-md p-5">
-            <h2 className="text-xl font-semibold mb-3">Вход в админ‑панель</h2>
-            <div className="grid gap-3 border rounded-2xl p-4">
+          <div className="card">
+            <div className="card-header"><h3>Вход в админ‑панель</h3></div>
+            <div className="grid gap-3">
               <label className="grid gap-1">
                 <span className="text-sm text-neutral-600">PIN</span>
-                <input className="px-3 py-2 rounded-xl border" type="password" value={pin} onChange={e=>setPin(e.target.value)} />
+                <input className="px-3 py-2 rounded-xl border" type="password" value={pin} onChange={(e)=>setPin(e.target.value)} />
               </label>
               {err && <div className="text-red-600 text-sm">{err}</div>}
               <div className="flex gap-2">
@@ -196,25 +252,16 @@
                   <Num label="Ночь, $" value={form.dailyRateUSD} set={(v)=>set("dailyRateUSD", v)} />
                   <Num label="Индекс аренды %/год" value={form.rentalPriceIndexPct} set={(v)=>set("rentalPriceIndexPct", v)} />
                 </div>
-
-                <div className="text-xs text-neutral-500">
-                  Подсказка: если указать только «База, $» и «Вилла, м²», система вычислит «$ / м²». И наоборот.
-                </div>
               </div>
               <div className="flex items-center justify-end gap-2 p-4 border-t">
                 <button className="px-3 py-2 rounded-xl border" onClick={onClose}>Отмена</button>
-                <button
-                  className="px-3 py-2 rounded-xl bg-neutral-900 text-white"
-                  onClick={()=>{
-                    const data = { ...form };
-                    const area = +data.area || 0, ppsm = +data.ppsm || 0, base = +data.baseUSD || 0;
-                    if (!ppsm && base && area) data.ppsm = Math.round(base/area);
-                    if (!base && ppsm && area) data.baseUSD = Math.round(ppsm*area);
-                    onSave(data);
-                  }}
-                >
-                  Сохранить
-                </button>
+                <button className="px-3 py-2 rounded-xl bg-neutral-900 text-white" onClick={()=>{
+                  const data = { ...form };
+                  const area = +data.area || 0, ppsm = +data.ppsm || 0, base = +data.baseUSD || 0;
+                  if (!ppsm && base && area) data.ppsm = Math.round(base/area);
+                  if (!base && ppsm && area) data.baseUSD = Math.round(ppsm*area);
+                  onSave(data);
+                }}>Сохранить</button>
               </div>
             </div>
           </div>
@@ -226,12 +273,7 @@
         return (
           <label className="grid gap-1">
             <span className="text-sm text-neutral-600">{label}</span>
-            <input
-              inputMode="decimal"
-              className="px-3 py-2 rounded-xl border"
-              value={txt}
-              onChange={(e)=>{ setTxt(e.target.value); set(e.target.value===""? null : +e.target.value); }}
-            />
+            <input inputMode="decimal" className="px-3 py-2 rounded-xl border" value={txt} onChange={(e)=>{ setTxt(e.target.value); set(e.target.value===""? null : +e.target.value); }}/>
           </label>
         );
       }
@@ -298,162 +340,94 @@
         };
 
         return (
-          <div className="mx-auto max-w-7xl px-5 py-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h2 className="text-xl font-semibold">Админ‑панель</h2>
-              <div className="flex items-center gap-2">
-                <button className="px-3 py-1.5 rounded-lg border" onClick={()=>setShowAddProject(true)}>Добавить проект</button>
-                <button className="px-3 py-1.5 rounded-lg border" onClick={exportJSON}>Экспорт JSON</button>
-                <label className="px-3 py-1.5 rounded-lg border cursor-pointer">Импорт JSON
-                  <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={e=>importJSON(e.target.files?.[0])} />
-                </label>
-                <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">Выйти</a>
+          <div>
+            <div className="card">
+              <div className="card-header"><h3>Админ‑панель</h3>
+                <div className="card-actions">
+                  <button className="btn" onClick={()=>setShowAddProject(true)}>Добавить проект</button>
+                  <button className="btn" onClick={exportJSON}>Экспорт JSON</button>
+                  <label className="btn cursor-pointer">Импорт JSON<input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e)=>importJSON(e.target.files?.[0])}/></label>
+                  <a className="btn" href="#/catalog">Выйти</a>
+                </div>
               </div>
+              {showAddProject && (
+                <div className="grid md:grid-cols-2 gap-3">
+                  <label className="grid gap-1">
+                    <span className="text-sm text-neutral-600">Название проекта</span>
+                    <input className="px-3 py-2 rounded-xl border" value={newProjectName} onChange={(e)=>setNewProjectName(e.target.value)} />
+                  </label>
+                  <div className="flex items-end gap-2">
+                    <button className="btn primary" onClick={addProject}>Сохранить</button>
+                    <button className="btn" onClick={()=>setShowAddProject(false)}>Отмена</button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="grid gap-8">
-              {catalog.map(project=>(
-                <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} rounded-3xl border p-4`}>
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <h3 className={`text-xl font-semibold ${project.theme==="dark"?"text-white":"text-neutral-900"}`}>{project.projectName}</h3>
-                      {project.includes?.length>0 && (
-                        <ul className={`mt-1 text-sm space-y-1 ${project.theme==="dark"?"text-white/80":"text-neutral-700"}`}>
-                          {project.includes.map((x,i)=><li key={i}>• {x}</li>)}
-                        </ul>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="px-3 py-1.5 rounded-lg border" onClick={()=>setVillaModal({open:true,projectId:project.projectId,init:{ status:"available", monthlyPriceGrowthPct:2, rentalPriceIndexPct:5 }})}>Добавить виллу</button>
-                      <button className="px-3 py-1.5 rounded-lg border text-red-600" onClick={()=>deleteProject(project.projectId)}>Удалить проект</button>
-                    </div>
+            {catalog.map(project=>(
+              <section key={project.projectId} className="card">
+                <div className="card-header">
+                  <h3>{project.projectName}</h3>
+                  <div className="card-actions">
+                    <button className="btn success" onClick={()=>openAddVilla(project.projectId)}>Добавить виллу</button>
+                    <button className="btn danger" onClick={()=>deleteProject(project.projectId)}>Удалить проект</button>
                   </div>
+                </div>
 
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
-                      <thead>
-                        <tr className={`${project.theme==="dark"?"bg-white/10 text-white":"bg-neutral-50"}`}>
-                          <Th>Вилла</Th><Th>Q Rooms</Th><Th>Земля, м²</Th><Th>Вилла, м²</Th><Th>1 этаж, м²</Th><Th>2 этаж, м²</Th><Th>Руфтоп, м²</Th><Th>Сад+бассейн, м²</Th>
-                          <Th>$ / м²</Th><Th>База, $</Th><Th>Статус</Th><Th><span className="inline-block w-[160px]">Действия</span></Th>
+                {project.includes?.length>0 && (
+                  <ul className="text-sm text-neutral-700 mb-3">
+                    {project.includes.map((x,i)=><li key={i}>• {x}</li>)}
+                  </ul>
+                )}
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
+                    <thead>
+                      <tr className="bg-neutral-50">
+                        <Th>Вилла</Th><Th>Q Rooms</Th><Th>Земля, м²</Th><Th>Вилла, м²</Th><Th>1 этаж, м²</Th><Th>2 этаж, м²</Th><Th>Руфтоп, м²</Th><Th>Сад+бассейн, м²</Th>
+                        <Th>$ / м²</Th><Th>База, $</Th><Th>Статус</Th><Th><span className="inline-block w-[180px]">Действия</span></Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {project.villas.map(v=>(
+                        <tr key={v.villaId} className="border-t">
+                          <Td className="whitespace-nowrap">{v.name}</Td>
+                          <Td>{v.rooms||""}</Td>
+                          <Td>{v.land!=null? fmt2(v.land) : ""}</Td>
+                          <Td>{v.area!=null? fmt2(v.area) : ""}</Td>
+                          <Td>{v.f1!=null? fmt2(v.f1) : ""}</Td>
+                          <Td>{v.f2!=null? fmt2(v.f2) : ""}</Td>
+                          <Td>{v.roof!=null? fmt2(v.roof) : ""}</Td>
+                          <Td>{v.garden!=null? fmt2(v.garden) : ""}</Td>
+                          <Td>{v.ppsm!=null? fmtInt(v.ppsm) : ""}</Td>
+                          <Td>{v.baseUSD!=null? fmtInt(v.baseUSD) : ""}</Td>
+                          <Td><StatusPill value={v.status||"available"} /></Td>
+                          <Td>
+                            <div className="w-[180px] flex gap-2">
+                              <a className="btn" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
+                              <button className="btn" onClick={()=>openEditVilla(project.projectId, v)}>Править</button>
+                              <button className="btn" onClick={()=>deleteVilla(project.projectId, v.villaId)}>Удалить</button>
+                            </div>
+                          </Td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {project.villas.map(v=>(
-                          <tr key={v.villaId} className={`${project.theme==="dark" ? "border-white/15" : "border-neutral-200"} border-t`}>
-                            <Td className="whitespace-nowrap">{v.name}</Td>
-                            <Td>{v.rooms||""}</Td>
-                            <Td>{v.land!=null? fmt2(v.land) : ""}</Td>
-                            <Td>{v.area!=null? fmt2(v.area) : ""}</Td>
-                            <Td>{v.f1!=null? fmt2(v.f1) : ""}</Td>
-                            <Td>{v.f2!=null? fmt2(v.f2) : ""}</Td>
-                            <Td>{v.roof!=null? fmt2(v.roof) : ""}</Td>
-                            <Td>{v.garden!=null? fmt2(v.garden) : ""}</Td>
-                            <Td>{v.ppsm!=null? fmtInt(v.ppsm) : ""}</Td>
-                            <Td>{v.baseUSD!=null? fmtInt(v.baseUSD) : ""}</Td>
-                            <Td><StatusPill value={v.status||"available"} /></Td>
-                            <Td>
-                              <div className="w-[160px] flex gap-2">
-                                <a className="px-3 py-1.5 rounded-lg text-xs bg-neutral-900 text-white" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
-                                <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>setVillaModal({open:true, projectId:project.projectId, init:{...v}})}>Править</button>
-                                <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>deleteVilla(project.projectId, v.villaId)}>Удалить</button>
-                              </div>
-                            </Td>
-                          </tr>
-                        ))}
-                        {project.villas.length===0 && <tr><td className="px-3 py-3 text-neutral-500" colSpan={12}>Нет вилл</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              ))}
-            </div>
+                      ))}
+                      {project.villas.length===0 && <tr><td className="px-3 py-3 text-neutral-500" colSpan={12}>Нет вилл</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ))}
 
             <VillaModal
               open={villaModal.open}
               initial={villaModal.init}
               onClose={()=>setVillaModal({ open:false, projectId:null, init:null })}
-              onSave={(data)=>{
-                const projectId = villaModal.projectId;
-                const name = (data.name||"").trim();
-                if (!name) { alert("Введите название виллы"); return; }
-                const next = catalog.map(p=>{
-                  if (p.projectId !== projectId) return p;
-                  const villaId = data.villaId || (projectId+"-"+name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,""));
-                  const exists = p.villas.some(v=>v.villaId===villaId);
-                  const record = { ...data, villaId };
-                  return { ...p, villas: exists ? p.villas.map(v=> v.villaId===villaId ? record : v) : [...p.villas, record] };
-                });
-                setCatalog(next); saveCatalog(next);
-                setVillaModal({ open:false, projectId:null, init:null });
-              }}
+              onSave={saveVilla}
             />
           </div>
         );
       }
 
-      function CatalogView({ catalog }) {
-        return (
-          <div className="mx-auto max-w-7xl px-5 py-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Каталог проектов</h2>
-              <a href="#/admin" className="px-3 py-1.5 rounded-lg border">Админ</a>
-            </div>
-
-            <div className="grid gap-8">
-              {catalog.map(project=>(
-                <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} rounded-3xl border p-4`}>
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <h3 className={`text-xl font-semibold ${project.theme==="dark"?"text-white":"text-neutral-900"}`}>{project.projectName}</h3>
-                      {project.includes?.length>0 && (
-                        <ul className={`mt-1 text-sm space-y-1 ${project.theme==="dark"?"text-white/80":"text-neutral-700"}`}>
-                          {project.includes.map((x,i)=><li key={i}>• {x}</li>)}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="w-full text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
-                      <thead>
-                        <tr className={`${project.theme==="dark"?"bg-white/10 text-white":"bg-neutral-50"}`}>
-                          <Th>Вилла</Th><Th>Q Rooms</Th><Th>Земля, м²</Th><Th>Вилла, м²</Th><Th>1 этаж, м²</Th><Th>2 этаж, м²</Th><Th>Руфтоп, м²</Th><Th>Сад+бассейн, м²</Th>
-                          <Th>$ / м²</Th><Th>База, $</Th><Th><span className="inline-block w-[140px]">Статус</span></Th><Th><span className="inline-block w-[140px]">Действия</span></Th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {project.villas.map(v=>(
-                          <tr key={v.villaId} className={`${project.theme==="dark" ? "border-white/15" : "border-neutral-200"} border-t`}>
-                            <Td className="whitespace-nowrap">{v.name}</Td>
-                            <Td>{v.rooms||""}</Td>
-                            <Td>{v.land!=null? fmt2(v.land) : ""}</Td>
-                            <Td>{v.area!=null? fmt2(v.area) : ""}</Td>
-                            <Td>{v.f1!=null? fmt2(v.f1) : ""}</Td>
-                            <Td>{v.f2!=null? fmt2(v.f2) : ""}</Td>
-                            <Td>{v.roof!=null? fmt2(v.roof) : ""}</Td>
-                            <Td>{v.garden!=null? fmt2(v.garden) : ""}</Td>
-                            <Td>{v.ppsm!=null? fmtInt(v.ppsm) : ""}</Td>
-                            <Td>{v.baseUSD!=null? fmtInt(v.baseUSD) : ""}</Td>
-                            <Td><div className="w-[140px] overflow-hidden"><StatusPill value={v.status||"available"} /></div></Td>
-                            <Td>
-                              <div className="w-[140px]">
-                                <a className="px-3 py-1.5 rounded-lg text-xs bg-neutral-900 text-white" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
-                              </div>
-                            </Td>
-                          </tr>
-                        ))}
-                        {project.villas.length===0 && <tr><td className="px-3 py-3 text-neutral-500" colSpan={12}>Нет вилл</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      // FACTORS
       const leaseFactorF = (year, totalYears, alpha) => { try { if (totalYears<=0 || year<0) return 1; return Math.pow((totalYears - year)/totalYears, alpha); } catch { return 1; } };
       const ageFactorF   = (year, beta) => { try { if (year<0 || beta<0) return 1; return Math.exp(-beta * year); } catch { return 1; } };
       const brandFactorF = (year, cfg) => {
@@ -489,8 +463,6 @@
       };
 
       function CalcView({ catalog, villaId }) {
-        // — упорядочил блоки как в вашей версии: Настройки/Стадии → Объект недвижимости → KPI → График → Финмодель → Годовая таблица → Помесячная → Полный график платежей.
-
         const selected = useMemo(()=>{
           for (const p of catalog) {
             const v = p.villas.find(x=>x.villaId===villaId);
@@ -501,11 +473,22 @@
 
         const [lang, setLang] = useState('ru');
         const [currency, setCurrency] = useState('USD');
+        const [idrPerUsd, setIdrPerUsd] = useState(16300);
+        const [eurPerUsd, setEurPerUsd] = useState(0.88);
+        const fmtMoney = (n) => {
+          if (currency==='USD') return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Math.round(n||0));
+          if (currency==='EUR') return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.round((n||0)*eurPerUsd));
+          if (currency==='IDR') return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Math.round((n||0)*idrPerUsd));
+          return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Math.round(n||0));
+        };
+
         const [handoverMonth, setHandoverMonth] = useState(12);
         const [months, setMonths] = useState(12);
         const [monthlyRatePct, setMonthlyRatePct] = useState(8.33);
         const [startMonth, setStartMonth] = useState(new Date());
         const [pricingConfig, setPricingConfig] = useState({ inflationRatePct:10, leaseAlpha:1, agingBeta:0.025, brandPeak:1.2, brandRampYears:3, brandPlateauYears:4, brandDecayYears:8, brandTail:1.0 });
+
+        const [isEditor, setIsEditor] = useState(false); // ТОЛЬКО для показа редакторских полей
 
         const [stages, setStages] = useState([
           {id:1,label:'Договор',pct:30,month:0},
@@ -589,6 +572,16 @@
           return { baseUSD, preUSD, finalUSD, interestUSD, afterUSD };
         },[linesData]);
 
+        const formatMonth = (monthOffset) => {
+          const date = new Date(startMonth); date.setMonth(date.getMonth()+monthOffset);
+          return date.toLocaleDateString('ru-RU', { month:'long', year:'numeric' });
+        };
+        const getDaysInMonth = (monthOffset) => {
+          const date = new Date(startMonth);
+          date.setMonth(date.getMonth() + monthOffset);
+          return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+        };
+
         const getCleanLeaseholdTerm = (leaseholdEndDate) => {
           if (!leaseholdEndDate) return { years: 0, months: 0 };
           const handoverDate = new Date(startMonth);
@@ -620,28 +613,18 @@
           const data = [];
           const baseAtHandover = calculateMarketPriceAtHandover(villa, line);
           for (let year = 0; year <= totalYears; year++) {
-            const inflation = Math.pow(1 + pricingConfig.inflationRatePct / 100, year);
-            const lf = leaseFactorF(year, totalYears, pricingConfig.leaseAlpha);
-            const af = ageFactorF(year, pricingConfig.agingBeta);
-            const bf = brandFactorF(year, pricingConfig);
+            const inflation = Math.pow(1 + 10/100, year);
+            const lf = leaseFactorF(year, totalYears, 1);
+            const af = ageFactorF(year, 0.025);
+            const bf = brandFactorF(year, { brandPeak:1.2, brandRampYears:3, brandPlateauYears:4, brandDecayYears:8, brandTail:1.0 });
             const finalPrice = baseAtHandover * inflation * lf * af * bf;
             data.push({ year, finalPrice, leaseFactor:lf, ageFactor:af, brandFactor:bf, inflation });
           }
           return data;
         };
 
-        const formatMonth = (monthOffset) => {
-          const date = new Date(startMonth); date.setMonth(date.getMonth()+monthOffset);
-          return date.toLocaleDateString('ru-RU', { month:'long', year:'numeric' });
-        };
-        const getDaysInMonth = (monthOffset) => {
-          const date = new Date(startMonth);
-          date.setMonth(date.getMonth() + monthOffset);
-          return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-        };
-
         const firstLine = lines[0];
-        const selectedVilla = React.useMemo(()=>{
+        const selectedVilla = useMemo(()=>{
           if (!firstLine) return null;
           for (const p of catalog) {
             const v = p.villas.find(x=>x.villaId===firstLine.villaId);
@@ -650,8 +633,7 @@
           return null;
         }, [catalog, lines]);
 
-        // ——— KPI
-        const leaseTerm = React.useMemo(()=>{
+        const leaseTerm = useMemo(()=>{
           return selectedVilla?.leaseholdEndDate ? getCleanLeaseholdTerm(new Date(selectedVilla.leaseholdEndDate)) : { years: 0, months: 0 };
         }, [selectedVilla, startMonth, handoverMonth]);
 
@@ -659,9 +641,7 @@
         const basePrice0 = selectedVilla ? (selectedVilla.baseUSD || ((selectedVilla.area||0)*(selectedVilla.ppsm||0))) : 0;
         const monthlyGrowthRate = ((firstLine?.monthlyPriceGrowthPct ?? selectedVilla?.monthlyPriceGrowthPct ?? 2) / 100);
         const priceBeforeKeys = basePrice0 * Math.pow(1 + monthlyGrowthRate, monthBeforeKeys);
-        const roiBeforeKeysAnnual = totals.finalUSD > 0
-          ? (((priceBeforeKeys - totals.finalUSD) / totals.finalUSD) * (12 / Math.max(1, monthBeforeKeys + 1)) * 100)
-          : 0;
+        const roiBeforeKeysAnnual = totals.finalUSD > 0 ? (((priceBeforeKeys - totals.finalUSD) / totals.finalUSD) * (12 / Math.max(1, monthBeforeKeys + 1)) * 100) : 0;
         const netIncomeBeforeKeys = priceBeforeKeys - totals.finalUSD;
 
         const calculateOptimalExit = (villa, line, contractFinalUSD) => {
@@ -678,48 +658,132 @@
           return best;
         };
 
-        const optimalExit = React.useMemo(()=>{
+        const optimalExit = useMemo(()=>{
           if (!selectedVilla || !firstLine) return { year: 0, irr: 0, totalValue: 0 };
           return calculateOptimalExit(selectedVilla, firstLine, totals.finalUSD);
-        }, [selectedVilla, firstLine, totals.finalUSD, pricingConfig, handoverMonth, startMonth]);
+        }, [selectedVilla, firstLine, totals.finalUSD, handoverMonth, startMonth]);
 
         const exitYearAbs = Math.floor(startMonth.getFullYear() + handoverMonth / 12 + optimalExit.year);
-        const finalCumulativeROI = totals.finalUSD > 0
-          ? (((optimalExit.totalValue - totals.finalUSD) / totals.finalUSD) * 100)
-          : 0;
+        const finalCumulativeROI = totals.finalUSD > 0 ? (((optimalExit.totalValue - totals.finalUSD) / totals.finalUSD) * 100) : 0;
 
-        // ——— ОБЪЕКТ НЕДВИЖИМОСТИ (блок размещён сразу после настроек/стадий)
-        const positionsBlock = (
-          <div className="rounded-2xl border p-4 bg-white mt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium">Объект недвижимости</h3>
+        // ——— Настройки + Стадии
+        const settingsStages = (
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <div className="card">
+              <div className="card-header"><h3>Рассрочка до получения ключей</h3></div>
+              <div className="overflow-x-auto">
+                <table className="stages-table">
+                  <thead><tr><Th>Этап</Th><Th>%</Th><Th>Месяц</Th><Th>Удалить</Th></tr></thead>
+                  <tbody>
+                    {stages.map(s=>(
+                      <tr key={s.id}>
+                        <Td><input className="px-2 py-1 rounded border w-full" value={s.label} onChange={(e)=>updStage(s.id,{label:e.target.value})}/></Td>
+                        <Td><input className="px-2 py-1 rounded border w-24" type="number" value={s.pct} onChange={(e)=>updStage(s.id,{pct:e.target.value})}/></Td>
+                        <Td><input className="px-2 py-1 rounded border w-24" type="number" value={s.month} onChange={(e)=>updStage(s.id,{month:+e.target.value})}/></Td>
+                        <Td><button className="btn" onClick={()=>delStage(s.id)}>Удалить</button></Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex items-center gap-3 mt-3">
+                <button className="btn" onClick={addStage}>Добавить этап</button>
+                <div className="pill">Σ: {stagesSumPct.toFixed(2)}%</div>
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[980px]">
+
+            <div className="card settings-card">
+              <div className="card-header"><h3>Настройки</h3></div>
+              <div className="row">
+                <div className="field compact">
+                  <label>Язык интерфейса</label>
+                  <select value={lang} onChange={(e)=>setLang(e.target.value)}>
+                    <option value="ru">Русский</option><option value="en">English</option>
+                  </select>
+                </div>
+                <div className="field compact">
+                  <label>Валюта отображения</label>
+                  <select value={currency} onChange={(e)=>setCurrency(e.target.value)}>
+                    <option>USD</option><option>EUR</option><option>IDR</option>
+                  </select>
+                </div>
+                <div className="field compact">
+                  <label>Режим</label>
+                  <select value={isEditor ? 'editor' : 'client'} onChange={(e)=>setIsEditor(e.target.value==='editor')}>
+                    <option value="client">Клиент</option>
+                    <option value="editor">Редактор</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="row">
+                <div className="field compact">
+                  <label>Заключение договора</label>
+                  <div className="pill">{startMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</div>
+                </div>
+                <div className="field compact">
+                  <label>Срок строительства (мес)</label>
+                  <input type="number" min="1" step="1" value={handoverMonth} onChange={(e)=>setHandoverMonth(clamp(parseInt(e.target.value||0,10),1,120))}/>
+                </div>
+                <div className="field compact">
+                  <label>Post‑handover рассрочка (мес)</label>
+                  <input type="number" min="6" step="1" value={months} onChange={(e)=>setMonths(clamp(parseInt(e.target.value||0,10),6,120))}/>
+                </div>
+              </div>
+
+              {isEditor && (
+                <div className="row">
+                  <div className="field compact">
+                    <label>Глобальная ставка, %/мес</label>
+                    <input type="number" min="0" step="0.01" value={monthlyRatePct} onChange={(e)=>setMonthlyRatePct(clamp(parseFloat(e.target.value||0),0,1000))}/>
+                  </div>
+                </div>
+              )}
+
+              <div className="row">
+                <div className="field compact">
+                  <label>IDR за 1 USD</label>
+                  <input type="number" min="1" step="1" value={idrPerUsd} onChange={(e)=>setIdrPerUsd(clamp(parseFloat(e.target.value||0),1,1e9))}/>
+                </div>
+                <div className="field compact">
+                  <label>EUR за 1 USD</label>
+                  <input type="number" min="0.01" step="0.01" value={eurPerUsd} onChange={(e)=>setEurPerUsd(clamp(parseFloat(e.target.value||0),0.01,100))}/>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+        // ——— Объект недвижимости
+        const positions = (
+          <div className="card">
+            <div className="card-header"><h3>Объект недвижимости</h3></div>
+            <div className="calc-scroll">
+              <table className="calc-table min-w-[980px] w-full">
                 <thead>
-                  <tr className="bg-neutral-50">
+                  <tr>
                     <Th>Проект</Th><Th>Вилла</Th><Th>Кол-во</Th><Th>м²</Th><Th>$ / м²</Th><Th>Текущая стоимость (USD)</Th>
                     <Th>Скидка, %</Th><Th>До ключей, %</Th><Th>Месяцы</Th><Th>Ставка, %/мес</Th><Th>Итоговая стоимость</Th><Th>—</Th>
                   </tr>
                 </thead>
                 <tbody>
                   {linesData.map(ld=>(
-                    <tr key={ld.line.id} className="border-t">
+                    <tr key={ld.line.id}>
                       <Td style={{textAlign:'left'}}>{selected?.project.projectName}</Td>
                       <Td style={{textAlign:'left'}}>{ld.line.snapshot?.name}</Td>
-                      <Td><input className="px-2 py-1 rounded border w-20" type="number" min="1" step="1" value={ld.line.qty} onChange={e=>updLine(ld.line.id,{qty: clamp(parseInt(e.target.value||0,10),1,9999)})}/></Td>
+                      <Td><input className="px-2 py-1 rounded border w-20" type="number" min="1" step="1" value={ld.line.qty} onChange={(e)=>updLine(ld.line.id,{qty: clamp(parseInt(e.target.value||0,10),1,9999)})}/></Td>
                       <Td>{fmtInt(ld.line.snapshot?.area||0)}</Td>
                       <Td>{fmtInt(ld.line.snapshot?.ppsm||0)}</Td>
-                      <Td>{fmtMoney(ld.base)}</Td>
-                      <Td><input className="px-2 py-1 rounded border w-20" type="number" min="0" max="20" step="0.1" value={ld.line.discountPct||0} onChange={e=>updLine(ld.line.id,{discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
+                      <Td className="amount">{fmtMoney(ld.base)}</Td>
+                      <Td><input className="px-2 py-1 rounded border w-20" type="number" min="0" max="20" step="0.1" value={ld.line.discountPct||0} onChange={(e)=>updLine(ld.line.id,{discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
                       <Td>
-                        <input type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, ld.prePct||0))} onChange={e=>updLine(ld.line.id,{prePct: parseInt(e.target.value,10)})}/>
-                        <div className="text-xs text-neutral-600">{Math.max(50,Math.min(100, ld.prePct||0))}%</div>
+                        <input type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, ld.prePct||0))} onChange={(e)=>updLine(ld.line.id,{prePct: parseInt(e.target.value,10)})}/>
+                        <div className="muted">{Math.max(50,Math.min(100, ld.prePct||0))}%</div>
                       </Td>
-                      <Td><input className="px-2 py-1 rounded border w-20" type="number" min="6" step="1" value={ld.vMonths} onChange={e=>updLine(ld.line.id,{ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
-                      <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={ld.line.monthlyRatePct??monthlyRatePct} onChange={e=>updLine(ld.line.id,{ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>
-                      <Td className="font-semibold">{fmtMoney(ld.lineTotal)}</Td>
-                      <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delLine(ld.line.id)}>Удалить</button></Td>
+                      <Td><input className="px-2 py-1 rounded border w-20" type="number" min="6" step="1" value={ld.vMonths} onChange={(e)=>updLine(ld.line.id,{ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
+                      <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={ld.line.monthlyRatePct??monthlyRatePct} onChange={(e)=>updLine(ld.line.id,{ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>
+                      <Td className="amount">{fmtMoney(ld.lineTotal)}</Td>
+                      <Td><button className="btn" onClick={()=>delLine(ld.line.id)}>Удалить</button></Td>
                     </tr>
                   ))}
                   {linesData.length===0 && <tr><td colSpan={12} className="px-3 py-3 text-neutral-500">Нет выбранных вилл</td></tr>}
@@ -729,14 +793,33 @@
           </div>
         );
 
-        // ——— График стоимости/аренды (как раньше)
-        const pricingChart = selectedVilla && (() => {
-          const pricing = generatePricingData(selectedVilla, firstLine);
-          if (pricing.length === 0) return null;
+        // ——— KPI
+        const kpi = (
+          <div className="card">
+            <div className="kpis">
+              <div className="kpi"><div className="muted">Selected villas</div><div className="v">{lines.length}</div></div>
+              <div className="kpi"><div className="muted">Keys in</div><div className="v">{handoverMonth} mo.</div></div>
+              <div className="kpi"><div className="muted">Срок рассрочки после получения ключей</div><div className="v">{months} mo.</div></div>
+              <div className="kpi"><div className="muted">Client</div><div className="v">—</div></div>
+              <div className="kpi"><div className="muted">Payment before keys</div><div className="v">{fmtMoney(totals.preUSD)}</div></div>
+              <div className="kpi"><div className="muted">Payment after keys</div><div className="v">{fmtMoney(totals.afterUSD)}</div></div>
+              <div className="kpi"><div className="muted">Final value</div><div className="v">{fmtMoney(totals.finalUSD)}</div></div>
+              <div className="kpi"><div className="muted">ROI when selling before keys</div><div className="v">{roiBeforeKeysAnnual.toFixed(1)}%</div></div>
+              <div className="kpi"><div className="muted">Net income</div><div className="v">{fmtMoney(netIncomeBeforeKeys)}</div></div>
+              <div className="kpi"><div className="muted">Clean leasehold term</div><div className="v">{leaseTerm.years} years {leaseTerm.months} months</div></div>
+              <div className="kpi"><div className="muted">Exit point with max IRR</div><div className="v">{exitYearAbs}</div></div>
+              <div className="kpi"><div className="muted">IRR</div><div className="v">{optimalExit.irr.toFixed(1)}%</div></div>
+              <div className="kpi"><div className="muted">Final cumulative ROI</div><div className="v">{finalCumulativeROI.toFixed(1)}%</div></div>
+            </div>
+          </div>
+        );
+
+        // ——— График (как раньше)
+        const pricing = selectedVilla ? generatePricingData(selectedVilla, firstLine) : [];
+        const chart = selectedVilla && pricing.length>0 && (() => {
           const occ = (firstLine?.occupancyPct ?? 75) / 100;
           const baseDaily = firstLine?.dailyRateUSD ?? selectedVilla?.dailyRateUSD ?? 0;
           const indexPct = firstLine?.rentalPriceIndexPct ?? selectedVilla?.rentalPriceIndexPct ?? 0;
-          const avgDaysYear = 30.44 * 12;
           const rentalData = pricing.map((d) => {
             const daily = getIndexedRentalPrice(baseDaily, indexPct, d.year);
             const workingMonths = d.year===0 ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
@@ -749,19 +832,18 @@
           const scaleY = (val) => 250 - ((val - globalMin) / Math.max(1, (globalMax - globalMin))) * 200;
 
           return (
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">Villa cost and rental income dynamics</h3>
-              <p className="text-sm text-neutral-500">Impact of factors on price and rental yield</p>
-              <div className="pricing-chart-svg mt-3">
+            <div className="card">
+              <div className="card-header"><h3>Villa cost and rental income dynamics</h3></div>
+              <div className="pricing-chart-svg">
                 <svg width="100%" height="300" viewBox="0 0 800 300">
                   <line x1="50" y1="50" x2="50" y2="250" stroke="#666" strokeWidth="1" />
                   <line x1="50" y1="250" x2="750" y2="250" stroke="#666" strokeWidth="1" />
 
-                  <polyline fill="none" stroke="#2196F3" strokeWidth="2" points={pricing.map((d,i)=>`${50 + i*35},${scaleY(d.finalPrice)}`).join(" ")} />
-                  {pricing.map((d,i)=><circle key={`p-${i}`} cx={50 + i*35} cy={scaleY(d.finalPrice)} r="3" fill="#2196F3" />)}
+                  <polyline fill="none" stroke="#3b82f6" strokeWidth="2" points={pricing.map((d,i)=>`${50 + i*35},${scaleY(d.finalPrice)}`).join(" ")} />
+                  {pricing.map((d,i)=><circle key={`p-${i}`} cx={50 + i*35} cy={scaleY(d.finalPrice)} r="3" fill="#3b82f6" />)}
 
-                  <polyline fill="none" stroke="#4CAF50" strokeWidth="2" points={rentalData.map((d,i)=>`${50 + i*35},${scaleY(d.rentalIncome)}`).join(" ")} />
-                  {rentalData.map((d,i)=><circle key={`r-${i}`} cx={50 + i*35} cy={scaleY(d.rentalIncome)} r="3" fill="#4CAF50" />)}
+                  <polyline fill="none" stroke="#10b981" strokeWidth="2" points={rentalData.map((d,i)=>`${50 + i*35},${scaleY(d.rentalIncome)}`).join(" ")} />
+                  {rentalData.map((d,i)=><circle key={`r-${i}`} cx={50 + i*35} cy={scaleY(d.rentalIncome)} r="3" fill="#10b981" />)}
 
                   {[0,0.25,0.5,0.75,1].map((r,i)=>{
                     const val = globalMin + r*(globalMax-globalMin);
@@ -769,7 +851,7 @@
                     return (
                       <g key={i}>
                         <line x1="45" y1={y} x2="50" y2={y} stroke="#666" strokeWidth="1" />
-                        <text x="40" y={y+4} fontSize="10" textAnchor="end" fill="#666">{fmtMoney(val, currency)}</text>
+                        <text x="40" y={y+4} fontSize="10" textAnchor="end" fill="#666">{fmtMoney(val)}</text>
                       </g>
                     );
                   })}
@@ -779,9 +861,9 @@
                     return <text key={`x-${i}`} x={50 + i*35} y="270" fontSize="12" textAnchor="middle" fill="#666">{realYear}</text>;
                   })}
 
-                  <rect x="600" y="20" width="15" height="15" fill="#2196F3" />
+                  <rect x="600" y="20" width="15" height="15" fill="#3b82f6" />
                   <text x="620" y="32" fontSize="12" fill="#333">Market value</text>
-                  <rect x="600" y="40" width="15" height="15" fill="#4CAF50" />
+                  <rect x="600" y="40" width="15" height="15" fill="#10b981" />
                   <text x="620" y="52" fontSize="12" fill="#333">Rental income</text>
                 </svg>
               </div>
@@ -789,7 +871,7 @@
           );
         })();
 
-        // ——— Годовая таблица (полные колонки)
+        // ——— Годовая таблица
         const annualRows = useMemo(()=>{
           if (!selectedVilla || !firstLine) return [];
           const pricing = generatePricingData(selectedVilla, firstLine);
@@ -800,21 +882,13 @@
           const avgDays = 30.44;
 
           return pricing.map((d, idx)=>{
-            let workingMonths;
-            if (idx === 0) {
-              const startM = handoverMonth + 3;
-              workingMonths = handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, startM));
-            } else {
-              workingMonths = 12;
-            }
+            let workingMonths = idx===0 ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
             const daily = getIndexedRentalPrice(baseDaily, indexPct, d.year);
             const rentalIncome = daily * 0.55 * occ * avgDays * workingMonths * (firstLine?.qty || 1);
             const totalCapitalization = d.finalPrice + rentalIncome;
-
             const prev = idx>0 ? pricing[idx-1] : null;
             const priceChange = prev ? (d.finalPrice - prev.finalPrice) : 0;
             const yearlyRoi = prev ? ((rentalIncome + priceChange) / Math.max(1, prev.finalPrice)) * 100 : 0;
-
             let cumRent = 0;
             for (let y=0;y<=idx;y++){
               const wd = (y===0) ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
@@ -822,7 +896,6 @@
               cumRent += dly * 0.55 * occ * avgDays * wd * (firstLine?.qty || 1);
             }
             const cumulativeRoi = totals.finalUSD>0 ? ((cumRent + d.finalPrice - totals.finalUSD) / totals.finalUSD) * 100 : 0;
-
             const cashFlows = [-totals.finalUSD];
             for (let y=0;y<=idx;y++){
               const wd = (y===0) ? (handoverMonth>=12 ? 0 : Math.max(0, 12 - Math.max(0, handoverMonth + 3))) : 12;
@@ -831,23 +904,54 @@
               if (y===idx) cashFlows.push(rent + d.finalPrice); else cashFlows.push(rent);
             }
             const irr = calculateIRR(cashFlows);
-
             return { displayYear: Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year), ...d, rentalIncome, totalCapitalization, yearlyRoi, cumulativeRoi, irr };
           });
-        },[selectedVilla, firstLine, pricingConfig, handoverMonth, startMonth, totals.finalUSD]);
+        },[selectedVilla, firstLine, handoverMonth, startMonth, totals.finalUSD]);
 
-        // ——— Помесячная таблица (полные колонки)
-        const generateMonthlyPricingData = (villa, line) => {
-          if (!villa) return [];
-          const baseAtHandover = calculateMarketPriceAtHandover(villa, line);
-          const vMonths = linesData[0]?.vMonths || months;
-          const totalMonths = handoverMonth + vMonths;
-          const occ = (line?.occupancyPct ?? 75) / 100;
-          const baseDaily = line?.dailyRateUSD ?? villa?.dailyRateUSD ?? 0;
-          const indexPct = line?.rentalPriceIndexPct ?? villa?.rentalPriceIndexPct ?? 0;
+        const annualTable = (
+          <div className="card">
+            <div className="card-header"><h3>Calculation of indicators (annual)</h3></div>
+            <div className="factors-table-container">
+              <div className="factors-table-scroll">
+                <table className="factors-table min-w-[1200px]">
+                  <thead>
+                    <tr>
+                      <Th>Year</Th><Th>Lease Factor</Th><Th>Age Factor</Th><Th>Brand Factor</Th><Th>Inflation</Th><Th>Market value</Th>
+                      <Th>Rental income</Th><Th>Total capitalization</Th><Th>Yearly ROI (%)</Th><Th>Cumulative ROI (%)</Th><Th>IRR (%)</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {annualRows.length>0 ? annualRows.map((r,i)=>(
+                      <tr key={i}>
+                        <Td>{r.displayYear}</Td>
+                        <Td>{r.leaseFactor.toFixed(3)}</Td>
+                        <Td>{r.ageFactor.toFixed(3)}</Td>
+                        <Td>{r.brandFactor.toFixed(3)}</Td>
+                        <Td>{r.inflation.toFixed(3)}</Td>
+                        <Td className="price-cell">{fmtMoney(r.finalPrice)}</Td>
+                        <Td className="price-cell">{fmtMoney(r.rentalIncome)}</Td>
+                        <Td className="total-capital-cell">{fmtMoney(r.totalCapitalization)}</Td>
+                        <Td className="yearly-roi-cell">{r.yearlyRoi.toFixed(2)}%</Td>
+                        <Td className="cumulative-roi-cell">{r.cumulativeRoi.toFixed(2)}%</Td>
+                        <Td className="irr-cell">{r.irr.toFixed(2)}%</Td>
+                      </tr>
+                    )) : <tr><td colSpan={11} className="px-3 py-3 text-neutral-500">Нет данных</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
 
-          const preMap = new Map();
-          const postMap = new Map();
+        const baseAtHandover = selectedVilla ? calculateMarketPriceAtHandover(selectedVilla, firstLine) : 0;
+        const monthlyRows = useMemo(()=>{
+          if (!selectedVilla || !firstLine) return [];
+          const totalMonths = handoverMonth + (linesData[0]?.vMonths || months);
+          const occ = (firstLine?.occupancyPct ?? 75) / 100;
+          const baseDaily = firstLine?.dailyRateUSD ?? selectedVilla?.dailyRateUSD ?? 0;
+          const indexPct = firstLine?.rentalPriceIndexPct ?? selectedVilla?.rentalPriceIndexPct ?? 0;
+
+          const preMap = new Map(); const postMap = new Map();
           linesData.forEach(ld=>{
             ld.preSchedule.forEach(r=> preMap.set(r.month, (preMap.get(r.month)||0) + r.amountUSD));
             ld.postRows.forEach(r=> postMap.set(r.month, (postMap.get(r.month)||0) + r.paymentUSD));
@@ -858,14 +962,14 @@
           for (let m = 0; m <= totalMonths; m++) {
             let inflationFactor = 1, lf=1, af=1, bf=1, finalPrice = 0;
             if (m <= handoverMonth) {
-              const base = (villa.baseUSD || ((villa.area||0)*(villa.ppsm||0)));
-              finalPrice = base * Math.pow(1 + ((line?.monthlyPriceGrowthPct ?? villa?.monthlyPriceGrowthPct ?? 2)/100), m);
+              const base = (selectedVilla.baseUSD || ((selectedVilla.area||0)*(selectedVilla.ppsm||0)));
+              finalPrice = base * Math.pow(1 + ((firstLine?.monthlyPriceGrowthPct ?? selectedVilla?.monthlyPriceGrowthPct ?? 2)/100), m);
             } else {
               const yearOffset = (m - handoverMonth) / 12;
-              inflationFactor = Math.pow(1 + pricingConfig.inflationRatePct / 100, yearOffset);
-              lf = leaseFactorF(yearOffset, 30, pricingConfig.leaseAlpha);
-              af = ageFactorF(yearOffset, pricingConfig.agingBeta);
-              bf = brandFactorF(yearOffset, pricingConfig);
+              inflationFactor = Math.pow(1 + 10/100, yearOffset);
+              lf = leaseFactorF(yearOffset, 30, 1);
+              af = ageFactorF(yearOffset, 0.025);
+              bf = brandFactorF(yearOffset, { brandPeak:1.2, brandRampYears:3, brandPlateauYears:4, brandDecayYears:8, brandTail:1.0 });
               finalPrice = baseAtHandover * inflationFactor * lf * af * bf;
             }
 
@@ -876,7 +980,7 @@
             if (m >= handoverMonth + 3) {
               const yearOffset = (m - handoverMonth) / 12;
               const daily = getIndexedRentalPrice(baseDaily, indexPct, Math.floor(yearOffset));
-              rentalIncome = daily * 0.55 * occ * getDaysInMonth(m) * (line?.qty || 1);
+              rentalIncome = daily * 0.55 * occ * getDaysInMonth(m) * (firstLine?.qty || 1);
             }
 
             const prev = result[result.length-1];
@@ -887,7 +991,7 @@
             const cashFlows = [-totals.finalUSD];
             for (let j=0;j<=m;j++){
               const rj = (j >= handoverMonth + 3)
-                ? (getIndexedRentalPrice(baseDaily, indexPct, Math.floor((j - handoverMonth)/12)) * 0.55 * occ * getDaysInMonth(j) * (line?.qty || 1))
+                ? (getIndexedRentalPrice(baseDaily, indexPct, Math.floor((j - handoverMonth)/12)) * 0.55 * occ * getDaysInMonth(j) * (firstLine?.qty || 1))
                 : 0;
               if (j===m) cashFlows.push(rj + finalPrice); else cashFlows.push(rj);
             }
@@ -901,25 +1005,55 @@
             });
           }
           return result;
-        };
+        },[selectedVilla, firstLine, handoverMonth, months, linesData, totals.finalUSD]);
 
-        const monthlyRows = useMemo(()=>{
-          if (!selectedVilla || !firstLine) return [];
-          return generateMonthlyPricingData(selectedVilla, firstLine);
-        },[selectedVilla, firstLine, pricingConfig, handoverMonth, months, monthlyRatePct, linesData, totals.finalUSD]);
+        const monthlyTable = (
+          <div className="card">
+            <div className="card-header"><h3>Calculation of indicators (for installment period)</h3></div>
+            <div className="factors-table-container">
+              <div className="factors-table-scroll">
+                <table className="factors-table min-w-[1400px]">
+                  <thead>
+                    <tr>
+                      <Th>Period</Th><Th>Lease Factor</Th><Th>Age Factor</Th><Th>Brand Factor</Th><Th>Inflation</Th>
+                      <Th>Market value</Th><Th>Rental income</Th><Th>Total capitalization</Th><Th>Installment payment</Th>
+                      <Th>Monthly ROI (%)</Th><Th>Cumulative ROI (%)</Th><Th>IRR (%)</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyRows.length>0 ? monthlyRows.map((r)=>(
+                      <tr key={r.month}>
+                        <Td>{r.monthLabel}</Td>
+                        <Td>{(r.leaseFactor||1).toFixed(3)}</Td>
+                        <Td>{(r.ageFactor||1).toFixed(3)}</Td>
+                        <Td>{(r.brandFactor||1).toFixed(3)}</Td>
+                        <Td>{(r.inflationFactor||1).toFixed(3)}</Td>
+                        <Td className="price-cell">{fmtMoney(r.finalPrice)}</Td>
+                        <Td className="price-cell">{fmtMoney(r.rentalIncome)}</Td>
+                        <Td className="total-capital-cell">{fmtMoney(r.totalInvestorCapital)}</Td>
+                        <Td className="payment-cell">{r.paymentAmount>0 ? fmtMoney(r.paymentAmount) : '-'}</Td>
+                        <Td className="monthly-roi-cell">{r.monthlyRoi.toFixed(2)}%</Td>
+                        <Td className="cumulative-roi-cell">{r.cumulativeRoi.toFixed(2)}%</Td>
+                        <Td className="irr-cell">{r.irr.toFixed(2)}%</Td>
+                      </tr>
+                    )) : <tr><td colSpan={12} className="px-3 py-3 text-neutral-500">Нет данных</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
 
-        // ——— Построение «Полного графика платежей» (с Арендным доходом и Чистым платежом)
-        const fullCashflowTable = (()=> {
-          const m = new Map(); // month => {items, amountUSD}
+        // ——— Полный график платежей (все столбцы)
+        const fullCashflow = (()=> {
+          const m = new Map();
           const push=(month, amt, desc)=>{ if (amt<=0) return; const prev=m.get(month)||{month,items:[],amountUSD:0}; prev.items.push(desc); prev.amountUSD+=amt; m.set(month,prev); };
-
           linesData.forEach(ld=>{
             ld.preSchedule.forEach(r=> push(r.month, r.amountUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: ${r.label}`));
             if (ld.firstPostUSD>0) push(handoverMonth+1, ld.firstPostUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Первый платёж`);
             ld.postRows.forEach(r=> push(r.month, r.paymentUSD, `${ld.line.snapshot?.name||'Villa'} ×${ld.qty}: Месяц ${r.label}`));
           });
 
-          // rental income per month (суммируем по всем линиям)
           const rentalMap = new Map();
           lines.forEach(ln=>{
             const occ = (ln.occupancyPct ?? 75)/100;
@@ -936,37 +1070,13 @@
           const rows = [...m.values()].sort((a,b)=>a.month-b.month);
           let acc=0;
           return (
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Полный график платежей</h3>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1.5 rounded-lg border" onClick={()=>{
-                    const head = ["Месяц","Описание","Платеж","Арендный доход","Чистый платеж/доход в месяц","Остаток по договору"];
-                    const out = [head];
-                    let sum=0;
-                    rows.forEach(row=>{
-                      sum += row.amountUSD;
-                      const balance = Math.max(0, totals.finalUSD - sum);
-                      const rent = rentalMap.get(row.month)||0;
-                      const net = row.amountUSD - rent;
-                      out.push([formatMonth(row.month), row.items.join(" + "), Math.round(row.amountUSD), Math.round(rent), Math.round(net), Math.round(balance)]);
-                    });
-                    const csv = out.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
-                    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a');
-                    a.href=URL.createObjectURL(blob); a.download=`arconique_cashflow_${new Date().toISOString().slice(0,10)}.csv`; a.click();
-                  }}>Export CSV</button>
-                </div>
-              </div>
-              <div className="overflow-x-auto mt-3">
-                <table className="w-full text-sm min-w-[1200px]">
+            <div className="card">
+              <div className="card-header"><h3>Полный график платежей</h3></div>
+              <div className="cashflow-table-container">
+                <table className="cashflow-table min-w-[1200px]">
                   <thead>
-                    <tr className="bg-neutral-50">
-                      <Th>Месяц</Th>
-                      <Th style={{textAlign:'left'}}>Описание</Th>
-                      <Th>Платеж</Th>
-                      <Th>Арендный доход</Th>
-                      <Th>Чистый платеж/доход в месяц</Th>
-                      <Th>Остаток по договору</Th>
+                    <tr>
+                      <Th>Месяц</Th><Th>Описание</Th><Th>Платеж</Th><Th>Арендный доход</Th><Th>Чистый платеж/доход в месяц</Th><Th>Остаток по договору</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -976,13 +1086,13 @@
                       const rent = rentalMap.get(row.month)||0;
                       const net = row.amountUSD - rent;
                       return (
-                        <tr key={row.month} className="border-t">
+                        <tr key={row.month}>
                           <Td>{formatMonth(row.month)}</Td>
-                          <Td style={{textAlign:'left'}}>{row.items.join(' + ')}</Td>
-                          <Td>{fmtMoney(row.amountUSD, currency)}</Td>
-                          <Td>{fmtMoney(rent, currency)}</Td>
-                          <Td className={net>=0 ? 'text-red-600' : 'text-emerald-600'}>{fmtMoney(net, currency)}</Td>
-                          <Td>{fmtMoney(balance, currency)}</Td>
+                          <Td>{row.items.join(' + ')}</Td>
+                          <Td>{fmtMoney(row.amountUSD)}</Td>
+                          <Td>{fmtMoney(rent)}</Td>
+                          <Td className={net>=0 ? 'negative' : 'positive'}>{fmtMoney(net)}</Td>
+                          <Td>{fmtMoney(balance)}</Td>
                         </tr>
                       );
                     }) : <tr><td colSpan={6} className="px-3 py-3 text-neutral-500">Нет платежей</td></tr>}
@@ -994,217 +1104,75 @@
         })();
 
         return (
-          <div id="calc-root" className="mx-auto max-w-7xl px-5 py-6">
-            <div className="flex items-center justify-between">
-              <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
-              {selected && <div className="text-sm text-neutral-500">{selected.project.projectName}</div>}
+          <div className="grid">
+            {/* Левая/правая колонки по мотивам вашего CSS сетки */}
+            <div className="col-span-2">
+              {settingsStages}
+              {positions}
+              {kpi}
+              {chart}
+              {annualTable}
+              {monthlyTable}
+              {fullCashflow}
             </div>
-            <h2 className="text-xl font-semibold mt-4">Полный калькулятор</h2>
-
-            {/* Настройки + Стадии */}
-            <div className="grid md:grid-cols-2 gap-4 mt-4">
-              <div className="rounded-2xl border p-4 bg-white">
-                <h3 className="font-medium mb-3">Рассрочка до получения ключей (установите комфортный план оплаты)</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[640px]">
-                    <thead><tr className="bg-neutral-50"><Th>Этап</Th><Th>%</Th><Th>Месяц</Th><Th>Удалить</Th></tr></thead>
-                    <tbody>
-                      {stages.map(s=>(
-                        <tr key={s.id} className="border-t">
-                          <Td><input className="px-2 py-1 rounded border w-full" value={s.label} onChange={e=>updStage(s.id,{label:e.target.value})}/></Td>
-                          <Td><input className="px-2 py-1 rounded border w-24" type="number" value={s.pct} onChange={e=>updStage(s.id,{pct:e.target.value})}/></Td>
-                          <Td><input className="px-2 py-1 rounded border w-24" type="number" value={s.month} onChange={e=>updStage(s.id,{month:+e.target.value})}/></Td>
-                          <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delStage(s.id)}>Удалить</button></Td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex items-center gap-3 mt-3">
-                  <button className="px-3 py-1.5 rounded-lg border" onClick={addStage}>Добавить этап</button>
-                  <div className="text-sm text-neutral-600">Σ: {stagesSumPct.toFixed(2)}%</div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border p-4 bg-white">
-                <h3 className="font-medium mb-3">Настройки</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">Язык интерфейса</span>
-                    <select className="px-3 py-2 rounded-xl border" value={lang} onChange={e=>setLang(e.target.value)}>
-                      <option value="ru">Русский</option><option value="en">English</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">Валюта отображения</span>
-                    <select className="px-3 py-2 rounded-xl border" value={currency} onChange={e=>setCurrency(e.target.value)}>
-                      <option>USD</option><option>EUR</option><option>IDR</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">Заключение договора</span>
-                    <div className="px-3 py-2 rounded-xl border bg-neutral-50">{startMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</div>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">Срок строительства (мес)</span>
-                    <input className="px-3 py-2 rounded-xl border" type="number" min="1" step="1" value={handoverMonth} onChange={e=>setHandoverMonth(clamp(parseInt(e.target.value||0,10),1,120))}/>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">Post‑handover рассрочка (мес)</span>
-                    <input className="px-3 py-2 rounded-xl border" type="number" min="6" step="1" value={months} onChange={e=>setMonths(clamp(parseInt(e.target.value||0,10),6,120))}/>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-sm text-neutral-600">Ставка, %/мес</span>
-                    <input className="px-3 py-2 rounded-xl border" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e=>setMonthlyRatePct(clamp(parseFloat(e.target.value||0),0,1000))}/>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Объект недвижимости */}
-            {positionsBlock}
-
-            {/* KPI блок в стиле первой версии */}
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-neutral-500">Client</div>
-                <div className="text-sm text-neutral-500">Selected villas: {lines.length || 0}</div>
-              </div>
-              <div className="grid md:grid-cols-3 gap-3 mt-3">
-                <Kpi label="Keys in" value={`${handoverMonth} mo.`} />
-                <Kpi label="Срок рассрочки после получения ключей" value={`${months} mo.`} />
-                <div className="rounded-2xl border p-4 bg-white">
-                  <div className="text-xs text-neutral-500">Clean leasehold term (from key handover)</div>
-                  <div className="text-lg font-semibold mt-1">{leaseTerm.years} years {leaseTerm.months} months</div>
-                </div>
-              </div>
-              <div className="grid md:grid-cols-4 gap-3 mt-3">
-                <Kpi label="Payment before keys" value={fmtMoney(totals.preUSD, currency)} />
-                <Kpi label="Payment after keys" value={fmtMoney(totals.afterUSD, currency)} />
-                <Kpi label="Final value" value={fmtMoney(totals.finalUSD, currency)} />
-                <Kpi label="Проценты" value={fmtMoney(totals.interestUSD, currency)} />
-              </div>
-              <div className="grid md:grid-cols-3 gap-3 mt-3">
-                <Kpi label="ROI when selling before keys" value={`${roiBeforeKeysAnnual.toFixed(1)}%`} />
-                <Kpi label="Net income" value={fmtMoney(netIncomeBeforeKeys, currency)} />
-                <div className="rounded-2xl border p-4 bg-white">
-                  <div className="text-xs text-neutral-500">Exit point with max IRR</div>
-                  <div className="text-lg font-semibold mt-1">{exitYearAbs}</div>
-                  <div className="text-xs text-neutral-500 mt-1">IRR: {optimalExit.irr.toFixed(1)}%</div>
-                  <div className="text-xs text-neutral-500">Final cumulative ROI: {finalCumulativeROI.toFixed(1)}%</div>
-                </div>
-              </div>
-            </div>
-
-            {/* График стоимости/аренды */}
-            {pricingChart}
-
-            {/* Финансовая модель */}
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">Investment Return Financial Model</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-                <Kpi label="Inflation" value={`g = ${pricingConfig.inflationRatePct}%/year`} />
-                <Kpi label="Aging" value={`β = ${pricingConfig.agingBeta}/year`} />
-                <Kpi label="Lease Decay" value={`α = ${pricingConfig.leaseAlpha}`} />
-                <Kpi label="Brand Factor" value={`Peak = ${pricingConfig.brandPeak}x`} />
-              </div>
-            </div>
-
-            {/* Calculation of indicators (annual) */}
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">Calculation of indicators (annual)</h3>
-              <div className="overflow-x-auto mt-3">
-                <table className="w-full text-sm min-w-[1200px]">
-                  <thead>
-                    <tr className="bg-neutral-50">
-                      <Th>Year</Th>
-                      <Th>Lease Factor</Th>
-                      <Th>Age Factor</Th>
-                      <Th>Brand Factor</Th>
-                      <Th>Inflation</Th>
-                      <Th>Market value</Th>
-                      <Th>Rental income</Th>
-                      <Th>Total capitalization</Th>
-                      <Th>Yearly ROI (%)</Th>
-                      <Th>Cumulative ROI (%)</Th>
-                      <Th>IRR (%)</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {annualRows.length>0 ? annualRows.map((r,i)=>(
-                      <tr key={i} className="border-t">
-                        <Td>{r.displayYear}</Td>
-                        <Td>{r.leaseFactor.toFixed(3)}</Td>
-                        <Td>{r.ageFactor.toFixed(3)}</Td>
-                        <Td>{r.brandFactor.toFixed(3)}</Td>
-                        <Td>{r.inflation.toFixed(3)}</Td>
-                        <Td>{fmtMoney(r.finalPrice, currency)}</Td>
-                        <Td>{fmtMoney(r.rentalIncome, currency)}</Td>
-                        <Td>{fmtMoney(r.totalCapitalization, currency)}</Td>
-                        <Td>{r.yearlyRoi.toFixed(2)}%</Td>
-                        <Td>{r.cumulativeRoi.toFixed(2)}%</Td>
-                        <Td>{r.irr.toFixed(2)}%</Td>
-                      </tr>
-                    )) : <tr><td colSpan={11} className="px-3 py-3 text-neutral-500">Нет данных</td></tr>}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Calculation of indicators (for installment period) */}
-            <div className="rounded-2xl border p-4 bg-white mt-4">
-              <h3 className="font-medium">Calculation of indicators (for installment period)</h3>
-              <div className="overflow-x-auto mt-3">
-                <table className="w-full text-sm min-w-[1400px]">
-                  <thead>
-                    <tr className="bg-neutral-50">
-                      <Th>Period</Th>
-                      <Th>Lease Factor</Th>
-                      <Th>Age Factor</Th>
-                      <Th>Brand Factor</Th>
-                      <Th>Inflation</Th>
-                      <Th>Market value</Th>
-                      <Th>Rental income</Th>
-                      <Th>Total capitalization</Th>
-                      <Th>Installment payment</Th>
-                      <Th>Monthly ROI (%)</Th>
-                      <Th>Cumulative ROI (%)</Th>
-                      <Th>IRR (%)</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {monthlyRows.length>0 ? monthlyRows.map((r)=>(
-                      <tr key={r.month} className="border-t">
-                        <Td>{r.monthLabel}</Td>
-                        <Td>{(r.leaseFactor||1).toFixed(3)}</Td>
-                        <Td>{(r.ageFactor||1).toFixed(3)}</Td>
-                        <Td>{(r.brandFactor||1).toFixed(3)}</Td>
-                        <Td>{(r.inflationFactor||1).toFixed(3)}</Td>
-                        <Td>{fmtMoney(r.finalPrice, currency)}</Td>
-                        <Td>{fmtMoney(r.rentalIncome, currency)}</Td>
-                        <Td>{fmtMoney(r.totalInvestorCapital, currency)}</Td>
-                        <Td>{r.paymentAmount>0 ? fmtMoney(r.paymentAmount, currency) : '-'}</Td>
-                        <Td>{r.monthlyRoi.toFixed(2)}%</Td>
-                        <Td>{r.cumulativeRoi.toFixed(2)}%</Td>
-                        <Td>{r.irr.toFixed(2)}%</Td>
-                      </tr>
-                    )) : <tr><td colSpan={12} className="px-3 py-3 text-neutral-500">Нет данных</td></tr>}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Полный график платежей с нужными колонками */}
-            {fullCashflowTable}
           </div>
         );
       }
 
       function Kpi({ label, value }) {
         return (
-          <div className="rounded-2xl border p-4 bg-white">
-            <div className="text-xs text-neutral-500">{label}</div>
-            <div className="text-lg font-semibold mt-1">{value}</div>
+          <div className="kpi">
+            <div className="muted">{label}</div>
+            <div className="v">{value}</div>
+          </div>
+        );
+      }
+
+      function CatalogView({ catalog }) {
+        return (
+          <div className="grid">
+            <div className="col-span-2">
+              <div className="card">
+                <div className="card-header"><h3>Каталог проектов</h3><a href="#/admin" className="btn">Админ</a></div>
+                <div className="grid gap-8">
+                  {catalog.map(project=>(
+                    <section key={project.projectId} className="card">
+                      <div className="card-header"><h3>{project.projectName}</h3></div>
+                      {project.includes?.length>0 && <ul className="text-sm text-neutral-700 mb-3">{project.includes.map((x,i)=><li key={i}>• {x}</li>)}</ul>}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
+                          <thead>
+                            <tr className="bg-neutral-50">
+                              <Th>Вилла</Th><Th>Q Rooms</Th><Th>Земля, м²</Th><Th>Вилла, м²</Th><Th>1 этаж, м²</Th><Th>2 этаж, м²</Th><Th>Руфтоп, м²</Th><Th>Сад+бассейн, м²</Th>
+                              <Th>$ / м²</Th><Th>База, $</Th><Th><span className="inline-block w-[140px]">Статус</span></Th><Th><span className="inline-block w-[140px]">Действия</span></Th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {project.villas.map(v=>(
+                              <tr key={v.villaId} className="border-t">
+                                <Td className="whitespace-nowrap">{v.name}</Td>
+                                <Td>{v.rooms||""}</Td>
+                                <Td>{v.land!=null? fmt2(v.land) : ""}</Td>
+                                <Td>{v.area!=null? fmt2(v.area) : ""}</Td>
+                                <Td>{v.f1!=null? fmt2(v.f1) : ""}</Td>
+                                <Td>{v.f2!=null? fmt2(v.f2) : ""}</Td>
+                                <Td>{v.roof!=null? fmt2(v.roof) : ""}</Td>
+                                <Td>{v.garden!=null? fmt2(v.garden) : ""}</Td>
+                                <Td>{v.ppsm!=null? fmtInt(v.ppsm) : ""}</Td>
+                                <Td>{v.baseUSD!=null? fmtInt(v.baseUSD) : ""}</Td>
+                                <Td><div className="w-[140px] overflow-hidden"><StatusPill value={v.status||"available"} /></div></Td>
+                                <Td><div className="w-[140px]"><a className="btn" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a></div></Td>
+                              </tr>
+                            ))}
+                            {project.villas.length===0 && <tr><td className="px-3 py-3 text-neutral-500" colSpan={12}>Нет вилл</td></tr>}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         );
       }
@@ -1214,9 +1182,8 @@
         const [catalog, setCatalog] = useState(loadCatalog());
         const [isAdmin, setIsAdmin] = useState(false);
         useEffect(()=>saveCatalog(catalog),[catalog]);
-
         return (
-          <div className="min-h-screen bg-white">
+          <div className="min-h-screen">
             <Header />
             {route.path==="#/admin" ? (
               isAdmin ? <AdminPanel catalog={catalog} setCatalog={setCatalog} /> : <AdminGate onLogin={()=>setIsAdmin(true)} />
@@ -1225,9 +1192,6 @@
             ) : (
               <CatalogView catalog={catalog} />
             )}
-            <footer className="mx-auto max-w-7xl px-5 py-10 text-center text-sm text-neutral-500">
-              © {new Date().getFullYear()} Arconique · Данные каталога сохраняются локально в вашем браузере.
-            </footer>
           </div>
         );
       }
