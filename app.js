@@ -26,9 +26,11 @@ function ruMonthName(monthIndex) {
 }
 function formatPlannedCompletion(yyyyMm) {
   if (!yyyyMm || !/^\d{4}-\d{2}$/.test(yyyyMm)) return "";
-  const [y, m] = yyyyMm.split("-");
-  const monthName = ruMonthName(Number(m) - 1);
-  return `${monthName} ${y}`;
+  const parts = yyyyMm.split("-");
+  const y = parts[0];
+  const m = Number(parts[1]);
+  const monthName = ruMonthName(m - 1);
+  return monthName + " " + y;
 }
 
 /* Плавное появление секций */
@@ -38,6 +40,13 @@ function useRevealOnMount() {
       document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
     });
   }, []);
+}
+function useRevealOnRoute(route) {
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
+    });
+  }, [route && route.route]);
 }
 
 /* =========================
@@ -99,7 +108,7 @@ function defaults() {
     }
   ];
 }
-const loadCatalog = () => {
+function loadCatalog() {
   try {
     const raw = localStorage.getItem(LS_CATALOG);
     if (!raw) return defaults();
@@ -108,10 +117,12 @@ const loadCatalog = () => {
   } catch {
     return defaults();
   }
-};
-const saveCatalog = (catalog) => { try { localStorage.setItem(LS_CATALOG, JSON.stringify(catalog)); } catch {} };
+}
+function saveCatalog(catalog) {
+  try { localStorage.setItem(LS_CATALOG, JSON.stringify(catalog)); } catch {}
+}
 
-const loadRates = () => {
+function loadRates() {
   try {
     const raw = localStorage.getItem(LS_RATES);
     if (!raw) return { idrPerUsd: 16300, eurPerUsd: 0.88, currency: "USD" };
@@ -124,121 +135,137 @@ const loadRates = () => {
   } catch {
     return { idrPerUsd: 16300, eurPerUsd: 0.88, currency: "USD" };
   }
-};
-const saveRates = (r) => { try { localStorage.setItem(LS_RATES, JSON.stringify(r)); } catch {} };
+}
+function saveRates(r) { try { localStorage.setItem(LS_RATES, JSON.stringify(r)); } catch {} }
 
 /* =========================
    Маршрутизация (hash)
 ========================= */
 function parseHash() {
   const hash = (window.location.hash || "").replace(/^#\/?/, "");
-  const [route, queryString] = hash.split("?");
-  const params = new URLSearchParams(queryString || "");
+  const parts = hash.split("?");
+  const route = parts[0];
+  const queryString = parts[1] || "";
+  const params = new URLSearchParams(queryString);
   return { route: route || "catalog", params };
 }
 function navigateTo(route, params = {}) {
   const qs = new URLSearchParams(params).toString();
-  window.location.hash = qs ? `#/${route}?${qs}` : `#/${route}`;
+  window.location.hash = qs ? ("#/" + route + "?" + qs) : ("#/" + route);
 }
 
 /* =========================
    Примитивные UI-компоненты
 ========================= */
-function Pill({ children }) {
-  return <span className="pill">{children}</span>;
+function Pill(props) {
+  return React.createElement("span", { className: "pill" }, props.children);
 }
-function StatusPill({ value }) {
-  const label = value === "reserved" ? "Забронировано" : value === "hold" ? "На паузе" : "Доступно";
-  const cls = value === "reserved" ? "status status-reserved" : value === "hold" ? "status status-hold" : "status status-available";
-  return <span className={cls}>{label}</span>;
+function StatusPill(props) {
+  const value = props.value;
+  const label = value === "reserved" ? "Забронировано" : (value === "hold" ? "На паузе" : "Доступно");
+  const cls =
+    value === "reserved" ? "status status-reserved" :
+    (value === "hold" ? "status status-hold" : "status status-available");
+  return React.createElement("span", { className: cls }, label);
 }
-function Th({ children, className = "" }) {
-  return <th className={`th ${className}`}>{children}</th>;
+function Th(props) {
+  const cls = "th " + (props.className || "");
+  return React.createElement("th", { className: cls }, props.children);
 }
-function Td({ children, className = "" }) {
-  return <td className={`td ${className}`}>{children}</td>;
+function Td(props) {
+  const cls = "td " + (props.className || "");
+  return React.createElement("td", { className: cls }, props.children);
 }
 
 /* =========================
    Каталог
 ========================= */
-function CatalogView({ catalog, isAdmin, onEditProject }) {
+function CatalogView(props) {
+  const catalog = props.catalog;
+  const isAdmin = props.isAdmin;
+
   return (
     <div className="container reveal">
       <div className="header">
         <h1 className="h1">Каталог проектов</h1>
         <div className="actions">
           {!isAdmin ? (
-            <button className="btn" onClick={() => {
+            <button className="btn" onClick={function () {
               const pin = prompt("Введите PIN для входа в админ‑режим");
               if (pin === PIN_CODE) navigateTo("admin");
               else alert("Неверный PIN");
             }}>Войти (админ)</button>
           ) : (
-            <button className="btn" onClick={() => navigateTo("admin")}>Админ‑панель</button>
+            <button className="btn" onClick={function () { navigateTo("admin"); }}>Админ‑панель</button>
           )}
         </div>
       </div>
 
-      {catalog.map(project => (
-        <section key={project.projectId} className="card reveal">
-          <div className="project-head">
-            <div className="project-title">
-              <h2 className="h2">{project.projectName}</h2>
-              <div className="project-meta">
-                {project.plannedCompletion && <Pill>План завершения: {formatPlannedCompletion(project.plannedCompletion)}</Pill>}
-                <Pill>Прогресс: {fmt2(project.constructionProgressPct ?? 0)}%</Pill>
+      {catalog.map(function (project) {
+        return (
+          <section key={project.projectId} className="card reveal">
+            <div className="project-head">
+              <div className="project-title">
+                <h2 className="h2">{project.projectName}</h2>
+                <div className="project-meta">
+                  {project.plannedCompletion ? <Pill>План завершения: {formatPlannedCompletion(project.plannedCompletion)}</Pill> : null}
+                  <Pill>Прогресс: {fmt2(project.constructionProgressPct != null ? project.constructionProgressPct : 0)}%</Pill>
+                </div>
               </div>
+              {isAdmin ? (
+                <button className="btn-secondary" onClick={function () { navigateTo("admin"); }}>Править проект</button>
+              ) : null}
             </div>
-            {isAdmin && (
-              <button className="btn-secondary" onClick={() => onEditProject(project.projectId)}>Править проект</button>
-            )}
-          </div>
 
-          <ul className="spec-list">
-            {project.includes?.map((text, i) => <li key={i}>• {text}</li>)}
-            {project.plannedCompletion && (
-              <li>• Планируемая дата завершения строительства — {formatPlannedCompletion(project.plannedCompletion)}</li>
-            )}
-            <li>• Достигнутый прогресс строительства — {fmt2(project.constructionProgressPct ?? 0)}%</li>
-          </ul>
+            <ul className="spec-list">
+              {(project.includes || []).map(function (text, i) { return <li key={i}>• {text}</li>; })}
+              {project.plannedCompletion ? (
+                <li>• Планируемая дата завершения строительства — {formatPlannedCompletion(project.plannedCompletion)}</li>
+              ) : null}
+              <li>• Достигнутый прогресс строительства — {fmt2(project.constructionProgressPct != null ? project.constructionProgressPct : 0)}%</li>
+            </ul>
 
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <Th>Статус</Th>
-                  <Th>Вилла</Th>
-                  <Th>Комнат</Th>
-                  <Th>Земля, м²</Th>
-                  <Th>Вилла, м²</Th>
-                  <Th>$ / м²</Th>
-                  <Th>Цена (USD)</Th>
-                  <Th className="w-1">Действия</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {project.villas.map(v => (
-                  <tr key={v.villaId}>
-                    <Td><StatusPill value={v.status} /></Td>
-                    <Td>{v.name}</Td>
-                    <Td>{v.rooms}</Td>
-                    <Td>{fmt2(v.land || 0)}</Td>
-                    <Td>{fmt2(v.area || 0)}</Td>
-                    <Td>{v.ppsm ? fmtInt(v.ppsm) : "—"}</Td>
-                    <Td>{v.baseUSD ? fmtMoney(v.baseUSD) : "—"}</Td>
-                    <Td>
-                      {v.status === "available" ? (
-                        <button className="btn" onClick={() => navigateTo("calc", { projectId: project.projectId, villaId: v.villaId })}>Рассчитать</button>
-                      ) : null}
-                    </Td>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <Th>Вилла</Th>
+                    <Th>Комнат</Th>
+                    <Th>Земля, м²</Th>
+                    <Th>Вилла, м²</Th>
+                    <Th>$ / м²</Th>
+                    <Th>Цена (USD)</Th>
+                    <Th>Статус</Th>
+                    <Th className="w-1">Действия</Th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ))}
+                </thead>
+                <tbody>
+                  {(project.villas || []).map(function (v) {
+                    return (
+                      <tr key={v.villaId}>
+                        <Td>{v.name}</Td>
+                        <Td>{v.rooms}</Td>
+                        <Td>{fmt2(v.land || 0)}</Td>
+                        <Td>{fmt2(v.area || 0)}</Td>
+                        <Td>{v.ppsm ? fmtInt(v.ppsm) : "—"}</Td>
+                        <Td>{v.baseUSD ? fmtMoney(v.baseUSD) : "—"}</Td>
+                        <Td><StatusPill value={v.status} /></Td>
+                        <Td>
+                          {v.status === "available" ? (
+                            <button className="btn" onClick={function () { navigateTo("calc", { projectId: project.projectId, villaId: v.villaId }); }}>
+                              Рассчитать
+                            </button>
+                          ) : null}
+                        </Td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -246,13 +273,19 @@ function CatalogView({ catalog, isAdmin, onEditProject }) {
 /* =========================
    Админ: редактирование проекта
 ========================= */
-function ProjectEditModal({ project, onClose, onSave }) {
-  const [state, setState] = useState(() => ({
-    projectName: project.projectName || "",
-    plannedCompletion: project.plannedCompletion || "",
-    constructionProgressPct: project.constructionProgressPct ?? 0,
-    includesText: (project.includes || []).join("\n"),
-  }));
+function ProjectEditModal(props) {
+  const project = props.project;
+  const onClose = props.onClose;
+  const onSave = props.onSave;
+
+  const [state, setState] = useState(function () {
+    return {
+      projectName: project.projectName || "",
+      plannedCompletion: project.plannedCompletion || "",
+      constructionProgressPct: project.constructionProgressPct != null ? project.constructionProgressPct : 0,
+      includesText: (project.includes || []).join("\n"),
+    };
+  });
 
   return (
     <div className="modal-backdrop">
@@ -264,7 +297,7 @@ function ProjectEditModal({ project, onClose, onSave }) {
         <div className="modal-body">
           <div className="row">
             <label className="label">Название проекта</label>
-            <input className="input" value={state.projectName} onChange={e => setState(s => ({ ...s, projectName: e.target.value }))} />
+            <input className="input" value={state.projectName} onChange={function (e) { setState(function (s) { return Object.assign({}, s, { projectName: e.target.value }); }); }} />
           </div>
 
           <div className="row">
@@ -273,11 +306,11 @@ function ProjectEditModal({ project, onClose, onSave }) {
               className="input"
               type="month"
               value={state.plannedCompletion}
-              onChange={e => setState(s => ({ ...s, plannedCompletion: e.target.value }))}
+              onChange={function (e) { setState(function (s) { return Object.assign({}, s, { plannedCompletion: e.target.value }); }); }}
             />
-            {!!state.plannedCompletion && (
+            {state.plannedCompletion ? (
               <div className="muted mt-1">Отобразится как: {formatPlannedCompletion(state.plannedCompletion)}</div>
-            )}
+            ) : null}
           </div>
 
           <div className="row">
@@ -290,7 +323,7 @@ function ProjectEditModal({ project, onClose, onSave }) {
                 max="100"
                 step="1"
                 value={state.constructionProgressPct}
-                onChange={e => setState(s => ({ ...s, constructionProgressPct: clamp(+e.target.value || 0, 0, 100) }))}
+                onChange={function (e) { setState(function (s) { return Object.assign({}, s, { constructionProgressPct: clamp(+e.target.value || 0, 0, 100) }); }); }}
               />
               <input
                 className="input w-20"
@@ -299,7 +332,7 @@ function ProjectEditModal({ project, onClose, onSave }) {
                 max="100"
                 step="1"
                 value={state.constructionProgressPct}
-                onChange={e => setState(s => ({ ...s, constructionProgressPct: clamp(+e.target.value || 0, 0, 100) }))}
+                onChange={function (e) { setState(function (s) { return Object.assign({}, s, { constructionProgressPct: clamp(+e.target.value || 0, 0, 100) }); }); }}
               />
               <span>%</span>
             </div>
@@ -311,20 +344,19 @@ function ProjectEditModal({ project, onClose, onSave }) {
               className="textarea"
               rows={6}
               value={state.includesText}
-              onChange={e => setState(s => ({ ...s, includesText: e.target.value }))}
+              onChange={function (e) { setState(function (s) { return Object.assign({}, s, { includesText: e.target.value }); }); }}
             />
           </div>
         </div>
         <div className="modal-foot">
           <button className="btn-secondary" onClick={onClose}>Отмена</button>
-          <button className="btn" onClick={() => {
-            const next = {
-              ...project,
-              projectName: state.projectName.trim() || "Без названия",
+          <button className="btn" onClick={function () {
+            const next = Object.assign({}, project, {
+              projectName: (state.projectName || "").trim() || "Без названия",
               plannedCompletion: state.plannedCompletion || "",
               constructionProgressPct: clamp(+state.constructionProgressPct || 0, 0, 100),
-              includes: state.includesText.split("\n").map(s => s.trim()).filter(Boolean),
-            };
+              includes: state.includesText.split("\n").map(function (s) { return s.trim(); }).filter(Boolean),
+            });
             onSave(next);
           }}>Сохранить</button>
         </div>
@@ -333,12 +365,20 @@ function ProjectEditModal({ project, onClose, onSave }) {
   );
 }
 
-function AdminView({ catalog, setCatalog }) {
+function AdminView(props) {
+  const catalog = props.catalog;
+  const setCatalog = props.setCatalog;
+
   const [editingProjectId, setEditingProjectId] = useState(null);
-  const project = useMemo(() => catalog.find(p => p.projectId === editingProjectId) || null, [catalog, editingProjectId]);
+  const project = useMemo(function () {
+    for (let i = 0; i < catalog.length; i++) {
+      if (catalog[i].projectId === editingProjectId) return catalog[i];
+    }
+    return null;
+  }, [catalog, editingProjectId]);
 
   function saveProject(updated) {
-    const next = catalog.map(p => p.projectId === updated.projectId ? updated : p);
+    const next = catalog.map(function (p) { return p.projectId === updated.projectId ? updated : p; });
     setCatalog(next);
     saveCatalog(next);
     setEditingProjectId(null);
@@ -349,7 +389,7 @@ function AdminView({ catalog, setCatalog }) {
       <div className="header">
         <h1 className="h1">Админ‑панель</h1>
         <div className="actions">
-          <button className="btn-secondary" onClick={() => navigateTo("catalog")}>К каталогу</button>
+          <button className="btn-secondary" onClick={function () { navigateTo("catalog"); }}>К каталогу</button>
         </div>
       </div>
 
@@ -367,27 +407,29 @@ function AdminView({ catalog, setCatalog }) {
               </tr>
             </thead>
             <tbody>
-              {catalog.map(p => (
-                <tr key={p.projectId}>
-                  <Td>{p.projectName}</Td>
-                  <Td>{p.plannedCompletion ? formatPlannedCompletion(p.plannedCompletion) : "—"}</Td>
-                  <Td>{fmt2(p.constructionProgressPct ?? 0)}%</Td>
-                  <Td>{p.villas?.length || 0}</Td>
-                  <Td><button className="btn" onClick={() => setEditingProjectId(p.projectId)}>Править</button></Td>
-                </tr>
-              ))}
+              {catalog.map(function (p) {
+                return (
+                  <tr key={p.projectId}>
+                    <Td>{p.projectName}</Td>
+                    <Td>{p.plannedCompletion ? formatPlannedCompletion(p.plannedCompletion) : "—"}</Td>
+                    <Td>{fmt2(p.constructionProgressPct != null ? p.constructionProgressPct : 0)}%</Td>
+                    <Td>{(p.villas || []).length}</Td>
+                    <Td><button className="btn" onClick={function () { setEditingProjectId(p.projectId); }}>Править</button></Td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {project && (
+      {project ? (
         <ProjectEditModal
           project={project}
-          onClose={() => setEditingProjectId(null)}
+          onClose={function () { setEditingProjectId(null); }}
           onSave={saveProject}
         />
-      )}
+      ) : null}
     </div>
   );
 }
@@ -400,45 +442,58 @@ function useRatesState() {
   const [currency, setCurrency] = useState(init.currency);
   const [idrPerUsd, setIdrPerUsd] = useState(init.idrPerUsd);
   const [eurPerUsd, setEurPerUsd] = useState(init.eurPerUsd);
-  useEffect(() => saveRates({ currency, idrPerUsd, eurPerUsd }), [currency, idrPerUsd, eurPerUsd]);
-  return { currency, setCurrency, idrPerUsd, setIdrPerUsd, eurPerUsd, setEurPerUsd };
+  useEffect(function () { saveRates({ currency: currency, idrPerUsd: idrPerUsd, eurPerUsd: eurPerUsd }); }, [currency, idrPerUsd, eurPerUsd]);
+  return { currency: currency, setCurrency: setCurrency, idrPerUsd: idrPerUsd, setIdrPerUsd: setIdrPerUsd, eurPerUsd: eurPerUsd, setEurPerUsd: setEurPerUsd };
 }
 
-function CalcView({ catalog, projectId, villaId }) {
-  // Хуки всегда сверху
-  const [handoverMonth, setHandoverMonth] = useState("");   // YYYY-MM (подставим из проекта)
+function CalcView(props) {
+  const catalog = props.catalog;
+  const projectId = props.projectId;
+  const villaId = props.villaId;
+
+  // Хуки
+  const [handoverMonth, setHandoverMonth] = useState("");   // YYYY-MM
   const [monthsAfterKeys, setMonthsAfterKeys] = useState(12);
   const [monthlyRatePct, setMonthlyRatePct] = useState(8.33);
   const rates = useRatesState();
 
   // Поиск проекта и виллы
-  const selected = useMemo(() => {
-    const project = catalog.find(p => p.projectId === projectId);
+  const selected = useMemo(function () {
+    let project = null;
+    for (let i = 0; i < catalog.length; i++) {
+      if (catalog[i].projectId === projectId) { project = catalog[i]; break; }
+    }
     if (!project) return null;
-    const villa = project.villas.find(v => v.villaId === villaId);
+    let villa = null;
+    const list = project.villas || [];
+    for (let j = 0; j < list.length; j++) {
+      if (list[j].villaId === villaId) { villa = list[j]; break; }
+    }
     if (!villa) return null;
-    return { project, villa };
+    return { project: project, villa: villa };
   }, [catalog, projectId, villaId]);
 
   // Автоподстановка плановой даты ключей
-  useEffect(() => {
-    if (selected?.project?.plannedCompletion) {
+  useEffect(function () {
+    if (selected && selected.project && selected.project.plannedCompletion) {
       setHandoverMonth(selected.project.plannedCompletion);
     }
-  }, [selected?.project?.plannedCompletion]);
+  }, [selected && selected.project && selected.project.plannedCompletion]);
 
-  // Безопасные значения виллы
-  const villa = selected?.villa || {};
+  // Данные виллы
+  const villa = (selected && selected.villa) ? selected.villa : {};
   const priceUSD = Math.max(0, +villa.baseUSD || 0);
 
-  // Локальные редактируемые поля по аренде и скидке
-  const [lineState, setLineState] = useState(() => ({
-    dailyRateUSD: villa.dailyRateUSD || 0,
-    occupancyPct: villa.occupancyPct || 0,
-    rentalPriceIndexPct: villa.rentalPriceIndexPct || 0,
-    discountPct: villa.discountPct || 0,
-  }));
-  useEffect(() => {
+  // Inline редактируемые поля
+  const [lineState, setLineState] = useState(function () {
+    return {
+      dailyRateUSD: villa.dailyRateUSD || 0,
+      occupancyPct: villa.occupancyPct || 0,
+      rentalPriceIndexPct: villa.rentalPriceIndexPct || 0,
+      discountPct: villa.discountPct || 0,
+    };
+  });
+  useEffect(function () {
     setLineState({
       dailyRateUSD: villa.dailyRateUSD || 0,
       occupancyPct: villa.occupancyPct || 0,
@@ -447,7 +502,7 @@ function CalcView({ catalog, projectId, villaId }) {
     });
   }, [villaId, projectId]);
 
-  const updLine = (patch) => setLineState((s) => ({ ...s, ...patch }));
+  function updLine(patch) { setLineState(function (s) { return Object.assign({}, s, patch); }); }
   const effectivePriceUSD = Math.max(0, priceUSD * (1 - (lineState.discountPct || 0) / 100));
 
   // Валюта отображения
@@ -457,15 +512,17 @@ function CalcView({ catalog, projectId, villaId }) {
     if (rates.currency === "EUR") return +valueUSD * (rates.eurPerUsd || 1);
     return +valueUSD;
   }
-  function display(valueUSD, max = 0) {
+  function display(valueUSD, max) {
     const amount = convertAmountUSDToSelected(valueUSD);
-    return fmtMoney(amount, rates.currency, max);
+    return fmtMoney(amount, rates.currency, max != null ? max : 0);
   }
 
   // Пилюли: сколько месяцев до ключей
-  const keysInMonths = useMemo(() => {
+  const keysInMonths = useMemo(function () {
     if (!handoverMonth || !/^\d{4}-\d{2}$/.test(handoverMonth)) return 0;
-    const [y, m] = handoverMonth.split("-").map(Number);
+    const parts = handoverMonth.split("-");
+    const y = Number(parts[0]);
+    const m = Number(parts[1]);
     const target = new Date(y, m - 1, 1);
     const now = new Date();
     return Math.max(0, (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth()));
@@ -479,20 +536,20 @@ function CalcView({ catalog, projectId, villaId }) {
     return monthlyRentalBaseUSD * growth;
   }
 
-  // Платежи: 50/50 пример
+  // Платежи: 50/50
   const beforePct = 50;
   const payBeforeUSD = effectivePriceUSD * beforePct / 100;
   const payAfterTotalUSD = effectivePriceUSD - payBeforeUSD;
   const payAfterMonthlyUSD = monthsAfterKeys > 0 ? (payAfterTotalUSD / monthsAfterKeys) : 0;
 
-  // KPI (упрощенно)
+  // KPI (упрощенно ради стабильности)
   const finalValueUSD = effectivePriceUSD;
   const netIncomeUSD = Math.max(0, rentForMonthUSD(0) * 12 - payAfterMonthlyUSD * 12 * ((100 - beforePct) / 50));
   const irrApproxPct = netIncomeUSD > 0 ? 18.3 : 0.0;
   const roiCumulativePct = finalValueUSD > 0 ? (netIncomeUSD / finalValueUSD) * 100 : 0;
 
-  // Полный график платежей (пост‑ключи)
-  const schedule = useMemo(() => {
+  // Полный график платежей (после ключей)
+  const schedule = useMemo(function () {
     let remaining = payAfterTotalUSD;
     const rows = [];
     for (let i = 0; i < monthsAfterKeys; i++) {
@@ -512,13 +569,28 @@ function CalcView({ catalog, projectId, villaId }) {
     return rows;
   }, [monthsAfterKeys, payAfterMonthlyUSD, payAfterTotalUSD, lineState.rentalPriceIndexPct, lineState.dailyRateUSD, lineState.occupancyPct]);
 
+  // Если по каким-то причинам нет выбранной виллы — защитим рендер
+  if (!selected) {
+    return (
+      <div className="container reveal">
+        <div className="header">
+          <h1 className="h1">Калькулятор</h1>
+          <div className="actions">
+            <button className="btn-secondary" onClick={function () { navigateTo("catalog"); }}>К каталогу</button>
+          </div>
+        </div>
+        <div className="card">Не удалось найти выбранную виллу. Вернитесь в каталог.</div>
+      </div>
+    );
+  }
+
   // Рендер
   return (
     <div className="container reveal">
       <div className="header">
         <h1 className="h1">Калькулятор</h1>
         <div className="actions">
-          <button className="btn-secondary" onClick={() => navigateTo("catalog")}>К каталогу</button>
+          <button className="btn-secondary" onClick={function () { navigateTo("catalog"); }}>К каталогу</button>
         </div>
       </div>
 
@@ -535,30 +607,30 @@ function CalcView({ catalog, projectId, villaId }) {
           <h3 className="h3">Рассрочка до получения ключей</h3>
           <div className="row">
             <label className="label">Месяц получения ключей</label>
-            <input className="input" type="month" value={handoverMonth} onChange={e => setHandoverMonth(e.target.value)} />
+            <input className="input" type="month" value={handoverMonth} onChange={function (e) { setHandoverMonth(e.target.value); }} />
           </div>
           <div className="row">
             <label className="label">Рассрочка после ключей (мес.)</label>
-            <input className="input w-24" type="number" min="0" value={monthsAfterKeys} onChange={e => setMonthsAfterKeys(Math.max(0, +e.target.value || 0))} />
+            <input className="input w-24" type="number" min="0" value={monthsAfterKeys} onChange={function (e) { setMonthsAfterKeys(Math.max(0, +e.target.value || 0)); }} />
           </div>
         </div>
         <div>
           <h3 className="h3">Настройки</h3>
           <div className="row inline">
             <label className="label">Валюта</label>
-            <select className="input w-32" value={rates.currency} onChange={(e) => rates.setCurrency(e.target.value)}>
+            <select className="input w-32" value={rates.currency} onChange={function (e) { rates.setCurrency(e.target.value); }}>
               <option>USD</option>
               <option>IDR</option>
               <option>EUR</option>
             </select>
             <label className="label">IDR за 1 USD</label>
-            <input className="input w-28" type="number" min="0" value={rates.idrPerUsd} onChange={e => rates.setIdrPerUsd(Math.max(0, +e.target.value || 0))} />
+            <input className="input w-28" type="number" min="0" value={rates.idrPerUsd} onChange={function (e) { rates.setIdrPerUsd(Math.max(0, +e.target.value || 0)); }} />
             <label className="label">EUR за 1 USD</label>
-            <input className="input w-28" type="number" min="0" step="0.01" value={rates.eurPerUsd} onChange={e => rates.setEurPerUsd(Math.max(0, +e.target.value || 0))} />
+            <input className="input w-28" type="number" min="0" step="0.01" value={rates.eurPerUsd} onChange={function (e) { rates.setEurPerUsd(Math.max(0, +e.target.value || 0)); }} />
           </div>
           <div className="row inline">
             <label className="label">Ставка, %/мес</label>
-            <input className="input w-24" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e => setMonthlyRatePct(Math.max(0, +e.target.value || 0))} />
+            <input className="input w-24" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={function (e) { setMonthlyRatePct(Math.max(0, +e.target.value || 0)); }} />
           </div>
         </div>
       </section>
@@ -583,7 +655,7 @@ function CalcView({ catalog, projectId, villaId }) {
             </thead>
             <tbody>
               <tr>
-                <Td>{selected?.project?.projectName || "—"}</Td>
+                <Td>{selected.project ? selected.project.projectName : "—"}</Td>
                 <Td>{villa.name || "—"}</Td>
                 <Td>{fmt2(villa.area || 0)}</Td>
                 <Td>{villa.ppsm ? fmtInt(villa.ppsm) : "—"}</Td>
@@ -591,22 +663,22 @@ function CalcView({ catalog, projectId, villaId }) {
                 <Td>
                   <input className="input w-24" type="number" min="0" step="1"
                     value={lineState.dailyRateUSD}
-                    onChange={e => updLine({ dailyRateUSD: Math.max(0, +e.target.value || 0) })} />
+                    onChange={function (e) { updLine({ dailyRateUSD: Math.max(0, +e.target.value || 0) }); }} />
                 </Td>
                 <Td>
                   <input className="input w-24" type="number" min="0" max="100" step="0.1"
                     value={lineState.occupancyPct}
-                    onChange={e => updLine({ occupancyPct: clamp(+e.target.value || 0, 0, 100) })} />
+                    onChange={function (e) { updLine({ occupancyPct: clamp(+e.target.value || 0, 0, 100) }); }} />
                 </Td>
                 <Td>
                   <input className="input w-24" type="number" min="0" max="100" step="0.1"
                     value={lineState.rentalPriceIndexPct}
-                    onChange={e => updLine({ rentalPriceIndexPct: clamp(+e.target.value || 0, 0, 100) })} />
+                    onChange={function (e) { updLine({ rentalPriceIndexPct: clamp(+e.target.value || 0, 0, 100) }); }} />
                 </Td>
                 <Td>
                   <input className="input w-20" type="number" min="0" max="100" step="0.1"
                     value={lineState.discountPct}
-                    onChange={e => updLine({ discountPct: clamp(+e.target.value || 0, 0, 100) })} />
+                    onChange={function (e) { updLine({ discountPct: clamp(+e.target.value || 0, 0, 100) }); }} />
                 </Td>
               </tr>
             </tbody>
@@ -615,11 +687,11 @@ function CalcView({ catalog, projectId, villaId }) {
 
         {/* Доп. инфо проекта под includes */}
         <ul className="spec-list mt-3">
-          {selected?.project?.includes?.map((t, i) => <li key={i}>• {t}</li>)}
-          {selected?.project?.plannedCompletion && (
+          {(selected.project && selected.project.includes ? selected.project.includes : []).map(function (t, i) { return <li key={i}>• {t}</li>; })}
+          {(selected.project && selected.project.plannedCompletion) ? (
             <li>• Планируемая дата завершения строительства — {formatPlannedCompletion(selected.project.plannedCompletion)}</li>
-          )}
-          <li>• Достигнутый прогресс строительства — {fmt2(selected?.project?.constructionProgressPct ?? 0)}%</li>
+          ) : null}
+          <li>• Достигнутый прогресс строительства — {fmt2(selected.project && selected.project.constructionProgressPct != null ? selected.project.constructionProgressPct : 0)}%</li>
         </ul>
       </section>
 
@@ -657,7 +729,7 @@ function CalcView({ catalog, projectId, villaId }) {
           </div>
           <div className="kpi">
             <div className="kpi-title">Точка выхода с макс. IRR</div>
-            <div className="kpi-value">{handoverMonth ? `${handoverMonth.slice(0,4)}` : "—"}</div>
+            <div className="kpi-value">{handoverMonth ? handoverMonth.slice(0,4) : "—"}</div>
             <div className="kpi-sub">IRR</div>
             <div className="kpi-value">{fmt2(irrApproxPct)}%</div>
             <div className="kpi-sub">Итоговый ROI (накопительный)</div>
@@ -682,16 +754,18 @@ function CalcView({ catalog, projectId, villaId }) {
               </tr>
             </thead>
             <tbody>
-              {schedule.map((r) => (
-                <tr key={r.month}>
-                  <Td>{r.month}</Td>
-                  <Td>{r.desc}</Td>
-                  <Td>{display(r.paymentUSD)}</Td>
-                  <Td>{display(r.rentalUSD)}</Td>
-                  <Td>{display(r.netUSD)}</Td>
-                  <Td>{display(r.remainingUSD)}</Td>
-                </tr>
-              ))}
+              {schedule.map(function (r) {
+                return (
+                  <tr key={r.month}>
+                    <Td>{r.month}</Td>
+                    <Td>{r.desc}</Td>
+                    <Td>{display(r.paymentUSD)}</Td>
+                    <Td>{display(r.rentalUSD)}</Td>
+                    <Td>{display(r.netUSD)}</Td>
+                    <Td>{display(r.remainingUSD)}</Td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -707,14 +781,16 @@ function App() {
   useRevealOnMount();
 
   const [catalog, setCatalog] = useState(loadCatalog());
-  useEffect(() => saveCatalog(catalog), [catalog]);
+  useEffect(function () { saveCatalog(catalog); }, [catalog]);
 
   const [route, setRoute] = useState(parseHash());
-  useEffect(() => {
-    const onHash = () => setRoute(parseHash());
+  useEffect(function () {
+    function onHash() { setRoute(parseHash()); }
     window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    return function () { window.removeEventListener("hashchange", onHash); };
   }, []);
+
+  useRevealOnRoute(route);
 
   if (route.route === "admin") {
     return <AdminView catalog={catalog} setCatalog={setCatalog} />;
@@ -724,7 +800,7 @@ function App() {
     const villaId = route.params.get("villaId");
     return <CalcView catalog={catalog} projectId={projectId} villaId={villaId} />;
   }
-  return <CatalogView catalog={catalog} isAdmin={false} onEditProject={(pid)=>navigateTo("admin", { edit: pid })} />;
+  return <CatalogView catalog={catalog} isAdmin={false} />;
 }
 
 // Монтирование
