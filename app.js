@@ -13,7 +13,6 @@ const LS_RATES = "arq_rates_v1";
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const fmtInt = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(n || 0));
 const fmt2 = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(+n || 0);
-
 function fmtMoney(n, c = "USD", max = 0) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -21,7 +20,6 @@ function fmtMoney(n, c = "USD", max = 0) {
     maximumFractionDigits: max
   }).format(Math.round(+n || 0));
 }
-
 function ruMonthName(monthIndex) {
   const names = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
   return names[Math.max(0, Math.min(11, monthIndex))];
@@ -31,6 +29,15 @@ function formatPlannedCompletion(yyyyMm) {
   const [y, m] = yyyyMm.split("-");
   const monthName = ruMonthName(Number(m) - 1);
   return `${monthName} ${y}`;
+}
+
+/* Плавное появление секций */
+function useRevealOnMount() {
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-visible"));
+    });
+  }, []);
 }
 
 /* =========================
@@ -580,7 +587,7 @@ function CalcView({ catalog, projectId, villaId }) {
                 <Td>{villa.name || "—"}</Td>
                 <Td>{fmt2(villa.area || 0)}</Td>
                 <Td>{villa.ppsm ? fmtInt(villa.ppsm) : "—"}</Td>
-                <Td>{fmtMoney(priceUSD)}</Td>
+                <Td>{display(priceUSD)}</Td>
                 <Td>
                   <input className="input w-24" type="number" min="0" step="1"
                     value={lineState.dailyRateUSD}
@@ -622,13 +629,13 @@ function CalcView({ catalog, projectId, villaId }) {
         <div className="kpi-grid">
           <div className="kpi">
             <div className="kpi-title">Общая сумма</div>
-            <div className="kpi-value">{fmtMoney(effectivePriceUSD)}</div>
+            <div className="kpi-value">{display(effectivePriceUSD)}</div>
           </div>
           <div className="kpi">
             <div className="kpi-title">Оплата до ключей</div>
-            <div className="kpi-value">{fmtMoney(payBeforeUSD)}</div>
+            <div className="kpi-value">{display(payBeforeUSD)}</div>
             <div className="kpi-sub">Оплата после ключей</div>
-            <div className="kpi-value">{fmtMoney(payAfterTotalUSD)}</div>
+            <div className="kpi-value">{display(payAfterTotalUSD)}</div>
           </div>
           <div className="kpi">
             <div className="kpi-title">Проценты (мес.)</div>
@@ -636,13 +643,13 @@ function CalcView({ catalog, projectId, villaId }) {
           </div>
           <div className="kpi">
             <div className="kpi-title">Итоговая стоимость</div>
-            <div className="kpi-value">{fmtMoney(finalValueUSD)}</div>
+            <div className="kpi-value">{display(finalValueUSD)}</div>
           </div>
           <div className="kpi">
             <div className="kpi-title">ROI при продаже перед ключами</div>
             <div className="kpi-value">{fmt2(((finalValueUSD - payAfterTotalUSD) / (payBeforeUSD || 1)) * 100)}%</div>
             <div className="kpi-sub">Чистый доход</div>
-            <div className="kpi-value">{fmtMoney(netIncomeUSD)}</div>
+            <div className="kpi-value">{display(netIncomeUSD)}</div>
           </div>
           <div className="kpi">
             <div className="kpi-title">Чистый срок лизхолда</div>
@@ -679,10 +686,10 @@ function CalcView({ catalog, projectId, villaId }) {
                 <tr key={r.month}>
                   <Td>{r.month}</Td>
                   <Td>{r.desc}</Td>
-                  <Td>{fmtMoney(r.paymentUSD)}</Td>
-                  <Td>{fmtMoney(r.rentalUSD)}</Td>
-                  <Td>{fmtMoney(r.netUSD)}</Td>
-                  <Td>{fmtMoney(r.remainingUSD)}</Td>
+                  <Td>{display(r.paymentUSD)}</Td>
+                  <Td>{display(r.rentalUSD)}</Td>
+                  <Td>{display(r.netUSD)}</Td>
+                  <Td>{display(r.remainingUSD)}</Td>
                 </tr>
               ))}
             </tbody>
@@ -697,6 +704,8 @@ function CalcView({ catalog, projectId, villaId }) {
    Приложение и роутинг
 ========================= */
 function App() {
+  useRevealOnMount();
+
   const [catalog, setCatalog] = useState(loadCatalog());
   useEffect(() => saveCatalog(catalog), [catalog]);
 
