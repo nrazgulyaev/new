@@ -24,10 +24,14 @@ function ruMonthName(i) {
   const m = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
   return m[Math.max(0, Math.min(11, i))];
 }
-function formatPlannedCompletion(yyyyMm) {
-  if (!yyyyMm || !/^\d{4}-\d{2}$/.test(yyyyMm)) return "";
+function ymLabel(yyyyMm) {
+  if (!/^\d{4}-\d{2}$/.test(yyyyMm)) return "—";
   const [y, m] = yyyyMm.split("-");
   return `${ruMonthName(+m - 1)} ${y}`;
+}
+function formatPlannedCompletion(yyyyMm) {
+  if (!yyyyMm || !/^\d{4}-\d{2}$/.test(yyyyMm)) return "";
+  return ymLabel(yyyyMm);
 }
 
 /* Анимация появления */
@@ -321,22 +325,7 @@ function emptyVilla() {
 
 function VillaEditModal({ initial, onClose, onSave }) {
   const [v, setV] = useState({ ...initial });
-
-  // связка ppsm/baseUSD при наличии площади
-  useEffect(() => {
-    const area = +v.area || 0;
-    if (area > 0) {
-      if (v.ppsm != null && v.baseUSD == null) {
-        setV(s => ({ ...s, baseUSD: Math.round((+s.ppsm || 0) * area) }));
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // одноразово
-
-  function onChangeNum(key, value) {
-    setV(s => ({ ...s, [key]: value === "" ? "" : +value }));
-  }
-
+  function onChangeNum(key, value) { setV(s => ({ ...s, [key]: value === "" ? "" : +value })); }
   return (
     <div className="modal-backdrop">
       <div className="modal large">
@@ -346,81 +335,26 @@ function VillaEditModal({ initial, onClose, onSave }) {
         </div>
         <div className="modal-body">
           <div className="grid-2">
-            <div className="row">
-              <label className="label">Название</label>
-              <input className="input" value={v.name || ""} onChange={e => setV(s => ({ ...s, name: e.target.value }))}/>
-            </div>
-            <div className="row">
-              <label className="label">Статус</label>
+            <div className="row"><label className="label">Название</label><input className="input" value={v.name || ""} onChange={e => setV(s => ({ ...s, name: e.target.value }))}/></div>
+            <div className="row"><label className="label">Статус</label>
               <select className="input" value={v.status} onChange={e => setV(s => ({ ...s, status: e.target.value }))}>
-                <option value="available">Доступно</option>
-                <option value="reserved">Забронировано</option>
-                <option value="hold">На паузе</option>
+                <option value="available">Доступно</option><option value="reserved">Забронировано</option><option value="hold">На паузе</option>
               </select>
             </div>
-
-            <div className="row">
-              <label className="label">Комнат</label>
-              <input className="input" value={v.rooms || ""} onChange={e => setV(s => ({ ...s, rooms: e.target.value }))}/>
-            </div>
-            <div className="row">
-              <label className="label">Земля, м²</label>
-              <input className="input" type="number" step="0.01" value={v.land ?? ""} onChange={e => onChangeNum("land", e.target.value)}/>
-            </div>
-
-            <div className="row">
-              <label className="label">Вилла, м²</label>
-              <input className="input" type="number" step="0.01" value={v.area ?? ""} onChange={e => onChangeNum("area", e.target.value)}/>
-            </div>
-            <div className="row">
-              <label className="label">$ / м²</label>
-              <input className="input" type="number" step="1" value={v.ppsm ?? ""} onChange={e => onChangeNum("ppsm", e.target.value)}/>
-            </div>
-
-            <div className="row">
-              <label className="label">Цена (USD)</label>
-              <input className="input" type="number" step="1" value={v.baseUSD ?? ""} onChange={e => onChangeNum("baseUSD", e.target.value)}/>
-            </div>
-            <div className="row">
-              <label className="label">Дата конца лизхолда</label>
-              <input className="input" type="month" value={(v.leaseholdEndDate || "").slice(0,7)} onChange={e => setV(s => ({ ...s, leaseholdEndDate: e.target.value + "-01" }))}/>
-            </div>
-
-            <div className="row">
-              <label className="label">Этаж 1, м²</label>
-              <input className="input" type="number" step="0.01" value={v.f1 ?? ""} onChange={e => onChangeNum("f1", e.target.value)}/>
-            </div>
-            <div className="row">
-              <label className="label">Этаж 2, м²</label>
-              <input className="input" type="number" step="0.01" value={v.f2 ?? ""} onChange={e => onChangeNum("f2", e.target.value)}/>
-            </div>
-
-            <div className="row">
-              <label className="label">Руфтоп, м²</label>
-              <input className="input" type="number" step="0.01" value={v.roof ?? ""} onChange={e => onChangeNum("roof", e.target.value)}/>
-            </div>
-            <div className="row">
-              <label className="label">Сад+бассейн, м²</label>
-              <input className="input" type="number" step="0.01" value={v.garden ?? ""} onChange={e => onChangeNum("garden", e.target.value)}/>
-            </div>
-
-            <div className="row">
-              <label className="label">Сутки (USD)</label>
-              <input className="input" type="number" step="1" value={v.dailyRateUSD ?? ""} onChange={e => onChangeNum("dailyRateUSD", e.target.value)}/>
-            </div>
-            <div className="row">
-              <label className="label">Заполняемость, %</label>
-              <input className="input" type="number" step="0.1" min="0" max="100" value={v.occupancyPct ?? ""} onChange={e => onChangeNum("occupancyPct", e.target.value)}/>
-            </div>
-
-            <div className="row">
-              <label className="label">Рост аренды, %/год</label>
-              <input className="input" type="number" step="0.1" min="0" value={v.rentalPriceIndexPct ?? ""} onChange={e => onChangeNum("rentalPriceIndexPct", e.target.value)}/>
-            </div>
-            <div className="row">
-              <label className="label">Скидка, %</label>
-              <input className="input" type="number" step="0.1" min="0" max="100" value={v.discountPct ?? ""} onChange={e => onChangeNum("discountPct", e.target.value)}/>
-            </div>
+            <div className="row"><label className="label">Комнат</label><input className="input" value={v.rooms || ""} onChange={e => setV(s => ({ ...s, rooms: e.target.value }))}/></div>
+            <div className="row"><label className="label">Земля, м²</label><input className="input" type="number" step="0.01" value={v.land ?? ""} onChange={e => onChangeNum("land", e.target.value)}/></div>
+            <div className="row"><label className="label">Вилла, м²</label><input className="input" type="number" step="0.01" value={v.area ?? ""} onChange={e => onChangeNum("area", e.target.value)}/></div>
+            <div className="row"><label className="label">$ / м²</label><input className="input" type="number" step="1" value={v.ppsm ?? ""} onChange={e => onChangeNum("ppsm", e.target.value)}/></div>
+            <div className="row"><label className="label">Цена (USD)</label><input className="input" type="number" step="1" value={v.baseUSD ?? ""} onChange={e => onChangeNum("baseUSD", e.target.value)}/></div>
+            <div className="row"><label className="label">Дата конца лизхолда</label><input className="input" type="month" value={(v.leaseholdEndDate || "").slice(0,7)} onChange={e => setV(s => ({ ...s, leaseholdEndDate: e.target.value + "-01" }))}/></div>
+            <div className="row"><label className="label">Этаж 1, м²</label><input className="input" type="number" step="0.01" value={v.f1 ?? ""} onChange={e => onChangeNum("f1", e.target.value)}/></div>
+            <div className="row"><label className="label">Этаж 2, м²</label><input className="input" type="number" step="0.01" value={v.f2 ?? ""} onChange={e => onChangeNum("f2", e.target.value)}/></div>
+            <div className="row"><label className="label">Руфтоп, м²</label><input className="input" type="number" step="0.01" value={v.roof ?? ""} onChange={e => onChangeNum("roof", e.target.value)}/></div>
+            <div className="row"><label className="label">Сад+бассейн, м²</label><input className="input" type="number" step="0.01" value={v.garden ?? ""} onChange={e => onChangeNum("garden", e.target.value)}/></div>
+            <div className="row"><label className="label">Сутки (USD)</label><input className="input" type="number" step="1" value={v.dailyRateUSD ?? ""} onChange={e => onChangeNum("dailyRateUSD", e.target.value)}/></div>
+            <div className="row"><label className="label">Заполняемость, %</label><input className="input" type="number" step="0.1" min="0" max="100" value={v.occupancyPct ?? ""} onChange={e => onChangeNum("occupancyPct", e.target.value)}/></div>
+            <div className="row"><label className="label">Рост аренды, %/год</label><input className="input" type="number" step="0.1" min="0" value={v.rentalPriceIndexPct ?? ""} onChange={e => onChangeNum("rentalPriceIndexPct", e.target.value)}/></div>
+            <div className="row"><label className="label">Скидка, %</label><input className="input" type="number" step="0.1" min="0" max="100" value={v.discountPct ?? ""} onChange={e => onChangeNum("discountPct", e.target.value)}/></div>
           </div>
         </div>
         <div className="modal-foot">
@@ -434,7 +368,7 @@ function VillaEditModal({ initial, onClose, onSave }) {
 
 function AdminView({ catalog, setCatalog }) {
   const [editingProjectId, setEditingProjectId] = useState(null);
-  const [villaModal, setVillaModal] = useState(null); // { projectId, villa: {}|null (для create/edit) }
+  const [villaModal, setVillaModal] = useState(null);
   const project = useMemo(
     () => catalog.find(p => p.projectId === editingProjectId) || null,
     [catalog, editingProjectId]
@@ -445,19 +379,17 @@ function AdminView({ catalog, setCatalog }) {
     setCatalog(next); saveCatalog(next);
     setEditingProjectId(null);
   }
-
   function openEditProject(pid) { setEditingProjectId(pid); }
   function openAddVilla(pid) { setVillaModal({ projectId: pid, villa: emptyVilla() }); }
   function openEditVilla(pid, v) { setVillaModal({ projectId: pid, villa: { ...v } }); }
-
   function saveVilla(v) {
     const pid = villaModal.projectId;
     const next = catalog.map(p => {
       if (p.projectId !== pid) return p;
-      const exists = p.villas.some(x => x.villaId === v.villaId);
+      const exists = (p.villas || []).some(x => x.villaId === v.villaId);
       const villas = exists
         ? p.villas.map(x => x.villaId === v.villaId ? v : x)
-        : [...p.villas, { ...v, villaId: v.villaId || "villa-" + Math.random().toString(36).slice(2,9) }];
+        : [...(p.villas || []), { ...v, villaId: v.villaId || "villa-" + Math.random().toString(36).slice(2,9) }];
       return { ...p, villas };
     });
     setCatalog(next); saveCatalog(next);
@@ -465,7 +397,7 @@ function AdminView({ catalog, setCatalog }) {
   }
   function deleteVilla(pid, id) {
     if (!confirm("Удалить виллу?")) return;
-    const next = catalog.map(p => p.projectId === pid ? { ...p, villas: p.villas.filter(v => v.villaId !== id) } : p);
+    const next = catalog.map(p => p.projectId === pid ? { ...p, villas: (p.villas || []).filter(v => v.villaId !== id) } : p);
     setCatalog(next); saveCatalog(next);
   }
 
@@ -539,7 +471,6 @@ function AdminView({ catalog, setCatalog }) {
           onSave={saveProject}
         />
       )}
-
       {villaModal && (
         <VillaEditModal
           initial={villaModal.villa}
@@ -552,7 +483,7 @@ function AdminView({ catalog, setCatalog }) {
 }
 
 /* =========================
-   Калькулятор (упрощён стабильно; полный вернём следующим шагом)
+   Калькулятор (полный макет)
 ========================= */
 function useRatesState() {
   const init = loadRates();
@@ -563,12 +494,58 @@ function useRatesState() {
   return { currency, setCurrency, idrPerUsd, setIdrPerUsd, eurPerUsd, setEurPerUsd };
 }
 
+function LineChartSVG({ width = 740, height = 200, padding = 28, series }) {
+  // series: [{name,color,points:[{x:0..1,y:0..1}]}]
+  const W = width, H = height, P = padding;
+  return (
+    <svg width={W} height={H} style={{width:"100%",height:height}}>
+      <rect x="0" y="0" width={W} height={H} fill="#fff"/>
+      <line x1={P} y1={H-P} x2={W-P} y2={H-P} stroke="#e5e7eb"/>
+      <line x1={P} y1={P} x2={P} y2={H-P} stroke="#e5e7eb"/>
+      {series.map((s, si) => {
+        const d = s.points.map((p, i) => {
+          const x = P + p.x * (W - 2*P);
+          const y = H - P - p.y * (H - 2*P);
+          return (i === 0 ? "M" : "L") + x + " " + y;
+        }).join(" ");
+        return <path key={si} d={d} fill="none" stroke={s.color} strokeWidth="2"/>;
+      })}
+      {series.map((s, si) => (
+        <g key={"lg"+si} transform={`translate(${P + si*150}, ${P-10})`}>
+          <rect x="0" y="-10" width="12" height="12" fill={s.color} rx="2"/>
+          <text x="18" y="0" fontSize="12" fill="#334155">{s.name}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 function CalcView({ catalog, projectId, villaId }) {
-  const [handoverMonth, setHandoverMonth] = useState("");
+  // Состояния
+  const [handoverMonth, setHandoverMonth] = useState(""); // YYYY-MM
   const [monthsAfterKeys, setMonthsAfterKeys] = useState(12);
-  const [monthlyRatePct, setMonthlyRatePct] = useState(8.33);
+  const [monthlyRatePct, setMonthlyRatePct] = useState(8.33); // админ‑поле, пока показываем
   const rates = useRatesState();
 
+  // Этапы до ключей (проценты суммируются в beforePct)
+  const [stages, setStages] = useState([
+    { id: "s1", month: "", pct: 30 },
+    { id: "s2", month: "", pct: 30 },
+    { id: "s3", month: "", pct: 25 },
+    { id: "s4", month: "", pct: 10 },
+    { id: "s5", month: "", pct: 5 },
+  ]);
+  function addStage() {
+    setStages(s => [...s, { id: "s" + Math.random().toString(36).slice(2,6), month: "", pct: 0 }]);
+  }
+  function updStage(id, patch) {
+    setStages(s => s.map(x => x.id === id ? { ...x, ...patch } : x));
+  }
+  function delStage(id) {
+    setStages(s => s.filter(x => x.id !== id));
+  }
+
+  // Поиск выбранной виллы
   const selected = useMemo(() => {
     const p = catalog.find(x => x.projectId === projectId);
     if (!p) return null;
@@ -577,13 +554,17 @@ function CalcView({ catalog, projectId, villaId }) {
     return { project: p, villa: v };
   }, [catalog, projectId, villaId]);
 
+  // Подставляем плановую дату ключей
   useEffect(() => {
     if (selected?.project?.plannedCompletion) setHandoverMonth(selected.project.plannedCompletion);
   }, [selected?.project?.plannedCompletion]);
 
+  // Данные виллы
   const villa = selected?.villa || {};
-  const priceUSD = Math.max(0, +villa.baseUSD || 0);
+  const leaseEnd = villa.leaseholdEndDate || "";
+  const priceUSD0 = Math.max(0, +villa.baseUSD || 0);
 
+  // Редактируемые параметры аренды/скидки
   const [line, setLine] = useState({
     dailyRateUSD: villa.dailyRateUSD || 0,
     occupancyPct: villa.occupancyPct || 0,
@@ -599,9 +580,7 @@ function CalcView({ catalog, projectId, villaId }) {
     });
   }, [villaId, projectId]);
 
-  const updLine = (patch) => setLine(s => ({ ...s, ...patch }));
-  const effectivePriceUSD = Math.max(0, priceUSD * (1 - (line.discountPct || 0) / 100));
-
+  // Валюта
   function convertAmountUSDToSelected(valueUSD) {
     if (!Number.isFinite(+valueUSD)) return 0;
     if (rates.currency === "IDR") return +valueUSD * (rates.idrPerUsd || 1);
@@ -613,6 +592,14 @@ function CalcView({ catalog, projectId, villaId }) {
     return fmtMoney(amount, rates.currency, max);
   }
 
+  // Процент до ключей
+  const beforePct = Math.max(0, Math.min(100, stages.reduce((a, b) => a + (+b.pct || 0), 0)));
+  const effectivePriceUSD = Math.max(0, priceUSD0 * (1 - (line.discountPct || 0) / 100));
+  const payBeforeUSD = effectivePriceUSD * beforePct / 100;
+  const payAfterTotalUSD = Math.max(0, effectivePriceUSD - payBeforeUSD);
+  const payAfterMonthlyUSD = monthsAfterKeys > 0 ? (payAfterTotalUSD / monthsAfterKeys) : 0;
+
+  // Вспомогательные: месяцы до ключей и до конца лизхолда
   const keysInMonths = useMemo(() => {
     if (!handoverMonth || !/^\d{4}-\d{2}$/.test(handoverMonth)) return 0;
     const [y, m] = handoverMonth.split("-").map(Number);
@@ -621,6 +608,15 @@ function CalcView({ catalog, projectId, villaId }) {
     return Math.max(0, (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth()));
   }, [handoverMonth]);
 
+  const monthsToLeaseEnd = useMemo(() => {
+    if (!handoverMonth || !leaseEnd) return 0;
+    if (!/^\d{4}-\d{2}$/.test(handoverMonth) || !/^\d{4}-\d{2}-\d{2}$/.test(leaseEnd)) return 0;
+    const [y1, m1] = handoverMonth.split("-").map(Number);
+    const [y2, m2] = leaseEnd.slice(0,7).split("-").map(Number);
+    return Math.max(0, (y2 - y1) * 12 + (m2 - m1));
+  }, [handoverMonth, leaseEnd]);
+
+  // Аренда (месячная база + индексация)
   const monthlyRentalBaseUSD = Math.max(0, (+line.dailyRateUSD || 0) * 30 * ((+line.occupancyPct || 0) / 100));
   function rentForMonthUSD(idx) {
     const years = idx / 12;
@@ -628,42 +624,125 @@ function CalcView({ catalog, projectId, villaId }) {
     return monthlyRentalBaseUSD * growth;
   }
 
-  const beforePct = 50;
-  const payBeforeUSD = effectivePriceUSD * beforePct / 100;
-  const payAfterTotalUSD = effectivePriceUSD - payBeforeUSD;
-  const payAfterMonthlyUSD = monthsAfterKeys > 0 ? (payAfterTotalUSD / monthsAfterKeys) : 0;
+  // Финмодель факторов (упрощённая кривая стоимости)
+  const pricingConfig = {
+    inflationRatePct: 10,
+    agingBeta: 0.025,
+    leaseAlpha: 1.0,
+    brandPeak: 1.2,
+    brandRampYears: 3,
+    brandPlateauYears: 4,
+    brandDecayYears: 8,
+    brandTail: 1.0
+  };
+  function brandFactor(yearsFromStart) {
+    const { brandPeak, brandRampYears, brandPlateauYears, brandDecayYears, brandTail } = pricingConfig;
+    if (yearsFromStart <= brandRampYears) return 1 + (brandPeak - 1) * (yearsFromStart / brandRampYears);
+    if (yearsFromStart <= brandRampYears + brandPlateauYears) return brandPeak;
+    const t = (yearsFromStart - brandRampYears - brandPlateauYears) / brandDecayYears;
+    return Math.max(brandTail, brandPeak - (brandPeak - brandTail) * Math.min(1, Math.max(0, t)));
+  }
+  function leaseDecayFactor(yearsFromHandover) {
+    // Линейное снижение к 1.0 (или чуть ниже) к концу лизхолда
+    const totalYears = monthsToLeaseEnd / 12;
+    if (totalYears <= 0) return 1;
+    const t = Math.min(1, Math.max(0, yearsFromHandover / totalYears));
+    return 1 - (1 - 0.9) * t; // до 0.9 к концу
+  }
+  function agingFactor(yearsFromHandover) {
+    return Math.max(0.85, 1 - pricingConfig.agingBeta * yearsFromHandover);
+  }
 
-  const finalValueUSD = effectivePriceUSD;
+  // Траектория стоимости и аренды от ключей до конца лизхолда
+  const trajectory = useMemo(() => {
+    const points = [];
+    for (let m = 0; m <= monthsToLeaseEnd; m++) {
+      const years = m / 12;
+      const infl = Math.pow(1 + pricingConfig.inflationRatePct / 100, years);
+      const brand = brandFactor(years);
+      const lease = leaseDecayFactor(years);
+      const aging = agingFactor(years);
+      const value = effectivePriceUSD * infl * brand * lease * aging;
+      const rent = rentForMonthUSD(m);
+      points.push({ month: m, valueUSD: value, rentUSD: rent });
+    }
+    return points;
+  }, [monthsToLeaseEnd, effectivePriceUSD, line.dailyRateUSD, line.occupancyPct, line.rentalPriceIndexPct]);
+
+  // KPI (примерные)
+  const finalValueUSD = effectivePriceUSD; // условно
   const netIncomeUSD = Math.max(0, rentForMonthUSD(0) * 12 - payAfterMonthlyUSD * 12 * ((100 - beforePct) / 50));
   const irrApproxPct = netIncomeUSD > 0 ? 18.3 : 0.0;
   const roiCumulativePct = finalValueUSD > 0 ? (netIncomeUSD / finalValueUSD) * 100 : 0;
 
+  // Полный график платежей
   const schedule = useMemo(() => {
-    let remaining = payAfterTotalUSD;
     const rows = [];
+    // До ключей — этапы
+    stages.forEach((s, idx) => {
+      const amount = effectivePriceUSD * (Math.max(0, +s.pct || 0) / 100);
+      rows.push({
+        month: s.month ? ymLabel(s.month) : `Этап ${idx+1}`,
+        desc: "Платёж до ключей",
+        paymentUSD: amount,
+        rentalUSD: 0,
+        netUSD: amount,
+        remainingUSD: null
+      });
+    });
+    // После ключей — равные платежи
+    let remaining = payAfterTotalUSD;
     for (let i = 0; i < monthsAfterKeys; i++) {
       const rental = rentForMonthUSD(i);
       const payment = payAfterMonthlyUSD;
       const net = payment - rental;
       remaining = Math.max(0, remaining - payment);
-      rows.push({ month: i + 1, desc: "Платёж после ключей", paymentUSD: payment, rentalUSD: rental, netUSD: net, remainingUSD: remaining });
+      rows.push({
+        month: (i + 1),
+        desc: "Платёж после ключей",
+        paymentUSD: payment,
+        rentalUSD: rental,
+        netUSD: net,
+        remainingUSD: remaining
+      });
     }
     return rows;
-  }, [monthsAfterKeys, payAfterMonthlyUSD, payAfterTotalUSD, line.rentalPriceIndexPct, line.dailyRateUSD, line.occupancyPct]);
+  }, [stages, effectivePriceUSD, monthsAfterKeys, payAfterMonthlyUSD, payAfterTotalUSD, line.dailyRateUSD, line.occupancyPct, line.rentalPriceIndexPct, beforePct]);
+
+  // Годовые показатели (агрегирование траектории и аренды)
+  const annual = useMemo(() => {
+    const out = [];
+    const yearsTotal = Math.ceil(monthsToLeaseEnd / 12);
+    for (let y = 0; y <= yearsTotal; y++) {
+      const mStart = y * 12;
+      const mEnd = Math.min(monthsToLeaseEnd, mStart + 11);
+      let rent = 0;
+      for (let m = mStart; m <= mEnd; m++) rent += trajectory[m]?.rentUSD || 0;
+      const value = trajectory[Math.min(trajectory.length - 1, mEnd)]?.valueUSD || effectivePriceUSD;
+      out.push({ year: y, rentalUSD: rent, valueUSD: value });
+    }
+    return out;
+  }, [trajectory, monthsToLeaseEnd, effectivePriceUSD]);
 
   if (!selected) {
     return (
       <div className="container reveal">
         <div className="header">
           <h1 className="h1">Калькулятор</h1>
-          <div className="actions">
-            <button className="btn-secondary" onClick={() => navigateTo("catalog")}>К каталогу</button>
-          </div>
+          <div className="actions"><button className="btn-secondary" onClick={() => navigateTo("catalog")}>К каталогу</button></div>
         </div>
         <div className="card">Не найдена выбранная вилла. Вернитесь в каталог.</div>
       </div>
     );
   }
+
+  // Нормализация для графика (0..1)
+  const maxValue = Math.max(...trajectory.map(p => p.valueUSD || 0), effectivePriceUSD || 0) || 1;
+  const maxRent = Math.max(...trajectory.map(p => p.rentUSD || 0), monthlyRentalBaseUSD || 0) || 1;
+  const series = [
+    { name: "Стоимость виллы", color: "#1f2937", points: trajectory.map((p,i) => ({ x: trajectory.length<=1?0:i/(trajectory.length-1), y: (p.valueUSD||0)/maxValue })) },
+    { name: "Арендный доход (месяц)", color: "#f59e0b", points: trajectory.map((p,i) => ({ x: trajectory.length<=1?0:i/(trajectory.length-1), y: (p.rentUSD||0)/maxRent })) },
+  ];
 
   return (
     <div className="container reveal">
@@ -674,12 +753,14 @@ function CalcView({ catalog, projectId, villaId }) {
         </div>
       </div>
 
+      {/* Пилюли‑сводка */}
       <div className="pills">
         <Pill>Выбрано вилл: 1</Pill>
         <Pill>Ключи через {keysInMonths} мес.</Pill>
         <Pill>Срок рассрочки после ключей: {monthsAfterKeys} мес.</Pill>
       </div>
 
+      {/* Верхний ряд: слева этапы до ключей, справа настройки */}
       <section className="grid-2 card">
         <div>
           <h3 className="h3">Рассрочка до получения ключей</h3>
@@ -688,10 +769,29 @@ function CalcView({ catalog, projectId, villaId }) {
             <input className="input" type="month" value={handoverMonth} onChange={e => setHandoverMonth(e.target.value)} />
           </div>
           <div className="row">
+            <label className="label">Этапы (проценты суммируются)</label>
+            <div className="flex" style={{flexDirection:"column", gap:"8px"}}>
+              {stages.map(s => (
+                <div key={s.id} className="flex" style={{gap:"8px", alignItems:"center"}}>
+                  <input className="input" type="month" value={s.month} onChange={e => updStage(s.id, { month: e.target.value })}/>
+                  <input className="input w-20" type="number" min="0" max="100" step="0.1" value={s.pct}
+                         onChange={e => updStage(s.id, { pct: clamp(+e.target.value || 0, 0, 100) })}/>
+                  <span>%</span>
+                  <button className="btn-secondary" onClick={() => delStage(s.id)}>Удалить</button>
+                </div>
+              ))}
+              <div className="flex" style={{gap:"8px", alignItems:"center"}}>
+                <button className="btn" onClick={addStage}>Добавить этап</button>
+                <span className="muted">Итого до ключей: {fmt2(beforePct)}%</span>
+              </div>
+            </div>
+          </div>
+          <div className="row">
             <label className="label">Рассрочка после ключей (мес.)</label>
             <input className="input w-24" type="number" min="0" value={monthsAfterKeys} onChange={e => setMonthsAfterKeys(Math.max(0, +e.target.value || 0))} />
           </div>
         </div>
+
         <div>
           <h3 className="h3">Настройки</h3>
           <div className="row inline">
@@ -711,6 +811,7 @@ function CalcView({ catalog, projectId, villaId }) {
         </div>
       </section>
 
+      {/* Объект недвижимости */}
       <section className="card">
         <h3 className="h3">Объект недвижимости</h3>
         <div className="table-wrap">
@@ -734,11 +835,11 @@ function CalcView({ catalog, projectId, villaId }) {
                 <Td>{villa.name || "—"}</Td>
                 <Td>{fmt2(villa.area || 0)}</Td>
                 <Td>{villa.ppsm ? fmtInt(villa.ppsm) : "—"}</Td>
-                <Td>{display(priceUSD)}</Td>
-                <Td><input className="input w-24" type="number" min="0" step="1" value={line.dailyRateUSD} onChange={e => updLine({ dailyRateUSD: Math.max(0, +e.target.value || 0) })}/></Td>
-                <Td><input className="input w-24" type="number" min="0" max="100" step="0.1" value={line.occupancyPct} onChange={e => updLine({ occupancyPct: clamp(+e.target.value || 0, 0, 100) })}/></Td>
-                <Td><input className="input w-24" type="number" min="0" max="100" step="0.1" value={line.rentalPriceIndexPct} onChange={e => updLine({ rentalPriceIndexPct: clamp(+e.target.value || 0, 0, 100) })}/></Td>
-                <Td><input className="input w-20" type="number" min="0" max="100" step="0.1" value={line.discountPct} onChange={e => updLine({ discountPct: clamp(+e.target.value || 0, 0, 100) })}/></Td>
+                <Td>{display(priceUSD0)}</Td>
+                <Td><input className="input w-24" type="number" min="0" step="1" value={line.dailyRateUSD} onChange={e => setLine(s => ({ ...s, dailyRateUSD: Math.max(0, +e.target.value || 0) }))}/></Td>
+                <Td><input className="input w-24" type="number" min="0" max="100" step="0.1" value={line.occupancyPct} onChange={e => setLine(s => ({ ...s, occupancyPct: clamp(+e.target.value || 0, 0, 100) }))}/></Td>
+                <Td><input className="input w-24" type="number" min="0" max="100" step="0.1" value={line.rentalPriceIndexPct} onChange={e => setLine(s => ({ ...s, rentalPriceIndexPct: clamp(+e.target.value || 0, 0, 100) }))}/></Td>
+                <Td><input className="input w-20" type="number" min="0" max="100" step="0.1" value={line.discountPct} onChange={e => setLine(s => ({ ...s, discountPct: clamp(+e.target.value || 0, 0, 100) }))}/></Td>
               </tr>
             </tbody>
           </table>
@@ -751,19 +852,33 @@ function CalcView({ catalog, projectId, villaId }) {
         </ul>
       </section>
 
+      {/* KPI‑блоки */}
       <section className="card">
         <h3 className="h3">Показатели</h3>
         <div className="kpi-grid">
           <div className="kpi"><div className="kpi-title">Общая сумма</div><div className="kpi-value">{display(effectivePriceUSD)}</div></div>
-          <div className="kpi"><div className="kpi-title">Оплата до ключей</div><div className="kpi-value">{display(payBeforeUSD)}</div><div className="kpi-sub">Оплата после ключей</div><div className="kpi-value">{display(payAfterTotalUSD)}</div></div>
+          <div className="kpi">
+            <div className="kpi-title">Оплата до ключей</div><div className="kpi-value">{display(payBeforeUSD)}</div>
+            <div className="kpi-sub">Оплата после ключей</div><div className="kpi-value">{display(payAfterTotalUSD)}</div>
+          </div>
           <div className="kpi"><div className="kpi-title">Проценты (мес.)</div><div className="kpi-value">{fmt2(monthlyRatePct)}%</div></div>
           <div className="kpi"><div className="kpi-title">Итоговая стоимость</div><div className="kpi-value">{display(finalValueUSD)}</div></div>
-          <div className="kpi"><div className="kpi-title">ROI (перед ключами)</div><div className="kpi-value">{fmt2(((finalValueUSD - payAfterTotalUSD) / (payBeforeUSD || 1)) * 100)}%</div><div className="kpi-sub">Чистый доход</div><div className="kpi-value">{display(netIncomeUSD)}</div></div>
-          <div className="kpi"><div className="kpi-title">Чистый срок лизхолда</div><div className="kpi-value">—</div></div>
-          <div className="kpi"><div className="kpi-title">Точка выхода / IRR / Итог. ROI</div><div className="kpi-value">{handoverMonth ? handoverMonth.slice(0,4) : "—"} • {fmt2(irrApproxPct)}% • {fmt2(roiCumulativePct)}%</div></div>
+          <div className="kpi">
+            <div className="kpi-title">ROI при продаже перед ключами</div>
+            <div className="kpi-value">{fmt2(((finalValueUSD - payAfterTotalUSD) / Math.max(1, payBeforeUSD)) * 100)}%</div>
+            <div className="kpi-sub">Чистый доход</div>
+            <div className="kpi-value">{display(netIncomeUSD)}</div>
+          </div>
+          <div className="kpi"><div className="kpi-title">Чистый срок лизхолда</div><div className="kpi-value">{fmtInt(monthsToLeaseEnd/12)} лет {fmtInt(monthsToLeaseEnd%12)} мес.</div></div>
+          <div className="kpi">
+            <div className="kpi-title">Точка выхода с макс. IRR</div><div className="kpi-value">{handoverMonth ? handoverMonth.slice(0,4) : "—"}</div>
+            <div className="kpi-sub">IRR</div><div className="kpi-value">{fmt2(irrApproxPct)}%</div>
+            <div className="kpi-sub">Итоговый ROI (накопительный)</div><div className="kpi-value">{fmt2(roiCumulativePct)}%</div>
+          </div>
         </div>
       </section>
 
+      {/* Полный график платежей */}
       <section className="card">
         <h3 className="h3">Полный график платежей</h3>
         <div className="table-wrap">
@@ -774,11 +889,57 @@ function CalcView({ catalog, projectId, villaId }) {
               </tr>
             </thead>
             <tbody>
-              {schedule.map(r => (
-                <tr key={r.month}>
-                  <Td>{r.month}</Td><Td>{r.desc}</Td><Td>{display(r.paymentUSD)}</Td><Td>{display(r.rentalUSD)}</Td><Td>{display(r.netUSD)}</Td><Td>{display(r.remainingUSD)}</Td>
+              {schedule.map((r, idx) => (
+                <tr key={idx}>
+                  <Td>{r.month}</Td><Td>{r.desc}</Td><Td>{display(r.paymentUSD)}</Td><Td>{display(r.rentalUSD)}</Td><Td>{display(r.netUSD)}</Td><Td>{r.remainingUSD==null ? "—" : display(r.remainingUSD)}</Td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Финмодель доходности инвестиций */}
+      <section className="card">
+        <h3 className="h3">Финмодель доходности инвестиций</h3>
+        <div className="spec-list" style={{display:"grid", gridTemplateColumns:"repeat(2, minmax(0,1fr))", gap:"12px"}}>
+          <div>ИНФЛЯЦИЯ: {fmt2(pricingConfig.inflationRatePct)}%/год</div>
+          <div>СТАРЕНИЕ: {fmt2(pricingConfig.agingBeta*100)}%/год</div>
+          <div>LEASE DECAY: линейно к 0.9 к концу</div>
+          <div>BRAND FACTOR: пик {fmt2((pricingConfig.brandPeak-1)*100)}%, {pricingConfig.brandRampYears} г. рост, {pricingConfig.brandPlateauYears} г. плато</div>
+        </div>
+        <div style={{marginTop:12}}>
+          <LineChartSVG height={220} series={series}/>
+        </div>
+      </section>
+
+      {/* Расчет показателей (годовой) */}
+      <section className="card">
+        <h3 className="h3">Расчет показателей (годовой)</h3>
+        <div className="table-wrap">
+          <table className="table">
+            <thead><tr><Th>Год</Th><Th>Арендный доход</Th><Th>Оценочная стоимость</Th></tr></thead>
+            <tbody>
+              {annual.map((a,i) => (
+                <tr key={i}><Td>{a.year}</Td><Td>{display(a.rentalUSD)}</Td><Td>{display(a.valueUSD)}</Td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Расчет показателей (на период рассрочки) */}
+      <section className="card">
+        <h3 className="h3">Расчет показателей (на период рассрочки)</h3>
+        <div className="table-wrap">
+          <table className="table">
+            <thead><tr><Th>Месяц</Th><Th>Аренда</Th><Th>Платеж</Th><Th>Чистый</Th></tr></thead>
+            <tbody>
+              {Array.from({length: monthsAfterKeys}).map((_,i) => {
+                const r = rentForMonthUSD(i);
+                const p = payAfterMonthlyUSD;
+                return <tr key={i}><Td>{i+1}</Td><Td>{display(r)}</Td><Td>{display(p)}</Td><Td>{display(p - r)}</Td></tr>;
+              })}
             </tbody>
           </table>
         </div>
