@@ -39,6 +39,13 @@ function useRevealOnMount() {
     });
   }, []);
 }
+function useRevealOnRoute(routeKey) {
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll(".reveal").forEach(el => el.classList.add("is-visible"));
+    });
+  }, [routeKey]);
+}
 
 /* =========================
    Дефолтные данные каталога
@@ -144,6 +151,17 @@ function CatalogManager({
     dailyRateUSD: 150, occupancyPct: 70, rentalPriceIndexPct: 5
   });
 
+  // Компактное раскрытие карточек
+  const [openDetails, setOpenDetails] = useState({});
+  const toggleDetails = (id) => setOpenDetails(s => ({ ...s, [id]: !s[id] }));
+
+  // Статусная плашка
+  function StatusPill({ status }) {
+    const label = status === "available" ? "в наличии" : status === "reserved" ? "забронировано" : "на паузе";
+    const cls = status === "available" ? "ok" : status === "reserved" ? "warn" : "muted";
+    return <span className={`status-pill ${cls}`}>{label}</span>;
+  }
+
   const filtered = useMemo(() => {
     if (!searchTerm) return catalog;
     const s = searchTerm.toLowerCase();
@@ -222,28 +240,73 @@ function CatalogManager({
               </div>
             </div>
 
+            {/* Включено + план/прогресс (компактно) */}
+            <div className="villa-details" style={{ marginBottom: 8 }}>
+              {project.plannedCompletion && (
+                <div className="detail-row">
+                  <span className="label">Планируемая дата завершения</span>
+                  <span className="value">{ymLabel(project.plannedCompletion)}</span>
+                </div>
+              )}
+              {Number.isFinite(project.constructionProgressPct) && (
+                <div className="detail-row">
+                  <span className="label">Прогресс строительства</span>
+                  <span className="value">{project.constructionProgressPct}%</span>
+                </div>
+              )}
+            </div>
+
             <div className="villas-grid">
               {project.villas.map(v => (
-                <div key={v.villaId} className="villa-card">
+                <div key={v.villaId} className="villa-card villa-compact">
                   <div className="villa-header">
                     <h4>{v.name}</h4>
                     <div className="villa-actions">
+                      <StatusPill status={v.status} />
                       {!isClient && <button className="btn small" onClick={() => deleteVilla(project.projectId, v.villaId)}>🗑️</button>}
                     </div>
                   </div>
-                  <div className="villa-details">
-                    <div className="detail-row"><span className="label">Площадь</span><span className="value">{v.area} м²</span></div>
-                    <div className="detail-row"><span className="label">$ / м²</span><span className="value">${v.ppsm}</span></div>
-                    <div className="detail-row"><span className="label">Цена</span><span className="value">{fmtMoney(v.baseUSD, "USD")}</span></div>
-                    <div className="detail-row"><span className="label">Статус</span><span className="value">{v.status}</span></div>
+
+                  {/* Основные в одну строку */}
+                  <div className="specs">
+                    <div className="chip">{v.area ?? 0} м²</div>
+                    <div className="chip">${v.ppsm ?? 0} / м²</div>
+                    <div className="chip strong">{fmtMoney(v.baseUSD ?? 0, "USD")}</div>
                   </div>
+
+                  {/* Короткий второй ряд */}
+                  <div className="specs subtle">
+                    {v.rooms ? <div className="chip">{v.rooms} комн.</div> : null}
+                    {v.land ? <div className="chip">земля {v.land} м²</div> : null}
+                    {(v.f1 || v.f2) ? <div className="chip">этажи {v.f1 || 0}/{v.f2 || 0}</div> : null}
+                    {v.roof ? <div className="chip">rooftop {v.roof} м²</div> : null}
+                    {v.garden ? <div className="chip">сад+бассейн {v.garden} м²</div> : null}
+                  </div>
+
                   <div className="villa-actions" style={{ marginTop: 8, display: "flex", gap: 8 }}>
-                    {v.status === "available" ? (
-                      <button className="btn primary small" onClick={() => onCalculate(project, v)}>Рассчитать</button>
-                    ) : (
-                      <span className="badge">Недоступно</span>
-                    )}
+                    {v.status === "available"
+                      ? <button className="btn primary small" onClick={() => onCalculate(project, v)}>Рассчитать</button>
+                      : <span className="badge">Недоступно</span>
+                    }
+                    <button className="btn small" onClick={() => toggleDetails(v.villaId)}>
+                      {openDetails[v.villaId] ? "Свернуть" : "Подробнее"}
+                    </button>
                   </div>
+
+                  {openDetails[v.villaId] && (
+                    <div className="more">
+                      <div className="more-grid">
+                        <div><span className="label">1 этаж</span><span className="value">{v.f1 ?? 0} м²</span></div>
+                        <div><span className="label">2 этаж</span><span className="value">{v.f2 ?? 0} м²</span></div>
+                        <div><span className="label">Rooftop</span><span className="value">{v.roof ?? 0} м²</span></div>
+                        <div><span className="label">Garden & pool</span><span className="value">{v.garden ?? 0} м²</span></div>
+                        <div><span className="label">Сутки</span><span className="value">${v.dailyRateUSD ?? 0}</span></div>
+                        <div><span className="label">Заполняемость</span><span className="value">{v.occupancyPct ?? 0}%</span></div>
+                        <div><span className="label">Индекс аренды</span><span className="value">{v.rentalPriceIndexPct ?? 0}%/год</span></div>
+                        <div><span className="label">Лизхолд до</span><span className="value">{v.leaseholdEndDate ? new Date(v.leaseholdEndDate).toLocaleDateString("ru-RU", { year:"numeric", month:"long" }) : "—"}</span></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -431,7 +494,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
         amountUSD: base * (((+s.pct || 0) * k) / 100)
       })).filter(r => r.amountUSD > 0).sort((a,b)=>a.month-b.month);
 
-      const qty = Math.max(1, parseInt(line.qty || 1, 10));
+      const qty = Math.max(1, parseInt(line.qty || 1, 10)); // внутренне: всегда 1, колонка скрыта
       const preScheduleQ = preSchedule.map(r => ({...r, amountUSD: r.amountUSD * qty}));
       const postRowsQ = postRows.map(r => ({
         ...r,
@@ -534,7 +597,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     const mph = calculateMarketPriceAtHandover(villa, line);
     const data = [];
     for (let y = 0; y <= totalYears; y++) {
-      const inflationF = Math.pow(1 + 0.10, y); // 10%/год (как договорились по умолчанию)
+      const inflationF = Math.pow(1 + 0.10, y); // 10%/год (дефолт)
       const leaseF = Math.pow((Math.max(1, totalYears) - y) / Math.max(1, totalYears), 1);
       const ageF = Math.exp(-0.025 * y);
       const brandF = (y <= 3) ? 1 + (1.2 - 1) * (y / 3) : (y <= 7 ? 1.2 : (y <= 15 ? 1.2 - (1.2 - 1.0) * ((y - 7) / 8) : 1.0));
@@ -742,7 +805,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
 
           <div className="row">
-            <button className="btn" onClick={onBackToCatalog}>← В каталог</button>
+            <button className="btn" onClick={onBackToCatalog}>← К каталогу</button>
           </div>
         </div>
       </div>
@@ -756,7 +819,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           <table className="calc-table">
             <thead>
               <tr>
-                <th>Проект</th><th>Вилла</th><th>Кол-во</th><th>м²</th><th>$ / м²</th><th>Текущая стоимость (USD)</th>
+                <th>Проект</th><th>Вилла</th><th>м²</th><th>$ / м²</th><th>Текущая стоимость (USD)</th>
                 {!isClient && <th>Скидка, %</th>}
                 <th>До ключей, %</th>
                 {!isClient && <th>Срок рассрочки, мес</th>}
@@ -766,7 +829,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
                 <th>Средняя заполняемость за месяц (%)</th>
                 <th>Рост цены аренды в год (%)</th>
                 <th>Итоговая стоимость (с учетом выбранного плана рассрочки)</th>
-                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -774,7 +836,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
                 <tr key={ld.line.id}>
                   <td style={{ textAlign: "left" }}>{catalog.find(p => p.projectId === ld.line.projectId)?.projectName || ld.line.projectId}</td>
                   <td style={{ textAlign: "left" }}>{ld.line.snapshot?.name}</td>
-                  <td><input type="number" min="1" step="1" className="compact-input" value={ld.line.qty} onChange={e => updLine(ld.line.id, { qty: clamp(parseInt(e.target.value || 0, 10), 1, 9999) })} /></td>
                   <td>{ld.line.snapshot?.area || 0}</td>
                   <td>{ld.line.snapshot?.ppsm || 0}</td>
                   <td className="base-strong">{display(ld.base)}</td>
@@ -804,7 +865,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
                   <td><input type="number" min="0" max="100" step="1" className="compact-input" value={ld.line.occupancyPct || 70} onChange={e => updLine(ld.line.id, { occupancyPct: clamp(parseFloat(e.target.value || 0), 0, 100) })} /></td>
                   <td><input type="number" min="0" max="50" step="0.1" className="compact-input" value={ld.line.rentalPriceIndexPct || 5} onChange={e => updLine(ld.line.id, { rentalPriceIndexPct: clamp(parseFloat(e.target.value || 0), 0, 50) })} /></td>
                   <td className="line-total">{display(ld.lineTotal)}</td>
-                  <td><button className="btn danger icon" onClick={() => delLine(ld.line.id)}>🗑️</button></td>
                 </tr>
               ))}
             </tbody>
@@ -1048,12 +1108,15 @@ function App() {
   const [catalog, setCatalog] = useState(loadCatalog());
   useEffect(() => saveCatalog(catalog), [catalog]);
 
-  // Роутинг по состоянию: либо каталог, либо калькулятор
   const [calcInput, setCalcInput] = useState(null); // { project, villa }
+  useRevealOnRoute(calcInput ? "calc" : "catalog");
 
   function handleCalculate(project, villa) {
     setCalcInput({ project, villa });
-    // скролл к верху
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  }
+  function handleBackToCatalog() {
+    setCalcInput(null);
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
   }
 
@@ -1073,7 +1136,7 @@ function App() {
         <div className="header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <h1 className="h1" style={{ margin: 0, fontSize: 24 }}>Arconique · Каталог / Калькулятор</h1>
           <div style={{ display: "flex", gap: 8 }}>
-            {calcInput && <button className="btn" onClick={() => setCalcInput(null)}>← К каталогу</button>}
+            {calcInput && <button className="btn" onClick={handleBackToCatalog}>← К каталогу</button>}
             <button className="btn" onClick={toggleMode}>{isClient ? "Переключиться в редактор" : "Переключиться в клиент"}</button>
           </div>
         </div>
@@ -1092,7 +1155,7 @@ function App() {
           initialProject={calcInput.project}
           initialVilla={calcInput.villa}
           isClient={isClient}
-          onBackToCatalog={() => setCalcInput(null)}
+          onBackToCatalog={handleBackToCatalog}
         />
       )}
     </>
