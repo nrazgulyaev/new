@@ -10,6 +10,25 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const fmtInt = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(n || 0));
 const fmt2 = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(+n || 0);
 
+/* Reveal-on-scroll hook */
+function useRevealOnScroll(deps = []) {
+  useEffect(() => {
+    const targets = Array.from(document.querySelectorAll('.section, .card, .kpi-item, .object-card'));
+    targets.forEach((el, i) => {
+      if (!el.classList.contains('reveal')) {
+        el.classList.add('reveal');
+        el.style.transitionDelay = `${Math.min(i, 6) * 60}ms`;
+      }
+    });
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('is-visible'); }),
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.1 }
+    );
+    targets.forEach(el => io.observe(el));
+    return () => { targets.forEach(el => io.unobserve(el)); io.disconnect(); };
+  }, deps);
+}
+
 const loadCatalog = () => {
   try {
     const raw = localStorage.getItem(LS_CATALOG);
@@ -28,7 +47,7 @@ function defaults() {
       projectId: "ahau-gardens",
       projectName: "Ahau Gardens by Arconique",
       theme: "light",
-      plannedCompletion: "", // YYYY-MM
+      plannedCompletion: "",
       includes: ["Полная комплектация (под ключ)", "Налог с продаж 10%", "Нотариальные 1%", "График платежей: 30%+30%+25%+10%+5%"],
       villas: [
         { villaId: "ahau-a1-2br", name: "A1", status: "hold", rooms: "2", land: 201.7, area: 142.7, f1: 107.1, f2: 38.89, roof: 0, garden: 57.5, ppsm: 2200, baseUSD: 282828, monthlyPriceGrowthPct: 2, leaseholdEndDate: "2055-01-01", dailyRateUSD: 220, rentalPriceIndexPct: 5 },
@@ -113,8 +132,8 @@ function AdminGate({ onLogin }) {
         </label>
         {err && <div className="text-red-600 text-sm">{err}</div>}
         <div className="flex gap-2">
-          <button className="px-4 py-2 rounded-xl bg-neutral-900 text-white" onClick={()=> pin===PIN_CODE ? onLogin() : setErr("Неверный PIN")}>Войти</button>
-          <a className="px-4 py-2 rounded-xl border" href="#/catalog">Назад</a>
+          <button className="btn" onClick={()=> pin===PIN_CODE ? onLogin() : setErr("Неверный PIN")}>Войти</button>
+          <a className="btn-outline" href="#/catalog">Назад</a>
         </div>
       </div>
     </div>
@@ -127,8 +146,8 @@ function VillaModal({ open, onClose, onSave, initial }) {
   const set = (k,v) => setForm(s=>({...s, [k]:v}));
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm grid place-items-center p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-4xl rounded-2xl bg-white shadow-xl" onMouseDown={(e)=>e.stopPropagation()}>
+    <div className="modal-backdrop fixed inset-0 z-50 bg-black/40 backdrop-blur-sm grid place-items-center p-4" onMouseDown={onClose}>
+      <div className="modal w-full max-w-4xl rounded-2xl bg-white shadow-xl" onMouseDown={(e)=>e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b">
           <div>
             <h3 className="text-lg font-semibold">{initial?.villaId ? "Редактировать виллу" : "Добавить виллу"}</h3>
@@ -140,11 +159,11 @@ function VillaModal({ open, onClose, onSave, initial }) {
           <div className="grid md:grid-cols-3 gap-3">
             <label className="grid gap-1">
               <span className="text-sm text-neutral-600">Название (Villa type)</span>
-              <input className="px-3 py-2 rounded-xl border" value={form.name||""} onChange={(e)=>set("name", e.target.value)} />
+              <input className="input" value={form.name||""} onChange={(e)=>set("name", e.target.value)} />
             </label>
             <label className="grid gap-1">
               <span className="text-sm text-neutral-600">Статус</span>
-              <select className="px-3 py-2 rounded-xl border" value={form.status||"available"} onChange={(e)=>set("status", e.target.value)}>
+              <select className="select" value={form.status||"available"} onChange={(e)=>set("status", e.target.value)}>
                 <option value="available">Доступно</option>
                 <option value="reserved">Забронировано</option>
                 <option value="hold">На паузе</option>
@@ -152,7 +171,7 @@ function VillaModal({ open, onClose, onSave, initial }) {
             </label>
             <label className="grid gap-1">
               <span className="text-sm text-neutral-600">Комнат (Q Rooms)</span>
-              <input className="px-3 py-2 rounded-xl border" value={form.rooms||""} onChange={(e)=>set("rooms", e.target.value)} />
+              <input className="input" value={form.rooms||""} onChange={(e)=>set("rooms", e.target.value)} />
             </label>
           </div>
 
@@ -171,7 +190,7 @@ function VillaModal({ open, onClose, onSave, initial }) {
             <Num label="Рост до ключей, %/мес" value={form.monthlyPriceGrowthPct} set={(v)=>set("monthlyPriceGrowthPct", v)} />
             <label className="grid gap-1">
               <span className="text-sm text-neutral-600">Лизхолд до (YYYY-MM-DD)</span>
-              <input className="px-3 py-2 rounded-xl border" value={form.leaseholdEndDate||""} onChange={(e)=>set("leaseholdEndDate", e.target.value)} />
+              <input className="input" value={form.leaseholdEndDate||""} onChange={(e)=>set("leaseholdEndDate", e.target.value)} />
             </label>
           </div>
 
@@ -186,9 +205,9 @@ function VillaModal({ open, onClose, onSave, initial }) {
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 p-4 border-t">
-          <button className="px-3 py-2 rounded-xl border" onClick={onClose}>Отмена</button>
+          <button className="btn-outline" onClick={onClose}>Отмена</button>
           <button
-            className="px-3 py-2 rounded-xl bg-neutral-900 text-white"
+            className="btn"
             onClick={()=>{
               const data = { ...form };
               const area = +data.area || 0, ppsm = +data.ppsm || 0, base = +data.baseUSD || 0;
@@ -212,7 +231,7 @@ function Num({ label, value, set }) {
       <span className="text-sm text-neutral-600">{label}</span>
       <input
         inputMode="decimal"
-        className="px-3 py-2 rounded-xl border"
+        className="input"
         value={txt}
         onChange={(e)=>{ setTxt(e.target.value); set(e.target.value===""? null : +e.target.value); }}
       />
@@ -221,6 +240,8 @@ function Num({ label, value, set }) {
 }
 
 function AdminPanel({ catalog, setCatalog }) {
+  useRevealOnScroll([catalog]);
+
   const [showAddProject, setShowAddProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [villaModal, setVillaModal] = useState({ open:false, projectId:null, init:null });
@@ -287,22 +308,24 @@ function AdminPanel({ catalog, setCatalog }) {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-5 py-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 className="text-xl font-semibold">Админ‑панель</h2>
-        <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 rounded-lg border" onClick={()=>setShowAddProject(true)}>Добавить проект</button>
-          <button className="px-3 py-1.5 rounded-lg border" onClick={exportJSON}>Экспорт JSON</button>
-          <label className="px-3 py-1.5 rounded-lg border cursor-pointer">Импорт JSON
+    <div className="container">
+      <div className="header route-shell">
+        <div className="pill-row">
+          <span className="pill">Админ</span>
+        </div>
+        <div className="pill-row">
+          <button className="btn-outline" onClick={()=>setShowAddProject(true)}>Добавить проект</button>
+          <button className="btn-outline" onClick={exportJSON}>Экспорт JSON</button>
+          <label className="btn-outline cursor-pointer">Импорт JSON
             <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={e=>importJSON(e.target.files?.[0])} />
           </label>
-          <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">Выйти</a>
+          <a className="btn-outline" href="#/catalog">Выйти</a>
         </div>
       </div>
 
       <div className="grid gap-8">
         {catalog.map(project=>(
-          <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} rounded-3xl border p-4`}>
+          <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} section`}>
             <div className="flex items-end justify-between gap-3">
               <div>
                 <h3 className={`text-xl font-semibold ${project.theme==="dark"?"text-white":"text-neutral-900"}`}>{project.projectName}</h3>
@@ -314,18 +337,18 @@ function AdminPanel({ catalog, setCatalog }) {
                 <div className="mt-2 text-sm">
                   <label className="inline-flex items-center gap-2">
                     <span className="text-neutral-600">Срок завершения строительства</span>
-                    <input type="month" className="px-2 py-1 rounded border" value={project.plannedCompletion||""} onChange={(e)=>updateProject(project.projectId,{ plannedCompletion:e.target.value })} />
+                    <input type="month" className="input w-[180px]" value={project.plannedCompletion||""} onChange={(e)=>updateProject(project.projectId,{ plannedCompletion:e.target.value })} />
                   </label>
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-1.5 rounded-lg border" onClick={()=>setVillaModal({ open:true, projectId:project.projectId, init:{ status:"available", monthlyPriceGrowthPct:2, rentalPriceIndexPct:5 }})}>Добавить виллу</button>
-                <button className="px-3 py-1.5 rounded-lg border text-red-600" onClick={()=>deleteProject(project.projectId)}>Удалить проект</button>
+                <button className="btn-outline" onClick={()=>setVillaModal({ open:true, projectId:project.projectId, init:{ status:"available", monthlyPriceGrowthPct:2, rentalPriceIndexPct:5 }})}>Добавить виллу</button>
+                <button className="btn-outline" onClick={()=>deleteProject(project.projectId)}>Удалить проект</button>
               </div>
             </div>
 
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
+            <div className="mt-3 scroll-x card">
+              <table className="table text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
                 <thead>
                   <tr className={`${project.theme==="dark"?"bg-white/10 text-white":"bg-neutral-50"}`}>
                     <Th>Вилла</Th><Th>Q Rooms</Th><Th>Земля, м²</Th><Th>Вилла, м²</Th><Th>1 этаж, м²</Th><Th>2 этаж, м²</Th><Th>Руфтоп, м²</Th><Th>Сад+бассейн, м²</Th>
@@ -334,7 +357,7 @@ function AdminPanel({ catalog, setCatalog }) {
                 </thead>
                 <tbody>
                   {project.villas.map(v=>(
-                    <tr key={v.villaId} className={`${project.theme==="dark" ? "border-white/15" : "border-neutral-200"} border-t`}>
+                    <tr key={v.villaId}>
                       <Td className="whitespace-nowrap">{v.name}</Td>
                       <Td>{v.rooms||""}</Td>
                       <Td>{v.land!=null? fmt2(v.land) : ""}</Td>
@@ -349,10 +372,10 @@ function AdminPanel({ catalog, setCatalog }) {
                       <Td>
                         <div className="w-[200px] flex gap-2">
                           {v.status==="available"
-                            ? <a className="px-3 py-1.5 rounded-lg text-xs bg-neutral-900 text-white" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
-                            : <span className="px-3 py-1.5 rounded-lg text-xs border bg-white">Недоступно</span>}
-                          <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>setVillaModal({ open:true, projectId:project.projectId, init:{...v} })}>Править</button>
-                          <button className="px-3 py-1.5 rounded-lg text-xs border" onClick={()=>deleteVilla(project.projectId, v.villaId)}>Удалить</button>
+                            ? <a className="btn btn-sm" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
+                            : <span className="btn-outline btn-sm">Недоступно</span>}
+                          <button className="btn-outline btn-sm" onClick={()=>setVillaModal({ open:true, projectId:project.projectId, init:{...v} })}>Править</button>
+                          <button className="btn-outline btn-sm" onClick={()=>deleteVilla(project.projectId, v.villaId)}>Удалить</button>
                         </div>
                       </Td>
                     </tr>
@@ -365,45 +388,44 @@ function AdminPanel({ catalog, setCatalog }) {
         ))}
       </div>
 
-      {showAddProject && (
-        <div className="fixed inset-0 bg-black/30 grid place-items-center p-4" onMouseDown={()=>setShowAddProject(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white border" onMouseDown={(e)=>e.stopPropagation()}>
-            <div className="p-4 border-b font-semibold">Добавить проект</div>
-            <div className="p-4 grid gap-2">
-              <label className="grid gap-1">
-                <span className="text-sm text-neutral-600">Название</span>
-                <input className="px-3 py-2 rounded-xl border" value={newProjectName} onChange={e=>setNewProjectName(e.target.value)} />
-              </label>
-            </div>
-            <div className="p-4 border-t flex justify-end gap-2">
-              <button className="px-3 py-2 rounded-xl border" onClick={()=>setShowAddProject(false)}>Отмена</button>
-              <button className="px-3 py-2 rounded-xl bg-neutral-900 text-white" onClick={addProject}>Добавить</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <VillaModal
         open={villaModal.open}
         initial={villaModal.init}
         onClose={()=>setVillaModal({ open:false, projectId:null, init:null })}
-        onSave={saveVilla}
+        onSave={(data)=>{
+          const projectId = villaModal.projectId;
+          if (!projectId) return;
+          const name = (data.name||"").trim();
+          if (!name) { alert("Введите название виллы"); return; }
+          const next = catalog.map(p=>{
+            if (p.projectId !== projectId) return p;
+            const villaId = data.villaId || (projectId+"-"+name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,""));
+            const exists = p.villas.some(v=>v.villaId===villaId);
+            const record = { ...data, villaId };
+            return { ...p, villas: exists ? p.villas.map(v=> v.villaId===villaId ? record : v) : [...p.villas, record] };
+          });
+          setCatalog(next); saveCatalog(next); setVillaModal({ open:false, projectId:null, init:null });
+        }}
       />
     </div>
   );
 }
 
 function CatalogView({ catalog }) {
+  useRevealOnScroll([catalog]);
+
   return (
-    <div className="mx-auto max-w-7xl px-5 py-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Каталог проектов</h2>
-        <a href="#/admin" className="px-3 py-1.5 rounded-lg border">Админ</a>
+    <div className="container">
+      <div className="header route-shell">
+        <div className="pill-row"><span className="pill">Каталог</span></div>
+        <div className="pill-row">
+          <a href="#/admin" className="btn-outline">Админ</a>
+        </div>
       </div>
 
       <div className="grid gap-8">
         {catalog.map(project=>(
-          <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} rounded-3xl border p-4`}>
+          <section key={project.projectId} className={`${project.theme==="dark" ? "bg-[#0f3b33] text-white" : "bg-[#f8f5ef] text-neutral-900"} section`}>
             <div className="flex items-end justify-between gap-3">
               <div>
                 <h3 className={`text-xl font-semibold ${project.theme==="dark"?"text-white":"text-neutral-900"}`}>{project.projectName}</h3>
@@ -417,8 +439,8 @@ function CatalogView({ catalog }) {
               </div>
             </div>
 
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
+            <div className="mt-3 scroll-x card">
+              <table className="table text-[clamp(11px,0.9vw,14px)] min-w-[1200px]">
                 <thead>
                   <tr className={`${project.theme==="dark"?"bg-white/10 text-white":"bg-neutral-50"}`}>
                     <Th>Вилла</Th><Th>Q Rooms</Th><Th>Земля, м²</Th><Th>Вилла, м²</Th><Th>1 этаж, м²</Th><Th>2 этаж, м²</Th><Th>Руфтоп, м²</Th><Th>Сад+бассейн, м²</Th>
@@ -427,7 +449,7 @@ function CatalogView({ catalog }) {
                 </thead>
                 <tbody>
                   {project.villas.map(v=>(
-                    <tr key={v.villaId} className={`${project.theme==="dark" ? "border-white/15" : "border-neutral-200"} border-t`}>
+                    <tr key={v.villaId}>
                       <Td className="whitespace-nowrap">{v.name}</Td>
                       <Td>{v.rooms||""}</Td>
                       <Td>{v.land!=null? fmt2(v.land) : ""}</Td>
@@ -442,8 +464,8 @@ function CatalogView({ catalog }) {
                       <Td>
                         <div className="w-[140px]">
                           {v.status==="available"
-                            ? <a className="px-3 py-1.5 rounded-lg text-xs bg-neutral-900 text-white" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
-                            : <span className="px-3 py-1.5 rounded-lg text-xs border bg-white">Недоступно</span>}
+                            ? <a className="btn btn-sm" href={`#/calc?villaId=${encodeURIComponent(v.villaId)}`}>Рассчитать</a>
+                            : <span className="btn-outline btn-sm">Недоступно</span>}
                         </div>
                       </Td>
                     </tr>
@@ -459,7 +481,7 @@ function CatalogView({ catalog }) {
   );
 }
 
-// FACTORS & helpers
+/* FACTORS & helpers (без изменений по логике) */
 const leaseFactorF = (year, totalYears, alpha) => { try { if (totalYears<=0 || year<0) return 1; return Math.pow((totalYears - year)/totalYears, alpha); } catch { return 1; } };
 const ageFactorF   = (year, beta) => { try { if (year<0 || beta<0) return 1; return Math.exp(-beta * year); } catch { return 1; } };
 const brandFactorF = (year, cfg) => {
@@ -495,6 +517,8 @@ const calculateIRR = (cashFlows, maxIterations=100, tolerance=1e-4) => {
 };
 
 function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUsd, setEurPerUsd }) {
+  useRevealOnScroll([catalog, villaId]);
+
   const selected = useMemo(()=>{
     for (const p of catalog) {
       const v = p.villas.find(x=>x.villaId===villaId);
@@ -503,7 +527,6 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     return null;
   },[catalog, villaId]);
 
-  // Hooks (все здесь, перед любыми return)
   const [currency, setCurrency] = useState('USD');
   const [handoverMonth, setHandoverMonth] = useState(12);
   const [months, setMonths] = useState(12);
@@ -764,55 +787,56 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
     rentalMap.set(mon, (rentalMap.get(mon)||0) + val);
   }
 
-  // Рендер (единственная точка return)
   if (!selected || !line) {
     return (
       <div className="container">
-        <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
-        <div className="mt-4">Загрузка…</div>
+        <div className="header route-shell">
+          <a className="btn-outline" href="#/catalog">← Каталог</a>
+        </div>
+        <div className="card p-4">Загрузка…</div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-5 py-6">
-      <div className="flex items-center justify-between">
-        <a className="px-3 py-1.5 rounded-lg border" href="#/catalog">← Каталог</a>
-        <div className="text-sm text-neutral-500">{selected.project.projectName}</div>
+    <div className="container">
+      <div className="header route-shell">
+        <a className="btn-outline" href="#/catalog">← Каталог</a>
+        <div className="pill-row"><span className="pill">{selected.project.projectName}</span></div>
       </div>
-      <h2 className="text-xl font-semibold mt-4">Полный калькулятор</h2>
 
-      {/* Стадии слева, Настройки справа */}
-      <div className="grid md:grid-cols-2 gap-4 mt-4">
-        <div className="rounded-2xl border p-4 bg-white">
+      {/* далее — всё содержимое калькулятора как в предыдущей версии (без изменений визуальной логики), уже обёрнуто в .container и .card/.section */}
+      {/* Стадии + Настройки */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="card p-4">
           <h3 className="font-medium mb-3">Рассрочка до получения ключей (установите комфортный план оплаты)</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[640px]">
+          <div className="scroll-x">
+            <table className="table min-w-[640px]">
               <thead><tr className="bg-neutral-50"><Th>Этап</Th><Th>%</Th><Th>Месяц</Th><Th>Удалить</Th></tr></thead>
               <tbody>
                 {stages.map(s=>(
-                  <tr key={s.id} className="border-t">
-                    <Td><input className="px-2 py-1 rounded border w-full" value={s.label} onChange={e=>updStage(s.id,{label:e.target.value})}/></Td>
-                    <Td><input className="px-2 py-1 rounded border w-24" type="number" value={s.pct} onChange={e=>updStage(s.id,{pct:e.target.value})}/></Td>
-                    <Td><input className="px-2 py-1 rounded border w-24" type="number" value={s.month} onChange={e=>updStage(s.id,{month:+e.target.value})}/></Td>
-                    <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>delStage(s.id)}>Удалить</button></Td>
+                  <tr key={s.id}>
+                    <Td><input className="input" value={s.label} onChange={e=>updStage(s.id,{label:e.target.value})}/></Td>
+                    <Td><input className="input w-24" type="number" value={s.pct} onChange={e=>updStage(s.id,{pct:e.target.value})}/></Td>
+                    <Td><input className="input w-24" type="number" value={s.month} onChange={e=>updStage(s.id,{month:+e.target.value})}/></Td>
+                    <Td><button className="btn-outline btn-sm" onClick={()=>delStage(s.id)}>Удалить</button></Td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="flex items-center gap-3 mt-3">
-            <button className="px-3 py-1.5 rounded-lg border" onClick={addStage}>Добавить этап</button>
+            <button className="btn-outline" onClick={addStage}>Добавить этап</button>
             <div className="text-sm text-neutral-600">Σ: {stagesSumPct.toFixed(2)}%</div>
           </div>
         </div>
 
-        <div className="rounded-2xl border p-4 bg-white">
+        <div className="card p-4">
           <h3 className="font-medium mb-3">Настройки</h3>
           <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1">
               <span className="text-sm text-neutral-600">Валюта отображения</span>
-              <select className="px-3 py-2 rounded-xl border" value={currency} onChange={e=>setCurrency(e.target.value)}>
+              <select className="select" value={currency} onChange={e=>setCurrency(e.target.value)}>
                 <option>USD</option><option>IDR</option><option>EUR</option>
               </select>
             </label>
@@ -820,34 +844,34 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
               <>
                 <label className="grid gap-1">
                   <span className="text-sm text-neutral-600">IDR за 1 USD</span>
-                  <input className="px-3 py-2 rounded-xl border" type="number" value={idrPerUsd} onChange={e=>setIdrPerUsd(+e.target.value||0)} />
+                  <input className="input" type="number" value={idrPerUsd} onChange={e=>setIdrPerUsd(+e.target.value||0)} />
                 </label>
                 <label className="grid gap-1">
                   <span className="text-sm text-neutral-600">EUR за 1 USD</span>
-                  <input className="px-3 py-2 rounded-xl border" type="number" value={eurPerUsd} onChange={e=>setEurPerUsd(+e.target.value||0)} />
+                  <input className="input" type="number" value={eurPerUsd} onChange={e=>setEurPerUsd(+e.target.value||0)} />
                 </label>
               </>
             )}
             <label className="grid gap-1">
               <span className="text-sm text-neutral-600">Заключение договора</span>
-              <div className="px-3 py-2 rounded-xl border bg-neutral-50">{startMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</div>
+              <div className="input bg-neutral-50">{startMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})}</div>
             </label>
 
             {selected.project.plannedCompletion
               ? <label className="grid gap-1">
                   <span className="text-sm text-neutral-600">Дата завершения строительства</span>
-                  <div className="px-3 py-2 rounded-xl border bg-neutral-50">{selected.project.plannedCompletion}</div>
+                  <div className="input bg-neutral-50">{selected.project.plannedCompletion}</div>
                 </label>
               : <label className="grid gap-1">
                   <span className="text-sm text-neutral-600">Срок строительства (мес)</span>
-                  <input className="px-3 py-2 rounded-xl border" type="number" min="1" step="1" value={handoverMonth} onChange={e=>setHandoverMonth(clamp(parseInt(e.target.value||0,10),1,120))}/>
+                  <input className="input" type="number" min="1" step="1" value={handoverMonth} onChange={e=>setHandoverMonth(clamp(parseInt(e.target.value||0,10),1,120))}/>
                 </label>
             }
 
             {isAdmin && (
               <label className="grid gap-1">
                 <span className="text-sm text-neutral-600">Ставка, %/мес</span>
-                <input className="px-3 py-2 rounded-xl border" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e=>setMonthlyRatePct(clamp(parseFloat(e.target.value||0),0,1000))}/>
+                <input className="input" type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e=>setMonthlyRatePct(clamp(parseFloat(e.target.value||0),0,1000))}/>
               </label>
             )}
           </div>
@@ -855,10 +879,10 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       </div>
 
       {/* Объект недвижимости */}
-      <div className="object-card mt-4">
+      <div className="object-card card mt-4">
         <h3 className="font-medium mb-2">Объект недвижимости</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[980px]">
+        <div className="scroll-x">
+          <table className="table min-w-[980px]">
             <thead>
               <tr className="bg-neutral-50">
                 <Th>Проект</Th><Th>Вилла</Th><Th>м²</Th><Th>$ / м²</Th><Th>Текущая стоимость (USD)</Th>
@@ -867,23 +891,23 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
               </tr>
             </thead>
             <tbody>
-              <tr className="border-t">
+              <tr>
                 <Td style={{textAlign:'left'}}>{selected.project.projectName}</Td>
                 <Td style={{textAlign:'left'}}>{line.snapshot?.name}</Td>
                 <Td>{fmtInt(line.snapshot?.area||0)}</Td>
                 <Td>{fmtInt(line.snapshot?.ppsm||0)}</Td>
                 <Td>{toMoney(lineData.base)}</Td>
                 {isAdmin && (
-                  <Td><input className="px-2 py-1 rounded border w-20" type="number" min="0" max="20" step="0.1" value={line.discountPct||0} onChange={e=>updLine({discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
+                  <Td><input className="input w-20" type="number" min="0" max="20" step="0.1" value={line.discountPct||0} onChange={e=>updLine({discountPct:clamp(parseFloat(e.target.value||0),0,20)})}/></Td>
                 )}
                 <Td>
-                  <input type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, line.prePct||0))} onChange={e=>updLine({prePct: parseInt(e.target.value,10)})}/>
+                  <input className="w-36" type="range" min="50" max="100" step="1" value={Math.max(50,Math.min(100, line.prePct||0))} onChange={e=>updLine({prePct: parseInt(e.target.value,10)})}/>
                   <div className="text-xs text-neutral-600">{Math.max(50,Math.min(100, line.prePct||0))}%</div>
                 </Td>
-                <Td><input className="px-2 py-1 rounded border w-20" type="number" min="6" step="1" value={lineData.vMonths} onChange={e=>updLine({ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
-                {isAdmin && <Td><input className="px-2 py-1 rounded border w-24" type="number" min="0" step="0.01" value={line.monthlyRatePct??monthlyRatePct} onChange={e=>updLine({ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>}
+                <Td><input className="input w-20" type="number" min="6" step="1" value={lineData.vMonths} onChange={e=>updLine({ownTerms:true, months: clamp(parseInt(e.target.value||0,10),6,120)})}/></Td>
+                {isAdmin && <Td><input className="input w-24" type="number" min="0" step="0.01" value={line.monthlyRatePct??monthlyRatePct} onChange={e=>updLine({ownTerms:true, monthlyRatePct: clamp(parseFloat(e.target.value||0),0,1000)})}/></Td>}
                 <Td className="font-semibold">{toMoney(lineData.finalUSD)}</Td>
-                <Td><button className="px-2 py-1 rounded-lg border" onClick={()=>null}>—</button></Td>
+                <Td><button className="btn-outline btn-sm" onClick={()=>null}>—</button></Td>
               </tr>
             </tbody>
           </table>
@@ -891,79 +915,38 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       </div>
 
       {/* KPI */}
-      <div className="kpi-wrap mt-4">
+      <div className="kpi-wrap card mt-4">
         <div className="kpi-pills">
           <span className="pill">Выбрана 1 вилла</span>
           <span className="pill">Ключи через {handoverMonth} мес.</span>
           <span className="pill">Срок рассрочки после получения ключей: {lineData.vMonths} мес.</span>
         </div>
         <div className="kpi-grid">
-          <div className="kpi-item">
-            <div className="title">Общая сумма</div>
-            <div className="value">{toMoney(lineData.base)}</div>
-          </div>
-
+          <div className="kpi-item"><div className="title">Общая сумма</div><div className="value">{toMoney(lineData.base)}</div></div>
           <div className="kpi-item stack">
-            <div>
-              <div className="title">Оплата до ключей</div>
-              <div className="value">{toMoney(lineData.preTotal)}</div>
-            </div>
-            <div>
-              <div className="title">Оплата после ключей</div>
-              <div className="value">{toMoney(lineData.finalUSD - lineData.preTotal)}</div>
-            </div>
+            <div><div className="title">Оплата до ключей</div><div className="value">{toMoney(lineData.preTotal)}</div></div>
+            <div><div className="title">Оплата после ключей</div><div className="value">{toMoney(lineData.finalUSD - lineData.preTotal)}</div></div>
           </div>
-
-          {isAdmin && (
-            <div className="kpi-item">
-              <div className="title">Проценты (только админ)</div>
-              <div className="value">{toMoney(lineData.totalInterest)}</div>
-            </div>
-          )}
-
-          <div className="kpi-item">
-            <div className="title">Итоговая стоимость</div>
-            <div className="value">{toMoney(lineData.finalUSD)}</div>
-          </div>
-
+          {isAdmin && <div className="kpi-item"><div className="title">Проценты (только админ)</div><div className="value">{toMoney(lineData.totalInterest)}</div></div>}
+          <div className="kpi-item"><div className="title">Итоговая стоимость</div><div className="value">{toMoney(lineData.finalUSD)}</div></div>
           <div className="kpi-item stack">
-            <div>
-              <div className="title">ROI при продаже до ключей</div>
-              <div className="value">{roiBeforeKeysAnnual.toFixed(1)}%</div>
-            </div>
-            <div>
-              <div className="title">Чистый доход</div>
-              <div className="value">{toMoney(netIncomeBeforeKeys)}</div>
-            </div>
+            <div><div className="title">ROI при продаже до ключей</div><div className="value">{roiBeforeKeysAnnual.toFixed(1)}%</div></div>
+            <div><div className="title">Чистый доход</div><div className="value">{toMoney(netIncomeBeforeKeys)}</div></div>
           </div>
-
-          <div className="kpi-item">
-            <div className="title">Чистый срок лизхолда (с момента получения ключей)</div>
-            <div className="value">{leaseTerm.years} лет {leaseTerm.months} мес.</div>
-          </div>
-
+          <div className="kpi-item"><div className="title">Чистый срок лизхолда (с момента получения ключей)</div><div className="value">{leaseTerm.years} лет {leaseTerm.months} мес.</div></div>
           <div className="kpi-item stack">
-            <div>
-              <div className="title">Точка выхода с макс. IRR</div>
-              <div className="value">{exitYearAbs}</div>
-            </div>
-            <div>
-              <div className="title">IRR</div>
-              <div className="value">{annualRows.length ? annualRows[annualRows.length-1].irr.toFixed(1) + "%" : "—"}</div>
-            </div>
-            <div>
-              <div className="title">Итоговый ROI (накопительный)</div>
-              <div className="value">{finalCumulativeROI.toFixed(1)}%</div>
-            </div>
+            <div><div className="title">Точка выхода с макс. IRR</div><div className="value">{exitYearAbs}</div></div>
+            <div><div className="title">IRR</div><div className="value">{annualRows.length ? annualRows[annualRows.length-1].irr.toFixed(1) + "%" : "—"}</div></div>
+            <div><div className="title">Итоговый ROI (накопительный)</div><div className="value">{finalCumulativeROI.toFixed(1)}%</div></div>
           </div>
         </div>
       </div>
 
       {/* Полный график платежей */}
-      <div className="rounded-2xl border p-4 bg-white mt-4">
+      <div className="card p-4 mt-4">
         <div className="flex items-center justify-between">
           <h3 className="font-medium">Полный график платежей</h3>
-          <button className="px-3 py-1.5 rounded-lg border" onClick={()=>{
+          <button className="btn-outline" onClick={()=>{
             const head = ["Месяц","Описание","Платеж","Арендный доход","Чистый платеж/доход в месяц","Остаток по договору"];
             const out = [head];
             let sum=0;
@@ -979,16 +962,11 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
             a.href=URL.createObjectURL(blob); a.download=`arconique_cashflow_${new Date().toISOString().slice(0,10)}.csv`; a.click();
           }}>Export CSV</button>
         </div>
-        <div className="overflow-x-auto mt-3">
-          <table className="w-full text-sm min-w-[1200px]">
+        <div className="scroll-x mt-3">
+          <table className="table min-w-[1200px]">
             <thead>
               <tr className="bg-neutral-50">
-                <Th>Месяц</Th>
-                <Th style={{textAlign:'left'}}>Описание</Th>
-                <Th>Платеж</Th>
-                <Th>Арендный доход</Th>
-                <Th>Чистый платеж/доход в месяц</Th>
-                <Th>Остаток по договору</Th>
+                <Th>Месяц</Th><Th style={{textAlign:'left'}}>Описание</Th><Th>Платеж</Th><Th>Арендный доход</Th><Th>Чистый платеж/доход в месяц</Th><Th>Остаток по договору</Th>
               </tr>
             </thead>
             <tbody>
@@ -998,7 +976,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
                 const rent = rentalMap.get(row.month)||0;
                 const net = row.amountUSD - rent;
                 return (
-                  <tr key={row.month} className="border-t">
+                  <tr key={row.month}>
                     <Td>{formatMonth(row.month)}</Td>
                     <Td style={{textAlign:'left'}}>{row.items.join(' + ')}</Td>
                     <Td>{toMoney(row.amountUSD)}</Td>
@@ -1014,7 +992,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       </div>
 
       {/* Финмодель (факторы + график) */}
-      <div className="rounded-2xl border p-4 bg-white mt-4">
+      <div className="card p-4 mt-4">
         <h3 className="font-medium">Investment Return Financial Model</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
           <Kpi label="ИНФЛЯЦИЯ" value={`${pricingConfig.inflationRatePct}%/год`} />
@@ -1024,7 +1002,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
         </div>
         <div className="mt-4">
           <h4 className="text-sm text-neutral-600 mb-2">Динамика стоимости виллы и арендного дохода</h4>
-          <div className="w-full overflow-x-auto">
+          <div className="w-full scroll-x">
             <svg width="800" height="300" viewBox="0 0 800 300">
               <line x1="50" y1="50" x2="50" y2="250" stroke="#666" strokeWidth="1" />
               <line x1="50" y1="250" x2="750" y2="250" stroke="#666" strokeWidth="1" />
@@ -1042,28 +1020,18 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       </div>
 
       {/* Годовая таблица */}
-      <div className="rounded-2xl border p-4 bg-white mt-4">
+      <div className="card p-4 mt-4">
         <h3 className="font-medium">Расчет показателей (годовой)</h3>
-        <div className="overflow-x-auto mt-3">
-          <table className="w-full text-sm min-w-[1200px]">
+        <div className="scroll-x mt-3">
+          <table className="table min-w-[1200px]">
             <thead>
               <tr className="bg-neutral-50">
-                <Th>Year</Th>
-                <Th>Lease Factor</Th>
-                <Th>Age Factor</Th>
-                <Th>Brand Factor</Th>
-                <Th>Inflation</Th>
-                <Th>Market value</Th>
-                <Th>Rental income</Th>
-                <Th>Total capitalization</Th>
-                <Th>Yearly ROI (%)</Th>
-                <Th>Cumulative ROI (%)</Th>
-                <Th>IRR (%)</Th>
+                <Th>Year</Th><Th>Lease Factor</Th><Th>Age Factor</Th><Th>Brand Factor</Th><Th>Inflation</Th><Th>Market value</Th><Th>Rental income</Th><Th>Total capitalization</Th><Th>Yearly ROI (%)</Th><Th>Cumulative ROI (%)</Th><Th>IRR (%)</Th>
               </tr>
             </thead>
             <tbody>
               {annualRows.length>0 ? annualRows.map((r,i)=>(
-                <tr key={i} className="border-t">
+                <tr key={i}>
                   <Td>{r.displayYear}</Td>
                   <Td>{r.leaseFactor.toFixed(3)}</Td>
                   <Td>{r.ageFactor.toFixed(3)}</Td>
@@ -1083,29 +1051,18 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
       </div>
 
       {/* Помесячная таблица */}
-      <div className="rounded-2xl border p-4 bg-white mt-4">
+      <div className="card p-4 mt-4">
         <h3 className="font-medium">Расчет показателей (на период рассрочки)</h3>
-        <div className="overflow-x-auto mt-3">
-          <table className="w-full text-sm min-w-[1400px]">
+        <div className="scroll-x mt-3">
+          <table className="table min-w-[1400px]">
             <thead>
               <tr className="bg-neutral-50">
-                <Th>Period</Th>
-                <Th>Lease Factor</Th>
-                <Th>Age Factor</Th>
-                <Th>Brand Factor</Th>
-                <Th>Inflation</Th>
-                <Th>Market value</Th>
-                <Th>Rental income</Th>
-                <Th>Total capitalization</Th>
-                <Th>Installment payment</Th>
-                <Th>Monthly ROI (%)</Th>
-                <Th>Cumulative ROI (%)</Th>
-                <Th>IRR (%)</Th>
+                <Th>Period</Th><Th>Lease Factor</Th><Th>Age Factor</Th><Th>Brand Factor</Th><Th>Inflation</Th><Th>Market value</Th><Th>Rental income</Th><Th>Total capitalization</Th><Th>Installment payment</Th><Th>Monthly ROI (%)</Th><Th>Cumulative ROI (%)</Th><Th>IRR (%)</Th>
               </tr>
             </thead>
             <tbody>
               {monthlyRows.length>0 ? monthlyRows.map((r)=>(
-                <tr key={r.month} className="border-t">
+                <tr key={r.month}>
                   <Td>{r.monthLabel}</Td>
                   <Td>{(r.leaseFactor||1).toFixed(3)}</Td>
                   <Td>{(r.ageFactor||1).toFixed(3)}</Td>
@@ -1130,7 +1087,7 @@ function CalcView({ catalog, villaId, isAdmin, idrPerUsd, setIdrPerUsd, eurPerUs
 
 function Kpi({ label, value }) {
   return (
-    <div className="rounded-2xl border p-4 bg-white">
+    <div className="card p-4">
       <div className="text-xs text-neutral-500">{label}</div>
       <div className="text-lg font-semibold mt-1">{value}</div>
     </div>
@@ -1146,25 +1103,29 @@ function App() {
 
   useEffect(()=>saveCatalog(catalog),[catalog]);
 
+  const routeKey = route.path + (route.params?.villaId || "");
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      {route.path==="#/admin" ? (
-        isAdmin ? <AdminPanel catalog={catalog} setCatalog={setCatalog} /> : <AdminGate onLogin={()=>setIsAdmin(true)} />
-      ) : route.path==="#/calc" ? (
-        <CalcView
-          catalog={catalog}
-          villaId={route.params.villaId}
-          isAdmin={isAdmin}
-          idrPerUsd={idrPerUsd}
-          setIdrPerUsd={setIdrPerUsd}
-          eurPerUsd={eurPerUsd}
-          setEurPerUsd={setEurPerUsd}
-        />
-      ) : (
-        <CatalogView catalog={catalog} />
-      )}
-      <footer className="mx-auto max-w-7xl px-5 py-10 text-center text-sm text-neutral-500">
+      <div key={routeKey} className="route-shell">
+        {route.path==="#/admin" ? (
+          isAdmin ? <AdminPanel catalog={catalog} setCatalog={setCatalog} /> : <AdminGate onLogin={()=>setIsAdmin(true)} />
+        ) : route.path==="#/calc" ? (
+          <CalcView
+            catalog={catalog}
+            villaId={route.params.villaId}
+            isAdmin={isAdmin}
+            idrPerUsd={idrPerUsd}
+            setIdrPerUsd={setIdrPerUsd}
+            eurPerUsd={eurPerUsd}
+            setEurPerUsd={setEurPerUsd}
+          />
+        ) : (
+          <CatalogView catalog={catalog} />
+        )}
+      </div>
+      <footer className="container py-10 text-center text-sm text-neutral-500">
         © {new Date().getFullYear()} Arconique · Данные каталога сохраняются локально в вашем браузере.
       </footer>
     </div>
