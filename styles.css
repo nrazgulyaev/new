@@ -198,3 +198,20 @@ input[type="range"].range::-moz-range-track{
   .search-input{width:100%}
   .project-actions{gap:8px}
 }
+
+/* styles.css — добавьте в конец: компактные карточки каталога */
+.villa-compact .specs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+.villa-compact .specs.subtle{opacity:.9}
+.chip{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:12px;color:var(--ink)}
+.chip.strong{font-weight:700;color:#1f6feb;border-color:#cfd6e6;background:#f2f6ff}
+
+.status-pill{padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
+.status-pill.ok{background:#eafff0;color:#067647;border-color:#b8ebc8}
+.status-pill.warn{background:#fff7e6;color:#9a6700;border-color:#f0e0b2}
+.status-pill.muted{background:#f2f3f5;color:#475569;border-color:#e1e4e8}
+
+.more{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.more-grid .label{display:block;color:var(--muted);font-size:12px}
+.more-grid .value{display:block;color:var(--ink);font-weight:600}
+
