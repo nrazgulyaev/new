@@ -285,3 +285,16 @@ input[type="range"].range::-moz-range-track{
 .print-mode .catalog-table td{white-space:nowrap;font-size:11px;padding:6px 8px}
 .print-mode .project-actions,
 .print-mode .btn{display:none!important}
+
+/* Каталог: выровнять размеры кнопки и бейджа */
+.catalog-table .badge{padding:6px 10px;font-size:12px;border-radius:10px;display:inline-flex;align-items:center}
+
+/* Калькулятор: печать только нужного диапазона */
+.calc-print .calc-scroll,
+.calc-print .factors-table-scroll{overflow:visible!important;max-width:none!important}
+.calc-print .calc-table,
+.calc-print .factors-table{width:100%!important;min-width:auto!important;table-layout:fixed!important}
+.calc-print th,.calc-print td{white-space:nowrap;font-size:11px;padding:6px 8px}
+.calc-print .card{page-break-inside:avoid;break-inside:avoid;margin-bottom:8px}
+.calc-print .factors-table tr,
+.calc-print .calc-table tr{page-break-inside:avoid;break-inside:avoid}
