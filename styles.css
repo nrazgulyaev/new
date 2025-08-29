@@ -33,8 +33,9 @@ body{margin:0;background:var(--beige);color:var(--ink);font-family:ui-sans-serif
 .btn.primary{background:#1f2937;color:#fff;border-color:#1f2937}
 .btn.success{background:#10b981;color:#fff;border-color:#10b981}
 .btn.danger{background:#ef4444;color:#fff;border-color:#ef4444}
-.btn.small{padding:6px 10px;font-size:12px}
-.btn.icon{padding:8px;border-radius:999px;min-width:36px;justify-content:center}
+.btn.small{padding:6px 10px;font-size:12px;line-height:1;border-radius:10px}
+.btn.icon{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:8px;min-width:36px;min-height:36px}
+.btn.icon.tiny{min-width:28px;min-height:28px;padding:4px;font-size:14px}
 
 /* Fields */
 .field{display:grid;gap:6px;margin-bottom:12px}
@@ -44,8 +45,9 @@ body{margin:0;background:var(--beige);color:var(--ink);font-family:ui-sans-serif
 .compact-input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-size:13px}
 
 /* Pills / badges */
-.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:var(--pill);border:1px solid var(--line);font-size:12px}
-.badge{display:inline-block;padding:4px 8px;border-radius:8px;background:var(--pill);border:1px solid var(--line);font-size:12px;color:var(--muted);margin-right:8px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:var(--pill);border:1px solid var(--line);font-size:12px;color:#1f2937;white-space:nowrap}
+.pill-muted{background:#ebe3d5}
+.badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:8px;background:var(--pill);border:1px solid var(--line);font-size:12px;color:var(--muted);margin-right:8px}
 
 /* Top section layout */
 .top-section{display:flex;gap:20px;align-items:flex-start}
@@ -60,7 +62,7 @@ body{margin:0;background:var(--beige);color:var(--ink);font-family:ui-sans-serif
 .calc-table td{padding:10px;border-bottom:1px solid var(--line);text-align:center}
 .base-strong,.line-total{font-weight:600;color:#1f6feb}
 
-/* Range (До ключей, %) */
+/* Range */
 input[type="range"].range{ -webkit-appearance:none; appearance:none; width:100%; height:6px; background:#e7e2d8; border-radius:999px; outline:none }
 input[type="range"].range::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background:#1f2937; cursor:pointer; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.25) }
 input[type="range"].range::-moz-range-thumb{ width:18px; height:18px; border-radius:50%; background:#1f2937; cursor:pointer; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.25) }
@@ -75,7 +77,7 @@ input[type="range"].range::-moz-range-thumb{ width:18px; height:18px; border-rad
 .kpi.kpi-pair .pair-item{width:100%;padding:4px 0;display:flex;flex-direction:column;align-items:center}
 .kpi.kpi-pair .pair-item:not(:last-child){border-bottom:1px solid var(--line)}
 
-/* Cashflow */
+/* Cashflow / Factors tables */
 .cashflow-block .card-header h2{margin:0;font-size:18px}
 .cashflow-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px}
 .factors-table{min-width:900px;width:100%;border-collapse:separate;border-spacing:0}
@@ -87,15 +89,22 @@ input[type="range"].range::-moz-range-thumb{ width:18px; height:18px; border-rad
 .negative{color:#16a34a;font-weight:600}
 
 /* Stages table / scroll */
-.stages-scroll{max-height:320px;overflow:auto}
+.stages-scroll{overflow:visible} /* растёт по высоте, без внутреннего скролла */
 .factors-table-container{border:1px solid var(--line);border-radius:12px;margin:16px 0;overflow:hidden}
 .factors-table-scroll{overflow:auto}
+
+/* Узкие колонки рассрочки */
+.stages-col-name{width:160px}
+.stages-col-pct{width:90px}
+.stages-col-month{width:90px}
+.stages-col-actions{width:56px;white-space:nowrap}
 
 /* Chart */
 .pricing-chart-container{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff;margin-top:10px}
 .pricing-chart-svg{border:1px solid var(--line);border-radius:12px;background:#faf9f5}
 
-/* Modals */
+/* Modals (посредством портала) */
+.portal-root{}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1000}
 .modal-content{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:90vw;max-height:80vh;overflow:auto;padding:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
 .catalog-grid{max-height:400px;overflow:auto}
@@ -107,6 +116,7 @@ input[type="range"].range::-moz-range-thumb{ width:18px; height:18px; border-rad
 /* Misc */
 .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
 .info-display{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#faf9f5}
+
 /* Reveal-on-mount */
 .reveal{
   opacity:0;
@@ -166,8 +176,7 @@ input[type="range"].range::-moz-range-track{
 .divider-line{width:80%;height:1px;background:var(--line);opacity:.5;margin:6px auto}
 .adaptive-text{font-size:clamp(10px,2.5vw,12px);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
-
-/* Catalog-only overrides */
+/* Catalog */
 .catalog-section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-top:16px}
 .catalog-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .catalog-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -179,27 +188,45 @@ input[type="range"].range::-moz-range-track{
 .project-header h3{margin:0;font-size:18px;color:var(--ink)}
 .project-actions{display:flex;gap:6px;flex-wrap:wrap}
 
-.villas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.villa-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
-.villa-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.villa-header h4{margin:0;font-size:16px;color:var(--ink)}
-.villa-actions{display:flex;gap:6px;flex-wrap:wrap}
+/* Якоря проектов */
+.project-anchors{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.pill.link{cursor:pointer}
+[id^="project-"]{scroll-margin-top:80px}
 
-.villa-details{display:flex;flex-direction:column;gap:6px}
-.detail-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}
-.detail-row:last-child{border-bottom:0}
-.label{color:var(--muted);font-size:12px}
-.value{color:var(--ink);font-weight:600}
+/* Табличный каталог */
+.table-wrap{width:100%;overflow:auto}
+.catalog-table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.catalog-table thead th{background:#faf7f0;font-weight:600;color:#111827;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.catalog-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;text-align:center;white-space:nowrap}
+.catalog-table .td-left{text-align:left}
+.catalog-table tbody tr:hover{background:#fafafa}
+.w-1{width:1%;white-space:nowrap}
 
-.btn.small{padding:6px 10px;font-size:12px;border-radius:10px}
-.badge{background:var(--pill);border:1px solid var(--line);color:var(--muted)}
+/* Статусы */
+.status{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid transparent}
+.status-available{background:#e7f8f0;color:#065f46;border-color:#c7eedf}
+.status-reserved{background:#fff7e6;color:#92400e;border-color:#ffe2b3}
+.status-hold{background:#eef2f7;color:#334155;border-color:#dbe2ec}
 
+@media (max-width:800px){
+  .catalog-table{font-size:13px}
+  .catalog-table thead th,.catalog-table td{padding:8px 10px}
+}
 @media (max-width:768px){
   .search-input{width:100%}
   .project-actions{gap:8px}
 }
 
-/* styles.css — добавьте в конец: компактные карточки каталога */
+/* Блок "В стоимость включено" */
+.catalog-section .project-includes{margin:6px 0 12px}
+.catalog-section .includes-title{font-weight:600;color:var(--ink);margin-bottom:6px;font-size:13px}
+.catalog-section .includes-list{margin:0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.5}
+.catalog-section .includes-list li{list-style:disc}
+
+/* Пилюли над includes */
+.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+
+/* Компактные карточки */
 .villa-compact .specs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
 .villa-compact .specs.subtle{opacity:.9}
 .chip{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:12px;color:var(--ink)}
@@ -215,199 +242,23 @@ input[type="range"].range::-moz-range-track{
 .more-grid .label{display:block;color:var(--muted);font-size:12px}
 .more-grid .value{display:block;color:var(--ink);font-weight:600}
 
-/* styles.css — ДОБАВЬТЕ в конец. Скоуп только каталога, калькулятор не затрагивается */
-
-/* Блок "В стоимость включено" под заголовком проекта */
-.catalog-section .project-includes{margin:6px 0 12px}
-.catalog-section .includes-title{
-  font-weight:600;color:var(--ink);margin-bottom:6px;font-size:13px
-}
-.catalog-section .includes-list{
-  margin:0;padding-left:18px;display:block;color:var(--muted);font-size:13px;line-height:1.5
-}
-.catalog-section .includes-list li{list-style:disc}
-
-/* Линейка параметров виллы */
-.catalog-section .villa-line .spec-row{
-  display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0
-}
-.catalog-section .villa-line .spec-row.subtle{opacity:.9}
-.catalog-section .villa-line .spec{font-size:13px;color:var(--ink)}
-.catalog-section .villa-line .spec.price{font-weight:700;color:#1f6feb}
-.catalog-section .villa-line .dot{color:#9aa1ab}
-
-/* styles.css — добавьте в конец. Табличный каталог + пилюли над includes */
-
-/* Пилюли (ряд над includes) */
-.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
-.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--pill);border-radius:999px;padding:6px 10px;font-size:12px;white-space:nowrap;color:#1f2937}
-.pill-muted{background:#ebe3d5}
-
-/* Блок includes */
-.catalog-section .project-includes{margin:6px 0 12px}
-.catalog-section .includes-title{font-weight:600;color:var(--ink);margin-bottom:6px;font-size:13px}
-.catalog-section .includes-list{margin:0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.5}
-.catalog-section .includes-list li{list-style:disc}
-
-/* Таблица каталога (не влияет на калькулятор) */
-.table-wrap{width:100%;overflow:auto}
-.catalog-table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;background:#fff;border:1px solid var(--line);border-radius:12px}
-.catalog-table thead th{background:#faf7f0;font-weight:600;color:#111827;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
-.catalog-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;text-align:center;white-space:nowrap}
-.catalog-table .td-left{text-align:left}
-.catalog-table tbody tr:hover{background:#fafafa}
-.w-1{width:1%;white-space:nowrap}
-
-/* Статусы справа (чипы) */
-.status{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid transparent}
-.status-available{background:#e7f8f0;color:#065f46;border-color:#c7eedf}
-.status-reserved{background:#fff7e6;color:#92400e;border-color:#ffe2b3}
-.status-hold{background:#eef2f7;color:#334155;border-color:#dbe2ec}
-
-/* Узкие экраны */
-@media (max-width: 800px){
-  .catalog-table{font-size:13px}
-  .catalog-table thead th,.catalog-table td{padding:8px 10px}
-}
-
-/* styles.css — дополнения для документов и мастер‑плана */
+/* Проект: двухколоночный блок */
 .project-details-grid{display:grid;grid-template-columns:1fr 320px;gap:12px}
-@media (max-width: 900px){.project-details-grid{grid-template-columns:1fr}}
+@media (max-width:900px){.project-details-grid{grid-template-columns:1fr}}
 .masterplan-card{display:block;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:var(--shadow);text-align:center}
 .masterplan-img{width:100%;height:240px;object-fit:cover;border-radius:8px}
-.print-mode .project-actions,.print-mode .btn{display:none!important}
-.print-mode .includes-title{margin-top:0}
 
-/* styles.css — добавьте в конец для печати/экспорта */
+/* Печать/экспорт (каталог) */
 .print-mode .table-wrap{overflow:visible!important;max-width:none!important}
 .print-mode .catalog-table{width:100%!important;min-width:auto!important;table-layout:fixed!important}
 .print-mode .catalog-table th,
 .print-mode .catalog-table td{white-space:nowrap;font-size:11px;padding:6px 8px}
 .print-mode .project-actions,
 .print-mode .btn{display:none!important}
-
-/* Каталог: выровнять размеры кнопки и бейджа */
-.catalog-table .badge{padding:6px 10px;font-size:12px;border-radius:10px;display:inline-flex;align-items:center}
-
-/* Калькулятор: печать только нужного диапазона */
-.calc-print .calc-scroll,
-.calc-print .factors-table-scroll{overflow:visible!important;max-width:none!important}
-.calc-print .calc-table,
-.calc-print .factors-table{width:100%!important;min-width:auto!important;table-layout:fixed!important}
-.calc-print th,.calc-print td{white-space:nowrap;font-size:11px;padding:6px 8px}
-.calc-print .card{page-break-inside:avoid;break-inside:avoid;margin-bottom:8px}
-.calc-print .factors-table tr,
-.calc-print .calc-table tr{page-break-inside:avoid;break-inside:avoid}
-
-/* styles.css — дополнения */
-
-/* Кнопка и бейдж одинаковой высоты */
-.btn.small{padding:6px 10px;font-size:12px;line-height:1;border-radius:10px}
-.catalog-table .badge{padding:6px 10px;font-size:12px;border-radius:10px;display:inline-flex;align-items:center}
-
-/* Двухколоночный блок описания проекта */
-.project-details-grid{display:grid;grid-template-columns:1fr 320px;gap:12px}
-@media (max-width: 900px){.project-details-grid{grid-template-columns:1fr}}
-.masterplan-card{display:block;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:var(--shadow);text-align:center}
-.masterplan-img{width:100%;height:240px;object-fit:cover;border-radius:8px}
-
-/* Портал-модалки — фиксированный центр экрана */
-.portal-root{}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1000}
-.modal-content{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:90vw;max-height:80vh;overflow:auto;padding:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
-
-/* Печать/экспорт проекта */
-.print-mode .table-wrap{overflow:visible!important;max-width:none!important}
-.print-mode .catalog-table{width:100%!important;min-width:auto!important;table-layout:fixed!important}
-.print-mode .catalog-table th,
-.print-mode .catalog-table td{white-space:nowrap;font-size:11px;padding:6px 8px}
-.print-mode .project-actions,
-.print-mode .btn,
-.calc-print .export-buttons{display:none!important}
-
-/* Печать/экспорт калькулятора */
-.calc-print .calc-scroll,
-.calc-print .factors-table-scroll{overflow:visible!important;max-width:none!important}
-.calc-print .calc-table,
-.calc-print .factors-table{width:100%!important;min-width:auto!important;table-layout:fixed!important}
-.calc-print th,.calc-print td{white-space:nowrap;font-size:11px;padding:6px 8px}
-.calc-print .card{page-break-inside:avoid;break-inside:avoid;margin-bottom:8px}
-.calc-print .factors-table tr,
-.calc-print .calc-table tr{page-break-inside:avoid;break-inside:avoid}
-
-
-/* styles.css — дополнения/актуализации */
-
-/* Кнопки одинаковой высоты */
-.btn.small{padding:6px 10px;font-size:12px;line-height:1;border-radius:10px}
-.catalog-table .badge{padding:6px 10px;font-size:12px;border-radius:10px;display:inline-flex;align-items:center}
-
-/* Двухколоночный блок описания проекта */
-.project-details-grid{display:grid;grid-template-columns:1fr 320px;gap:12px}
-@media (max-width: 900px){.project-details-grid{grid-template-columns:1fr}}
-.masterplan-card{display:block;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:var(--shadow);text-align:center}
-.masterplan-img{width:100%;height:240px;object-fit:cover;border-radius:8px}
-
-/* Портал/модалки — всегда по центру экрана */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1000}
-.modal-content{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:90vw;max-height:80vh;overflow:auto;padding:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
-
-/* Узкие колонки для рассрочки */
-.stages-col-name{width:160px}
-.stages-col-pct{width:90px}
-.stages-col-month{width:90px}
-
-/* Печать/экспорт проекта */
-.print-mode .table-wrap{overflow:visible!important;max-width:none!important}
-.print-mode .catalog-table{width:100%!important;min-width:auto!important;table-layout:fixed!important}
-.print-mode .catalog-table th,
-.print-mode .catalog-table td{white-space:nowrap;font-size:11px;padding:6px 8px}
-.print-mode .project-actions,
-.print-mode .btn,
-.calc-print .export-buttons{display:none!important}
-
-/* Печать/экспорт калькулятора */
-.calc-print .calc-scroll,
-.calc-print .factors-table-scroll{overflow:visible!important;max-width:none!important}
-.calc-print .calc-table,
-.calc-print .factors-table{width:100%!important;min-width:auto!important;table-layout:fixed!important}
-.calc-print th,.calc-print td{white-space:nowrap;font-size:11px;padding:6px 8px}
-.calc-print .card{page-break-inside:avoid;break-inside:avoid;margin-bottom:8px}
-.calc-print .factors-table tr,
-.calc-print .calc-table tr{page-break-inside:avoid;break-inside:avoid}
-
-/* styles.css — дополнения/актуализации */
-
-/* Кнопки одинаковой высоты */
-.btn.small{padding:6px 10px;font-size:12px;line-height:1;border-radius:10px}
-.catalog-table .badge{padding:6px 10px;font-size:12px;border-radius:10px;display:inline-flex;align-items:center}
-
-/* Двухколоночный блок описания проекта */
-.project-details-grid{display:grid;grid-template-columns:1fr 320px;gap:12px}
-@media (max-width: 900px){.project-details-grid{grid-template-columns:1fr}}
-.masterplan-card{display:block;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:var(--shadow);text-align:center}
-.masterplan-img{width:100%;height:240px;object-fit:cover;border-radius:8px}
-
-/* Портал/модалки — всегда по центру экрана */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1000}
-.modal-content{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:90vw;max-height:80vh;overflow:auto;padding:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
-
-/* Узкие колонки для рассрочки */
-.stages-col-name{width:160px}
-.stages-col-pct{width:90px}
-.stages-col-month{width:90px}
-
-/* Печать/экспорт проекта/калькулятора */
-.print-mode .table-wrap{overflow:visible!important;max-width:none!important}
-.print-mode .catalog-table{width:100%!important;min-width:auto!important;table-layout:fixed!important}
-.print-mode .catalog-table th,
-.print-mode .catalog-table td{white-space:nowrap;font-size:11px;padding:6px 8px}
-.print-mode .project-actions,
-.print-mode .btn,
-.calc-print .export-buttons{display:none!important}
+.print-mode .includes-title{margin-top:0}
 .print-mode img{display:none!important} /* скрыть картинки без CORS на время PDF */
 
-/* Печать/экспорт калькулятора */
+/* Печать/экспорт (калькулятор) */
 .calc-print .calc-scroll,
 .calc-print .factors-table-scroll{overflow:visible!important;max-width:none!important}
 .calc-print .calc-table,
@@ -416,4 +267,3 @@ input[type="range"].range::-moz-range-track{
 .calc-print .card{page-break-inside:avoid;break-inside:avoid;margin-bottom:8px}
 .calc-print .factors-table tr,
 .calc-print .calc-table tr{page-break-inside:avoid;break-inside:avoid}
-
