@@ -15,7 +15,9 @@
     <!-- React 18 (DEV для диагностики). Для прод: замените на production.min.js -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+        integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!-- Babel Standalone (требуется, т.к. app.js написан на JSX) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
@@ -24,8 +26,7 @@
 
 
     <!-- ВАЖНО: правильный тег, не самозакрывать, корректный относительный путь -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-YcsIPbPZ3hM0uH1aG0gQ5r9zq4fYQy4wrVj9uVgJk7vC2QWmM5Vn84J0y0Sgiw0pZ7v5xV3L7h2g1T1yCwXYlA==" crossorigin="anonymous"></script>
-<script type="text/babel" data-presets="env,react" src="./app.js"></script>
+    <script type="text/babel" data-presets="env,react" src="./app.js"></script>
    
 
     <!-- Оверлей ошибок, чтобы не было «просто пусто» -->
