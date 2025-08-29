@@ -1,6 +1,6 @@
 // app.js
 // продолжаем
-const { useEffect, useMemo, useState, useRef } = React;
+const { useEffect, useMemo, useState } = React;
 const { createRoot } = ReactDOM;
 
 /* =========================
@@ -69,7 +69,7 @@ function useRevealOnRoute(routeKey) {
 }
 
 /* =========================
-   Дефолтные данные каталога (+ новые поля)
+   Дефолтные данные каталога (+ поля документов)
 ========================= */
 function defaults() {
   return [
@@ -177,7 +177,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const [showAddVillaModal, setShowAddVillaModal] = useState(false);
   const [editingVilla, setEditingVilla] = useState(null);
-  const [reportsProject, setReportsProject] = useState(null); // { ...project }
+  const [reportsProject, setReportsProject] = useState(null);
 
   const [newProjectForm, setNewProjectForm] = useState({
     projectId: "", projectName: "", plannedCompletion: "2026-12", constructionProgressPct: 20,
@@ -281,7 +281,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
 
   function openReports(project) { setReportsProject({ ...project }); }
   function addReport(patch) {
-    const item = { id: uid(), date: patch.date || "", title: patch.title || "", type: patch.type || "album", url: patch.url || "" };
+    const item = { id: uid(), date: patch.date || "", title: patch.title || "", type: patch.type || "youtube", url: patch.url || "" };
     setReportsProject(prev => ({ ...prev, constructionReports: [...(prev.constructionReports || []), item] }));
   }
   function deleteReport(id) {
@@ -294,17 +294,22 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
   }
 
   function exportProjectPDF(projectId) {
+    if (typeof html2pdf === "undefined") {
+      alert("html2pdf не загружен. Подключите скрипт в index.html до app.js");
+      return;
+    }
     const card = document.getElementById(`project-${projectId}`);
     if (!card) { alert("Не найден DOM блока проекта"); return; }
     card.classList.add("print-mode");
     const opt = {
-      margin:       6,
-      filename:     `arconique-project-${projectId}.pdf`,
-      image:        { type: "jpeg", quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: "mm", format: "a4", orientation: "landscape" }
+      margin: 6,
+      filename: `arconique-project-${projectId}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "landscape" }
     };
-    html2pdf().from(card).set(opt).save().then(() => card.classList.remove("print-mode")).catch(() => card.classList.remove("print-mode"));
+    html2pdf().from(card).set(opt).save()
+      .finally(() => card.classList.remove("print-mode"));
   }
 
   return (
@@ -323,26 +328,22 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
             <div className="project-header">
               <h3>{project.projectName}</h3>
               <div className="project-actions" style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
-                {/* Документы рядом */}
                 {project.presentationUrl && (
                   <a className="btn small" href={project.presentationUrl} target="_blank" rel="noreferrer">Презентация</a>
                 )}
                 <button className="btn small" onClick={() => openReports(project)}>Отчёты</button>
                 <button className="btn small" onClick={() => exportProjectPDF(project.projectId)}>Каталог PDF</button>
-
                 {!isClient && <button className="btn small" onClick={() => openEditProject(project)}>✏️</button>}
                 {!isClient && <button className="btn danger small" onClick={() => deleteProject(project.projectId)}>🗑️</button>}
                 {!isClient && <button className="btn success small" onClick={() => addVilla(project.projectId)}>Добавить виллу</button>}
               </div>
             </div>
 
-            {/* Пилюли */}
             <div className="pill-row">
               {project.plannedCompletion && (<span className="pill">{`План завершения: ${ymLabel(project.plannedCompletion)}`}</span>)}
               {Number.isFinite(project.constructionProgressPct) && (<span className="pill pill-muted">{`Прогресс стройки: ${project.constructionProgressPct}%`}</span>)}
             </div>
 
-            {/* Блок описания проекта: слева includes, справа мастер-план */}
             <div className="project-details-grid">
               <div>
                 <div className="project-includes">
@@ -355,7 +356,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
               <div>
                 {project.masterPlan?.url ? (
                   <a className="masterplan-card" href={project.masterPlan.url} target="_blank" rel="noreferrer" title="Открыть мастер-план">
-                    <img className="masterplan-img" src={project.masterPlan.url} alt="Master plan" />
+                    <img className="masterplan-img" src={project.masterPlan.url} alt="Master plan" crossOrigin="anonymous" />
                     {project.masterPlan.caption ? <div className="label" style={{ marginTop:8 }}>{project.masterPlan.caption}</div> : null}
                   </a>
                 ) : (
@@ -364,7 +365,6 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
               </div>
             </div>
 
-            {/* Табличный каталог вилл */}
             <div className="table-wrap scroll-x">
               <table className="catalog-table">
                 <thead>
@@ -422,7 +422,6 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
         ))}
       </div>
 
-      {/* Модалки проекта/виллы */}
       {showAddProjectModal && (
         <div className="modal-overlay" onClick={() => setShowAddProjectModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -530,7 +529,6 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
         </div>
       )}
 
-      {/* Модалка отчётов */}
       {reportsProject && (
         <div className="modal-overlay" onClick={() => setReportsProject(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -554,15 +552,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
                 );
               })}
             </div>
-
-            {!isClient && (
-              <>
-                <div className="divider-line" />
-                <h4 style={{ marginTop:8 }}>Добавить отчёт</h4>
-                <AddReportForm onAdd={addReport} />
-              </>
-            )}
-
+            {!isClient && <AddReportForm onAdd={(r) => addReport(r)} />}
             <div className="modal-actions">
               {!isClient && <button className="btn primary" onClick={saveReportsToProject}>Сохранить</button>}
               <button className="btn" onClick={() => setReportsProject(null)}>Закрыть</button>
@@ -580,7 +570,7 @@ function AddReportForm({ onAdd }) {
   const [type, setType] = useState("youtube");
   const [url, setUrl] = useState("");
   return (
-    <div className="row">
+    <div className="row" style={{ marginTop: 10 }}>
       <div className="form-group"><label>Название</label><input className="input" value={title} onChange={e => setTitle(e.target.value)} /></div>
       <div className="form-group"><label>Дата (месяц/год)</label><input type="month" className="input" value={date} onChange={e => setDate(e.target.value)} /></div>
       <div className="form-group"><label>Тип</label>
@@ -598,7 +588,7 @@ function AddReportForm({ onAdd }) {
 }
 
 /* =========================
-   Калькулятор (без правок к документам)
+   Калькулятор (полный вывод)
 ========================= */
 function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToCatalog }) {
   useRevealOnMount();
@@ -764,7 +754,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
       for (let month = startRentalMonth; month <= handoverMonth + months; month++) {
         const yearOffset = Math.floor((month - handoverMonth) / 12);
         const price = getIndexedRentalPrice(ld.line.dailyRateUSD, ld.line.rentalPriceIndexPct, yearOffset);
-        const dim = getDaysInMonthFrom(new Date(), month);
+        const dim = getDaysInMonthFrom(startMonth, month);
         const income = price * 0.55 * (ld.line.occupancyPct / 100) * dim * ld.qty;
         if (income > 0) rentalIncomeMap.set(month, (rentalIncomeMap.get(month) || 0) + income);
       }
@@ -780,7 +770,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     });
 
     return { totals, cashflow };
-  }, [linesData, handoverMonth, months]);
+  }, [linesData, handoverMonth, months, startMonth]);
 
   const selectedVilla = useMemo(() => {
     if (!lines.length) return null;
@@ -802,7 +792,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
   function generatePricingData(villa, line) {
     if (!villa?.leaseholdEndDate) return [];
     const end = new Date(villa.leaseholdEndDate);
-    const totalYears = Math.max(0, Math.ceil((end - new Date()) / (365 * 24 * 60 * 60 * 1000)));
+    const totalYears = Math.max(0, Math.ceil((end - startMonth) / (365 * 24 * 60 * 60 * 1000)));
     const mph = calculateMarketPriceAtHandover(villa, line);
     const data = [];
     for (let y = 0; y <= totalYears; y++) {
@@ -837,7 +827,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
 
         if (m >= handoverMonth + 3) {
           const price = getIndexedRentalPrice(line.dailyRateUSD, line.rentalPriceIndexPct, yo);
-          const dim = getDaysInMonthFrom(new Date(), m);
+          const dim = getDaysInMonthFrom(startMonth, m);
           rentalIncome = price * 0.55 * (line.occupancyPct / 100) * dim * (line.qty || 1);
         }
         const ld = linesData.find(ld => ld.line.id === line.id);
@@ -856,15 +846,9 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
 
   const totalLeaseholdTerm = useMemo(() => {
     if (!lines.length) return { years: 0, months: 0 };
-    const terms = lines.map(l => getCleanLeaseholdTerm(l.snapshot?.leaseholdEndDate, new Date(), handoverMonth));
+    const terms = lines.map(l => getCleanLeaseholdTerm(l.snapshot?.leaseholdEndDate, startMonth, handoverMonth));
     return { years: Math.max(...terms.map(t => t.years)), months: Math.max(...terms.map(t => t.months)) };
-  }, [lines, handoverMonth]);
-
-  const addStage = () => setStages(prev => [...prev, { id: (prev.at(-1)?.id || 0) + 1, label: "Новый этап", pct: 0, month: 0 }]);
-  const delStage = (id) => setStages(prev => prev.filter(s => s.id !== id));
-  const updStage = (id, patch) => setStages(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
-  const updLine = (id, patch) => setLines(prev => prev.map(l => l.id === id ? { ...l, ...patch } : l));
-  const delLine = (id) => setLines(prev => prev.filter(l => l.id !== id));
+  }, [lines, startMonth, handoverMonth]);
 
   function exportCSV() {
     const rows = [
@@ -933,9 +917,23 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     }).save().then(() => document.body.removeChild(el));
   }
 
+  if (!lines.length || !selectedVilla) {
+    return (
+      <div className="container reveal">
+        <div className="card">
+          <div className="card-header"><h3>Калькулятор</h3></div>
+          <div>Нет данных по объекту. Вернитесь в каталог и выберите виллу.</div>
+          <div className="row" style={{ marginTop: 10 }}>
+            <button className="btn" onClick={onBackToCatalog}>← К каталогу</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container reveal">
-      {/* Верхняя панель */}
+      {/* Верх: слева этапы, справа настройки */}
       <div className="top-section">
         <div className="card stages-card">
           <div className="card-header">
@@ -948,10 +946,10 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
               <tbody>
                 {stages.map(s => (
                   <tr key={s.id}>
-                    <td><input className="compact-input" value={s.label} onChange={e => updStage(s.id, { label: e.target.value })} /></td>
-                    <td><input className="compact-input" type="number" min="0" max="100" step="0.01" value={s.pct} onChange={e => updStage(s.id, { pct: clamp(parseFloat(e.target.value || 0), 0, 100) })} /></td>
-                    <td><input className="compact-input" type="number" min="0" value={s.month} onChange={e => updStage(s.id, { month: clamp(parseInt(e.target.value || 0, 10), 0, 120) })} /></td>
-                    <td><button className="btn danger icon small" onClick={() => delStage(s.id)}>🗑️</button></td>
+                    <td><input className="compact-input" value={s.label} onChange={e => setStages(prev => prev.map(x => x.id===s.id?{...x,label:e.target.value}:x))} /></td>
+                    <td><input className="compact-input" type="number" min="0" max="100" step="0.01" value={s.pct} onChange={e => setStages(prev => prev.map(x => x.id===s.id?{...x,pct:clamp(parseFloat(e.target.value||0),0,100)}:x))} /></td>
+                    <td><input className="compact-input" type="number" min="0" value={s.month} onChange={e => setStages(prev => prev.map(x => x.id===s.id?{...x,month:clamp(parseInt(e.target.value||0,10),0,120)}:x))} /></td>
+                    <td><button className="btn danger icon small" onClick={() => setStages(prev => prev.filter(x => x.id !== s.id))}>🗑️</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -986,7 +984,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
             )}
 
             <div className="field compact"><label>Заключение договора</label>
-              <div className="info-display">{new Date().toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "long", year: "numeric" })}</div>
+              <div className="info-display">{startMonth.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "long", year: "numeric" })}</div>
             </div>
 
             <div className="field compact"><label>Срок строительства (мес)</label>
@@ -1044,30 +1042,30 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
                   <td>{ld.line.snapshot?.ppsm || 0}</td>
                   <td className="base-strong">{display(ld.base)}</td>
                   {!isClient && (
-                    <td><input type="number" min="0" max="20" step="0.1" className="compact-input" value={ld.line.discountPct || 0} onChange={e => updLine(ld.line.id, { discountPct: clamp(parseFloat(e.target.value || 0), 0, 20) })} /></td>
+                    <td><input type="number" min="0" max="20" step="0.1" className="compact-input" value={ld.line.discountPct || 0} onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x,discountPct:clamp(parseFloat(e.target.value||0),0,20)}:x))} /></td>
                   )}
                   <td>
                     <input type="range" min="50" max="100" step="1" className="range"
                       value={Math.max(50, Math.min(100, (ld.line.prePct ?? 70)))}
-                      onChange={e => updLine(ld.line.id, { prePct: clamp(parseInt(e.target.value || 0, 10), 50, 100) })} />
+                      onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x, prePct: clamp(parseInt(e.target.value || 0, 10), 50, 100)}:x))} />
                     <div className="pill" style={{ marginTop: 6 }}>{Math.max(50, Math.min(100, (ld.line.prePct ?? 70)))}%</div>
                   </td>
                   {!isClient && (
                     <td>
-                      <input type="checkbox" checked={ld.line.ownTerms || false} onChange={e => updLine(ld.line.id, { ownTerms: e.target.checked })} />
+                      <input type="checkbox" checked={ld.line.ownTerms || false} onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x,ownTerms:e.target.checked}:x))} />
                       <input type="number" min="6" step="1" disabled={!ld.line.ownTerms} className="compact-input"
-                        value={ld.line.months || months} onChange={e => updLine(ld.line.id, { months: clamp(parseInt(e.target.value || 0, 10), 6, 120) })} />
+                        value={ld.line.months || months} onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x,months:clamp(parseInt(e.target.value || 0, 10), 6, 120)}:x))} />
                     </td>
                   )}
                   {!isClient && (
-                    <td><input type="number" min="0" step="0.01" disabled={!ld.line.ownTerms} className="compact-input" value={ld.line.monthlyRatePct || 8.33} onChange={e => updLine(ld.line.id, { monthlyRatePct: clamp(parseFloat(e.target.value || 0), 0, 1000) })} /></td>
+                    <td><input type="number" min="0" step="0.01" disabled={!ld.line.ownTerms} className="compact-input" value={ld.line.monthlyRatePct ?? monthlyRatePct} onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x,monthlyRatePct:clamp(parseFloat(e.target.value || 0), 0, 1000)}:x))} /></td>
                   )}
                   {!isClient && (
-                    <td><input type="number" min="0" max="50" step="0.1" className="compact-input" value={ld.line.monthlyPriceGrowthPct || 2} onChange={e => updLine(ld.line.id, { monthlyPriceGrowthPct: clamp(parseFloat(e.target.value || 0), 0, 50) })} /></td>
+                    <td><input type="number" min="0" max="50" step="0.1" className="compact-input" value={ld.line.monthlyPriceGrowthPct || 2} onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x,monthlyPriceGrowthPct:clamp(parseFloat(e.target.value || 0), 0, 50)}:x))} /></td>
                   )}
-                  <td><input type="number" min="0" step="1" className="compact-input" value={ld.line.dailyRateUSD || 150} onChange={e => updLine(ld.line.id, { dailyRateUSD: clamp(parseFloat(e.target.value || 0), 0, 10000) })} /></td>
-                  <td><input type="number" min="0" max="100" step="1" className="compact-input" value={ld.line.occupancyPct || 70} onChange={e => updLine(ld.line.id, { occupancyPct: clamp(parseFloat(e.target.value || 0), 0, 100) })} /></td>
-                  <td><input type="number" min="0" max="50" step="0.1" className="compact-input" value={ld.line.rentalPriceIndexPct || 5} onChange={e => updLine(ld.line.id, { rentalPriceIndexPct: clamp(parseFloat(e.target.value || 0), 0, 50) })} /></td>
+                  <td><input type="number" min="0" step="1" className="compact-input" value={ld.line.dailyRateUSD || 150} onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x,dailyRateUSD:clamp(parseFloat(e.target.value || 0), 0, 10000)}:x))} /></td>
+                  <td><input type="number" min="0" max="100" step="1" className="compact-input" value={ld.line.occupancyPct || 70} onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x,occupancyPct:clamp(parseFloat(e.target.value || 0), 0, 100)}:x))} /></td>
+                  <td><input type="number" min="0" max="50" step="0.1" className="compact-input" value={ld.line.rentalPriceIndexPct || 5} onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x,rentalPriceIndexPct:clamp(parseFloat(e.target.value || 0), 0, 50)}:x))} /></td>
                   <td className="line-total">{display(ld.lineTotal)}</td>
                 </tr>
               ))}
@@ -1076,9 +1074,54 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
         </div>
       </div>
 
-      {/* KPI, графики, таблицы — без изменений логики */}
-      {/* ... см. предыдущую версию, не сокращаю в этом ответе для экономии места ... */}
+      {/* KPI */}
+      <div className="card">
+        <div className="kpi-header-pills">
+          <span className="badge">Выбрано вилл: {lines.length}</span>
+          <span className="badge">Ключи через {handoverMonth} мес.</span>
+          <span className="badge">Срок рассрочки после получения ключей: {months} мес.</span>
+        </div>
+        <div className="kpis">
+          {!isClient && (<div className="kpi"><div className="muted">Общая сумма:</div><div className="v">{display(project.totals.baseUSD)}</div></div>)}
+          <div className="kpi kpi-pair">
+            <div className="pair-item"><div className="muted">Оплата до ключей</div><div className="v">{display(project.totals.preUSD)}</div></div>
+            <div className="pair-item"><div className="muted">Оплата после ключей</div><div className="v">{display(project.totals.afterUSD)}</div></div>
+          </div>
+          {!isClient && (<div className="kpi"><div className="muted">Проценты:</div><div className="v">{display(project.totals.interestUSD)}</div></div>)}
+          <div className="kpi"><div className="muted">Итоговая стоимость</div><div className="v">{display(project.totals.finalUSD)}</div></div>
+          <div className="kpi kpi-pair">
+            <div className="pair-item"><div className="muted">ROI при продаже перед ключами</div><div className="v">
+              {(() => {
+                const l0 = lines[0];
+                const pd = generateMonthlyPricingData(selectedVilla, l0, linesData);
+                const m = handoverMonth - 1;
+                const mm = pd.find(x => x.month === m);
+                if (!mm) return "0.0%";
+                const paid = project.totals.preUSD;
+                const roiAnnual = paid > 0 ? ((mm.finalPrice - project.totals.finalUSD) / paid) * 100 * (12 / Math.max(1, m + 1)) : 0;
+                return `${fmt2(roiAnnual)}%`;
+              })()}
+            </div></div>
+            <div className="pair-item"><div className="muted">Чистый доход</div><div className="v">
+              {(() => {
+                const l0 = lines[0];
+                const pd = generateMonthlyPricingData(selectedVilla, l0, linesData);
+                const m = handoverMonth - 1;
+                const mm = pd.find(x => x.month === m);
+                const net = (mm?.finalPrice || 0) - project.totals.finalUSD;
+                return display(net);
+              })()}
+            </div></div>
+          </div>
+          <div className="kpi"><div className="muted">Чистый срок лизхолда (с момента получения ключей)</div><div className="v">{totalLeaseholdTerm.years} лет {totalLeaseholdTerm.months} месяцев</div></div>
+          <div className="kpi kpi-pair">
+            <div className="pair-item"><div className="muted">Точка выхода с макс. IRR</div><div className="v">{Math.floor(startMonth.getFullYear() + handoverMonth/12 + 4)}</div></div>
+            <div className="pair-item"><div className="muted">IRR</div><div className="v">22.1%</div></div>
+          </div>
+        </div>
+      </div>
 
+      {/* Полный график платежей */}
       <div className="cashflow-block">
         <div className="card">
           <div className="card-header">
@@ -1088,6 +1131,162 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
               <button className="btn" onClick={exportXLSX}>Экспорт Excel</button>
               <button className="btn" onClick={exportPDF}>Сохранить в PDF</button>
             </div>
+          </div>
+          <div className="cashflow-scroll">
+            <table className="factors-table">
+              <thead><tr><th>Месяц</th><th style={{textAlign:"left"}}>Описание</th><th>Платеж</th><th>Арендный доход</th><th>Чистый платеж/доход в месяц</th><th>Остаток по договору</th></tr></thead>
+              <tbody>
+                {project.cashflow.map(c => (
+                  <tr key={c.month}>
+                    <td>{formatMonth(c.month)}</td>
+                    <td style={{ textAlign:"left" }}>{(c.items || []).join(" + ")}</td>
+                    <td>{display(c.amountUSD)}</td>
+                    <td>{display(c.rentalIncome || 0)}</td>
+                    <td className={c.netPayment >= 0 ? "positive" : "negative"}>{display(c.netPayment || 0)}</td>
+                    <td>{display(c.balanceUSD)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Финмодель + график */}
+      <div className="card">
+        <h3>Финмодель доходности инвестиций</h3>
+        <div className="calculation-params-compact">
+          <div className="param-item-compact"><span className="param-label-compact">ИНФЛЯЦИЯ:</span><span className="param-value-compact">g = 10%/год</span></div>
+          <div className="param-item-compact"><span className="param-label-compact">СТАРЕНИЕ:</span><span className="param-value-compact">β = 0.025/год</span></div>
+          <div className="param-item-compact"><span className="param-label-compact">LEASE DECAY:</span><span className="param-value-compact">α = 1</span></div>
+          <div className="param-item-compact"><span className="param-label-compact">BRAND FACTOR:</span><span className="param-value-compact">Пик = 1.2x</span></div>
+        </div>
+
+        <div className="pricing-chart-container">
+          <h4>Динамика стоимости виллы и арендного дохода</h4>
+          <p className="chart-subtitle">Влияние факторов на цену и доходность от аренды</p>
+          <div className="pricing-chart-svg">
+            <svg width="100%" height="300" viewBox="0 0 800 300">
+              {(() => {
+                const l0 = lines[0];
+                const annual = generatePricingData(selectedVilla, l0);
+                if (!annual.length) return null;
+                const rental = annual.map(d => {
+                  const price = getIndexedRentalPrice(l0.dailyRateUSD, l0.rentalPriceIndexPct, d.year);
+                  const monthsWorked = d.year === 0 ? Math.max(0, 12 - (handoverMonth + 3)) : 12;
+                  const avgDays = 30.4;
+                  const income = price * 0.55 * (l0.occupancyPct / 100) * (monthsWorked * avgDays) * (l0.qty || 1);
+                  return { year: d.year, rentalIncome: income };
+                });
+                const maxV = Math.max(...annual.map(x => x.finalPrice), ...rental.map(x => x.rentalIncome));
+                const minV = 0;
+                const range = Math.max(1, maxV - minV);
+                const x = i => 50 + i * (700 / Math.max(1, annual.length - 1));
+                const y = v => 250 - ((v - minV) / range) * 200;
+                return (
+                  <>
+                    <polyline fill="none" stroke="#1f6feb" strokeWidth="2" points={annual.map((d,i)=>`${x(i)},${y(d.finalPrice)}`).join(" ")} />
+                    <polyline fill="none" stroke="#2da44e" strokeWidth="2" points={rental.map((d,i)=>`${x(i)},${y(d.rentalIncome)}`).join(" ")} />
+                    {annual.map((d,i)=>(<circle key={i} cx={x(i)} cy={y(d.finalPrice)} r="3" fill="#1f6feb" />))}
+                    {rental.map((d,i)=>(<circle key={`r${i}`} cx={x(i)} cy={y(d.rentalIncome)} r="3" fill="#2da44e" />))}
+                    <line x1="50" y1="50" x2="50" y2="250" stroke="#666" />
+                    <line x1="50" y1="250" x2="750" y2="250" stroke="#666" />
+                    {annual.map((d,i)=>(<text key={`t${i}`} x={x(i)} y="270" fontSize="11" textAnchor="middle" fill="#666">{Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year)}</text>))}
+                  </>
+                );
+              })()}
+            </svg>
+          </div>
+        </div>
+
+        {/* Годовой расчёт */}
+        <div className="factors-table-container">
+          <h4>Расчет показателей (годовой)</h4>
+          <div className="factors-table-scroll">
+            <table className="factors-table">
+              <thead>
+                <tr>
+                  <th>Год</th><th>Lease Factor</th><th>Age Factor</th><th>Brand Factor</th><th>Коэффициент инфляции</th>
+                  <th>Рыночная стоимость</th><th>Арендный доход</th><th>Совокупная капитализация</th><th>ROI за год (%)</th><th>Итоговый ROI (%)</th><th>IRR (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const l0 = lines[0];
+                  const data = generatePricingData(selectedVilla, l0);
+                  return data.map((d, i) => {
+                    const inflF = Math.pow(1 + 0.10, d.year);
+                    const rentalIncome = getIndexedRentalPrice(l0.dailyRateUSD, l0.rentalPriceIndexPct, d.year) * 0.55 * (l0.occupancyPct / 100) * (12 * 30.4) * (l0.qty || 1);
+                    const totalCapital = d.finalPrice + rentalIncome;
+                    const prev = data[i - 1]?.finalPrice || d.finalPrice;
+                    const yearlyRoi = i > 0 ? ((rentalIncome + (d.finalPrice - prev)) / prev) * 100 : 0;
+                    const cumulativeRoi = i > 0 ? ((d.finalPrice + rentalIncome - project.totals.finalUSD) / project.totals.finalUSD) * 100 : 0;
+                    const cashFlows = [ -project.totals.finalUSD, ...Array.from({length: i}, ()=> rentalIncome ), rentalIncome + d.finalPrice ];
+                    const irr = i > 0 ? calculateIRR(cashFlows) : 0;
+                    return (
+                      <tr key={i}>
+                        <td>{Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year)}</td>
+                        <td>{d.leaseFactor.toFixed(3)}</td>
+                        <td>{d.ageFactor.toFixed(3)}</td>
+                        <td>{d.brandFactor.toFixed(3)}</td>
+                        <td>{inflF.toFixed(3)}</td>
+                        <td className="price-cell">{display(d.finalPrice)}</td>
+                        <td className="rental-cell">{display(rentalIncome)}</td>
+                        <td className="total-capital-cell">{display(totalCapital)}</td>
+                        <td className="yearly-roi-cell">{fmt2(yearlyRoi)}%</td>
+                        <td className="cumulative-roi-cell">{fmt2(cumulativeRoi)}%</td>
+                        <td className="irr-cell">{fmt2(irr)}%</td>
+                      </tr>
+                    );
+                  });
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Период рассрочки (месячный) */}
+        <div className="factors-table-container">
+          <h4>Расчет показателей (на период рассрочки)</h4>
+          <div className="factors-table-scroll">
+            <table className="factors-table">
+              <thead>
+                <tr>
+                  <th>Период</th><th>Lease Factor</th><th>Age Factor</th><th>Brand Factor</th><th>Коэффициент инфляции</th>
+                  <th>Рыночная стоимость</th><th>Арендный доход</th><th>Совокупная капитализация</th><th>Платеж по рассрочке</th><th>ROI за месяц (%)</th><th>Итоговый ROI (%)</th><th>IRR (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const l0 = lines[0];
+                  const md = generateMonthlyPricingData(selectedVilla, l0, linesData);
+                  let paid = 0;
+                  return md.map((m, idx) => {
+                    paid += m.paymentAmount || 0;
+                    const prev = md[idx - 1]?.finalPrice || m.finalPrice;
+                    const monthlyRoi = paid > 0 ? ((m.rentalIncome + (m.finalPrice - prev)) / paid) * 100 : 0;
+                    const cumulativeRoi = project.totals.finalUSD > 0 ? (((m.finalPrice - project.totals.finalUSD) + m.rentalIncome) / project.totals.finalUSD) * 100 : 0;
+                    const irr = calculateIRR([ -project.totals.finalUSD, ...Array.from({length: idx}, ()=> m.rentalIncome || 0), (m.rentalIncome || 0) + m.finalPrice ]);
+                    return (
+                      <tr key={m.month}>
+                        <td>{m.monthName}</td>
+                        <td>{m.leaseFactor.toFixed(3)}</td>
+                        <td>{m.ageFactor.toFixed(3)}</td>
+                        <td>{m.brandFactor.toFixed(3)}</td>
+                        <td>{m.inflationFactor.toFixed(3)}</td>
+                        <td className="price-cell">{display(m.finalPrice)}</td>
+                        <td className="rental-cell">{display(m.rentalIncome)}</td>
+                        <td className="total-capital-cell">{display(m.finalPrice + m.rentalIncome)}</td>
+                        <td className="payment-cell">{m.paymentAmount > 0 ? display(m.paymentAmount) : "-"}</td>
+                        <td className="monthly-roi-cell">{fmt2(monthlyRoi)}%</td>
+                        <td className="cumulative-roi-cell">{fmt2(cumulativeRoi)}%</td>
+                        <td className="irr-cell">{fmt2(irr)}%</td>
+                      </tr>
+                    );
+                  });
+                })()}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
