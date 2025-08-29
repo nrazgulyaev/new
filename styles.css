@@ -1,420 +1,251 @@
 /* styles.css */
 /* продолжаем */
 
-/* ========== Base / Reset ========== */
-*,
-*::before,
-*::after { box-sizing: border-box; }
+/* ========== Catalog-scoped theme (не влияет на калькулятор) ========== */
+.catalog {
+  --bg-page: #f7f1e3;                /* бежевый фон (только внутри каталога) */
+  --ink: #111111;                    /* основной текст/primary */
+  --ink-2: #4b5563;                  /* вторичный текст */
+  --line: #b9b9b9;                   /* тонкие границы как в референсе */
+  --surface: rgba(255,255,255,0.90); /* полупрозрачная «стеклянная» подложка */
+  --surface-soft: #f3f4f6;           /* шапка таблиц (light) */
+  --surface-dark: rgba(255,255,255,0.10); /* шапка в тёмной секции */
+  --radius-xxl: 24px;                /* rounded-3xl */
+  --radius-md: 8px;
 
-html, body { height: 100%; }
+  /* Статусы */
+  --green-bg: #d1fae5; --green-ink: #065f46;
+  --amber-bg: #fef3c7; --amber-ink: #92400e;
+  --slate-bg: #f1f5f9; --slate-ink: #334155;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  color: #111;
-  background: #f7f1e3; /* бежевый фон */
-  line-height: 1.4;
+  color: var(--ink);
+  background: var(--bg-page);
 }
 
-img { max-width: 100%; display: block; }
+/* ========== Базовые утилиты только внутри каталога ========== */
+.catalog a { color: inherit; text-decoration: none; }
+.catalog img { max-width: 100%; display: block; }
 
-/* Links reset for buttons-as-links in app */
-a { color: inherit; text-decoration: none; }
+.catalog .rounded-3xl { border-radius: var(--radius-xxl); }
+.catalog .border-dashed { border-style: dashed; }
+.catalog .bg-surface { background: var(--surface); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.catalog .whitespace-nowrap { white-space: nowrap; }
+.catalog .text-sm { font-size: 14px; }
 
-/* ========== Layout ========== */
-.container {
+/* ========== Контейнеры/лейаут (локально) ========== */
+.catalog .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 14px 16px;
 }
 
-.header { }
-.h1 { font-weight: 700; }
+/* Sticky-панель как у референса */
+.catalog .toolbar-sticky {
+  position: sticky;
+  top: 60px;
+  z-index: 30;
+  background: rgba(255,255,255,0.80);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
+  backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid #e5e7eb;
+}
 
-/* ========== Reveal animation ========== */
-.reveal { opacity: 0; transform: translateY(8px); transition: opacity .35s ease, transform .35s ease; }
-.reveal.is-visible { opacity: 1; transform: translateY(0); }
-
-/* ========== Buttons ========== */
-.btn {
+/* ========== Кнопки (только в каталоге; калькулятор не затронут) ========== */
+.catalog .btn {
   appearance: none;
   border: 1px solid #d0d7de;
   background: #fff;
-  color: #111;
+  color: var(--ink);
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
   transition: background .2s, border-color .2s, color .2s, box-shadow .2s;
 }
-.btn:hover { background: #f6f8fa; }
-.btn:active { background: #eef1f4; }
-/* primary — чёрные, как было */
-.btn.primary { background: #111; border-color: #111; color: #fff; }
-.btn.primary:hover { background: #000; border-color: #000; }
-.btn.danger { background: #fef2f2; border-color: #ef4444; color: #b91c1c; }
-.btn.danger:hover { background: #fee2e2; }
-.btn.success { background: #ecfdf5; border-color: #10b981; color: #047857; }
-.btn.success:hover { background: #d1fae5; }
-.btn.small { padding: 6px 10px; font-size: 13px; }
-.btn.icon { padding: 6px 8px; }
-.btn.tiny { padding: 4px 6px; font-size: 12px; }
+.catalog .btn:hover { background: #f6f8fa; }
+.catalog .btn:active { background: #eef1f4; }
+.catalog .btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+.catalog .btn.primary:hover { background: #000; border-color: #000; }
+.catalog .btn.danger { background: #fef2f2; border-color: #ef4444; color: #b91c1c; }
+.catalog .btn.danger:hover { background: #fee2e2; }
+.catalog .btn.success { background: #ecfdf5; border-color: #10b981; color: #047857; }
+.catalog .btn.success:hover { background: #d1fae5; }
+.catalog .btn.small { padding: 6px 10px; font-size: 13px; }
+.catalog .btn.icon { padding: 6px 8px; }
+.catalog .btn.tiny { padding: 4px 6px; font-size: 12px; }
 
-.badge {
+/* ========== Pills / Badges (только в каталоге) ========== */
+.catalog .badge {
   display: inline-flex;
   align-items: center;
   height: 24px;
   padding: 0 8px;
   border-radius: 999px;
-  background: #efe6d8; /* тёплая метка */
-  color: #5b4636;
+  background: #eef2ff;
+  color: #3730a3;
   font-size: 12px;
   font-weight: 600;
 }
 
-.pill {
+.catalog .pill {
   display: inline-flex;
   align-items: center;
   height: 26px;
   padding: 0 10px;
   border-radius: 999px;
-  background: #faf3ea; /* бежевый софт */
+  background: #f3f4f6;
   color: #111827;
   font-size: 12px;
   gap: 6px;
 }
-.pill-muted { background: #efe6d8; color: #5b4636; }
-.pill.link {
+.catalog .pill-muted { background: #f1f5f9; color: #111827; }
+.catalog .pill.link {
   cursor: pointer;
-  border: 1px solid #e5e7eb;
+  border: 1px dashed var(--line);
   background: #fff;
 }
-.pill.link:hover { background: #f9fafb; }
+.catalog .pill.link:hover { background: #f9fafb; }
 
-/* ========== Catalog ========== */
-.catalog-header {
+/* Статусы (как в референсе) */
+.catalog .status-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.catalog .status-available { background: var(--green-bg); color: var(--green-ink); }
+.catalog .status-reserved { background: var(--amber-bg); color: var(--amber-ink); }
+.catalog .status-hold { background: var(--slate-bg); color: var(--slate-ink); }
+
+/* ========== Поиск/контролы ========== */
+.catalog .catalog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
 }
-.catalog-controls {
+.catalog .catalog-controls {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
 }
-.search-input {
+.catalog .search-input {
   height: 32px;
   padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid #e7d9c6; /* тёплая рамка */
-  background: #fffaf2;        /* тёплый фон инпутов */
-  color: #111;
+  border-radius: var(--radius-md);
+  border: 1px solid #d1d5db;
   font-size: 14px;
   min-width: 220px;
 }
 
-.project-anchors {
+/* Anchors (якоря проектов) */
+.catalog .project-anchors {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   margin: 8px 0 12px;
 }
 
-.catalog-list { display: flex; flex-direction: column; gap: 12px; }
+/* ========== Список/карточки проектов ========== */
+.catalog .catalog-list { display: flex; flex-direction: column; gap: 12px; }
 
-.project-card {
-  background: #fff;
-  border: 1px solid #eadfd0; /* тёплая рамка карточки */
-  border-radius: 12px;
-  padding: 12px;
-  box-shadow: 0 1px 2px rgba(152, 126, 90, .08); /* тёплая тень */
-}
-.project-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.project-actions { }
-
-.pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-
-.project-details-grid {
-  display: grid;
-  grid-template-columns: 1.2fr .8fr;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-@media (max-width: 900px) {
-  .project-details-grid { grid-template-columns: 1fr; }
-}
-
-.project-includes .includes-title {
-  font-size: 12px;
-  color: #6b7280;
-  margin-bottom: 6px;
-}
-.includes-list {
-  margin: 0;
-  padding-left: 18px;
-}
-.masterplan-card {
-  display: block;
-  border: 1px solid #e7d9c6;
-  border-radius: 10px;
+/* Карточка проекта — «стекло» + пунктирная рамка (как в референсе) */
+.catalog .project-card {
+  background: var(--surface);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-xxl);
   overflow: hidden;
-  background: #fffaf2; /* тёплая подложка */
 }
-.masterplan-img {
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-  background: #f3f4f6;
-}
-.label { font-size: 12px; color: #6b7280; }
 
-/* Table common */
-.table-wrap,
-.calc-scroll,
-.cashflow-scroll,
-.factors-table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-.scroll-x { overflow-x: auto; }
+/* Разделы внутри карточки */
+.catalog .project-card__section { padding: 12px 12px 0 12px; }
+.catalog .project-card__footer { padding: 10px 12px 12px 12px; }
 
-.catalog-table,
-.calc-table,
-.factors-table {
+/* ========== Таблицы каталога ========== */
+.catalog .project-card table {
   width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+  font-size: 14px;
+  color: var(--ink);
 }
-.catalog-table th, .catalog-table td,
-.calc-table th, .calc-table td,
-.factors-table th, .factors-table td {
-  border-bottom: 1px solid #eef2f7;
-  padding: 8px 10px;
-  text-align: center;
-  vertical-align: middle;
-  background: #fff;
+
+/* Шапка (light) */
+.catalog .project-card thead tr {
+  background: var(--surface-soft);
+}
+.catalog .project-card thead th {
+  text-align: left;
+  font-weight: 600;
+  padding: 12px 12px;
   white-space: nowrap;
+  border-bottom: 1px solid #e5e7eb;
 }
-.catalog-table thead th,
-.calc-table thead th,
-.factors-table thead th {
-  position: sticky;
-  top: 0;
-  background: #faf3ea; /* бежевый хедер таблиц */
-  z-index: 1;
-  font-weight: 600;
-  color: #374151;
+
+/* Ячейки */
+.catalog .project-card tbody td {
+  padding: 10px 12px;
+  white-space: nowrap;
+  border-bottom: 1px solid #e5e7eb;
 }
-.td-left { text-align: left; }
-.w-1 { width: 1%; }
 
-.base-strong { font-weight: 700; color: #0f172a; }
-.line-total { font-weight: 700; color: #0f172a; }
+/* Имитируем «тонкий» разделитель на retina */
+@media (min-resolution: 2dppx) {
+  .catalog .project-card thead th,
+  .catalog .project-card tbody td {
+    border-bottom-color: rgba(185,185,185,0.6);
+  }
+}
 
-/* Status */
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 999px;
+/* Последняя строка без нижней границы */
+.catalog .project-card tbody tr:last-child td { border-bottom: none; }
+
+/* Тёмная карточка (если используете секции с темной темой) */
+.catalog .project-card.dark {
+  background: #0f3b33;
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.25);
+}
+.catalog .project-card.dark thead tr { background: var(--surface-dark); }
+.catalog .project-card.dark thead th {
+  color: #fff;
+  border-bottom-color: rgba(255,255,255,0.15);
+}
+.catalog .project-card.dark tbody td {
+  color: #fff;
+  border-bottom-color: rgba(255,255,255,0.15);
+}
+
+/* Кнопки в ячейках действий */
+.catalog .table-actions { display: inline-flex; gap: 8px; }
+.catalog .table-actions .btn {
+  padding: 6px 10px;
   font-size: 12px;
-  font-weight: 600;
-  border: 1px solid;
-}
-.status-available { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
-.status-reserved { background: #fef3c7; color: #92400e; border-color: #fde68a; }
-.status-hold { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
-
-/* Divider */
-.divider-line {
-  height: 1px;
-  background: #e5e7eb;
-  margin: 12px 0;
-}
-
-/* Grid tiles used in reports/KPI */
-.catalog-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 8px;
-}
-@media (max-width: 700px) {
-  .catalog-grid { grid-template-columns: 1fr; }
-}
-.villa-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid #e5e7eb;
   border-radius: 10px;
-  background: #fff;
-  cursor: pointer;
-}
-.villa-info .value { font-weight: 600; }
-.villa-info .label { font-size: 12px; color: #6b7280; }
-
-/* ========== Modal / Portal ========== */
-.portal-root { position: relative; z-index: 9999; }
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(17, 24, 39, .48);
-  display: flex; align-items: center; justify-content: center;
-  padding: 16px;
-}
-.modal-content {
-  width: 100%;
-  max-width: 960px;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 10px 30px rgba(0,0,0,.12);
-  padding: 14px;
-}
-.modal-actions {
-  display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px;
 }
 
-/* Forms */
-.row, .form-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 10px;
-}
-@media (max-width: 800px) {
-  .row, .form-row { grid-template-columns: 1fr; }
-}
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group > label { font-size: 12px; color: #6b7280; }
-.input, select.input {
-  height: 36px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid #e7d9c6; /* тёплая рамка */
-  background: #fffaf2;        /* тёплый фон */
-  color: #111;
-  font-size: 14px;
+/* ========== Мобилка ========== */
+@media (max-width: 768px) {
+  .catalog .container { padding: 12px; }
+  .catalog .project-card thead th,
+  .catalog .project-card tbody td { padding: 8px 10px; font-size: 13px; }
 }
 
-/* ========== Cards (Calculator) ========== */
-.card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 12px;
+/* ========== Print для каталога (PDF/печать) ========== */
+@media print {
+  .catalog {
+    background: #ffffff !important;
+  }
+  .catalog .project-card {
+    background: #ffffff !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border: 1px solid #e5e7eb; /* печать без пунктирного «рябления» */
+    box-shadow: none !important;
+  }
+  .catalog .project-card thead tr { background: #f5f5f5 !important; }
+  .catalog .btn, 
+  .catalog .project-anchors, 
+  .catalog .catalog-controls { display: none !important; }
 }
-.card-header {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; margin-bottom: 8px;
-}
-.top-section {
-  display: grid;
-  grid-template-columns: 1.1fr .9fr;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-@media (max-width: 1000px) {
-  .top-section { grid-template-columns: 1fr; }
-}
-
-/* Settings */
-.field.compact {
-  display: grid; gap: 6px;
-}
-.field.compact > label { font-size: 12px; color: #6b7280; }
-.info-display {
-  min-height: 36px;
-  display: inline-flex; align-items: center; padding: 0 10px;
-  border-radius: 8px; border: 1px dashed #e7d9c6; color: #111; /* тёплая рамка */
-}
-
-/* Stages table (preinstallments) */
-.stages-card .stages-scroll { overflow-x: auto; }
-.factors-table { table-layout: fixed; width: 100%; }
-.stages-col-name { width: 58%; }
-.stages-col-pct { width: 16%; }
-.stages-col-month { width: 16%; }
-
-.compact-input {
-  width: 100%;
-  height: 32px;
-  padding: 0 8px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 14px;
-  background: #fff;
-}
-
-/* Narrow cells */
-.factors-table td:nth-child(2) .compact-input,
-.factors-table td:nth-child(3) .compact-input { max-width: 110px; }
-
-.range { width: 100%; }
-
-/* KPI */
-.kpi-header-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
-@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-@media (max-width: 640px) { .kpis { grid-template-columns: 1fr; } }
-.kpi, .pair-item {
-  border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; background: #fff;
-}
-.kpi .muted, .pair-item .muted { color: #6b7280; font-size: 12px; margin-bottom: 4px; }
-.kpi .v, .pair-item .v { font-size: 16px; font-weight: 700; color: #0f172a; }
-.kpi-pair { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
-
-/* Cashflow */
-.cashflow-block .card-header h2 { margin: 0; font-size: 18px; }
-.export-buttons { display: inline-flex; gap: 8px; flex-wrap: wrap; }
-.cashflow-scroll { overflow-x: auto; }
-
-/* Signs */
-.positive { color: #16a34a; font-weight: 600; }
-.negative { color: #dc2626; font-weight: 600; }
-
-/* Chart */
-.pricing-chart-container { }
-.chart-subtitle { color: #6b7280; font-size: 12px; margin: 4px 0 8px; }
-.pricing-chart-svg {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #fff;
-  overflow: hidden;
-}
-
-/* Factors tables wrappers */
-.factors-table-container { margin-top: 12px; }
-.factors-table-scroll { overflow-x: auto; }
-.factors-table th, .factors-table td { font-size: 13px; }
-.price-cell, .rental-cell, .total-capital-cell, .payment-cell,
-.yearly-roi-cell, .cumulative-roi-cell, .irr-cell { white-space: nowrap; }
-
-/* Anchors / Pills */
-.project-anchors .pill.link { border-color: #e5e7eb; }
-
-/* ========== Print mode for html2pdf clones ========== */
-.print-mode {
-  background: #fff !important;
-  color: #111 !important;
-}
-.print-mode .card { box-shadow: none !important; }
-.print-mode .catalog-table thead th,
-.print-mode .calc-table thead th,
-.print-mode .factors-table thead th { position: relative !important; top: auto !important; background: #fff !important; }
-
-/* ========== Utility ========== */
-.scroll-x { overflow-x: auto; }
