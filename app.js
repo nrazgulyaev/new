@@ -171,7 +171,7 @@ const loadCatalog = () => {
 const saveCatalog = (c) => { try { localStorage.setItem(LS_CATALOG, JSON.stringify(c)); } catch {} };
 
 /* =========================
-   Финансовые утилиты (калькулятор)
+   Финансовые утилиты
 ========================= */
 function getDaysInMonthFrom(startDate, offsetMonths) {
   const d = new Date(startDate);
@@ -207,7 +207,7 @@ function calculateIRR(cashFlows, maxIterations = 100, tolerance = 1e-4) {
 }
 
 /* =========================
-   CatalogManager (каталог + админ + документы)
+   CatalogManager
 ========================= */
 function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -331,7 +331,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
     setReportsProject(null);
   }
 
-  // Экспорт проекта в PDF — через клон
+  // Экспорт проекта в PDF — через клон (устойчиво)
   function exportProjectPDF(projectId) {
     try {
       if (typeof html2pdf === "undefined") {
@@ -348,7 +348,9 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
       wrapper.style.inset = "0";
       wrapper.style.background = "#fff";
       wrapper.style.overflow = "auto";
-      wrapper.style.visibility = "hidden";
+      wrapper.style.opacity = "0"; // вместо visibility:hidden
+      // скрыть все изображения (во избежание таинта canvas)
+      clone.querySelectorAll("img").forEach(img => { img.style.display = "none"; });
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
 
@@ -364,15 +366,15 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
           margin: 6,
           filename: `arconique-price-list-${projectId}.pdf`,
           image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, allowTaint: false, scrollX: 0, scrollY: 0, windowWidth, windowHeight },
+          html2canvas: { backgroundColor: "#fff", scale: 2, useCORS: true, allowTaint: false, scrollX: 0, scrollY: 0, windowWidth, windowHeight },
           jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
           pagebreak: { mode: ["css", "legacy"] }
         }).save();
       };
 
       requestAnimationFrame(() => {
-        run().finally(() => {
-          try { document.body.removeChild(wrapper); } catch {}
+        requestAnimationFrame(() => {
+          run().finally(() => { try { document.body.removeChild(wrapper); } catch {} });
         });
       });
     } catch (e) {
@@ -453,7 +455,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
                     <th className="w-1">Цена за м², $</th>
                     <th className="w-1">Цена с НДС, $</th>
                     <th className="w-1">Статус</th>
-                    <th className="w-1">График платежей и финмодель</th>
+                    <th className="w-1">Платежи и финмодель</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -697,7 +699,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
   const [months, setMonths] = useState(12);
   const [monthlyRatePct, setMonthlyRatePct] = useState(8.33);
 
-  // Рассчитать handoverMonth от plannedCompletion (если есть)
   useEffect(() => {
     const ym = initialProject?.plannedCompletion && normalizeYM(initialProject.plannedCompletion);
     if (ym) {
@@ -715,7 +716,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
   ]);
   const stagesSumPct = useMemo(() => stages.reduce((s, x) => s + (+x.pct || 0), 0), [stages]);
 
-  // Одна строка в калькуляторе, prePct по умолчанию 100%
   const [lines, setLines] = useState(() => {
     if (!initialVilla || !initialProject) return [];
     return [{
@@ -743,7 +743,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     }];
   });
 
-  // Помощники отображения
   function convertUSD(valueUSD) {
     if (rates.currency === "IDR") return +valueUSD * (rates.idrPerUsd || 1);
     if (rates.currency === "EUR") return +valueUSD * (rates.eurPerUsd || 1);
@@ -758,7 +757,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "long", year: "numeric" });
   }
 
-  // Узкие колонки рассрочки + фильтрация ввода
   const limitStageLabel = (v) => (v || "").slice(0, 20);
   const parsePct = (v) => {
     const s = (v || "").replace(/,/g,'.').replace(/[^0-9.]/g,'');
@@ -774,7 +772,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return clamp(num, 0, 120);
   };
 
-  // Подготовка данных
   const linesData = useMemo(() => {
     return lines.map(line => {
       const baseOne = line.snapshot?.baseUSD ?? ((line.snapshot?.area || 0) * (line.snapshot?.ppsm || 0));
@@ -940,7 +937,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
         inflationF = Math.pow(1 + 0.10, yo);
         leaseF = 1;
         ageF = Math.exp(-0.025 * yo);
-        brandF = (yo <= 3) ? 1 + (1.2 - 1) * (yo / 3) : (yo <= 7 ? 1.2 : (yo <= 15 ? 1.2 - (1.2 - 1.0) * ((yo - 7) / 8) : 1.0));
+        brandF = (yo <= 3) ? 1 + (1.2 - 1) * (yo / 3) : (yo <= 7 ? 1.2 : (yo <= 15 ? 1.2 - (1.2 - 1.0) * ((y - 7) / 8) : 1.0));
         finalPrice = mph * inflationF * leaseF * ageF * brandF;
 
         if (m >= handoverMonth + 3) {
@@ -968,7 +965,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return { years: Math.max(...terms.map(t => t.years)), months: Math.max(...terms.map(t => t.months)) };
   }, [lines, startMonth, handoverMonth]);
 
-  // Экспорт PDF калькулятора — клон
+  // Экспорт PDF калькулятора — клон (устойчиво)
   function exportCalcPDF() {
     try {
       if (typeof html2pdf === "undefined") {
@@ -985,7 +982,9 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
       wrapper.style.inset = "0";
       wrapper.style.background = "#fff";
       wrapper.style.overflow = "auto";
-      wrapper.style.visibility = "hidden";
+      wrapper.style.opacity = "0";
+      // скрыть все изображения (на случай внешних источников)
+      clone.querySelectorAll("img").forEach(img => { img.style.display = "none"; });
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
 
@@ -1000,15 +999,15 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           margin: 6,
           filename: `arconique-calculator-${new Date().toISOString().slice(0,10)}.pdf`,
           image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, allowTaint: false, scrollX: 0, scrollY: 0, windowWidth, windowHeight },
+          html2canvas: { backgroundColor: "#fff", scale: 2, useCORS: true, allowTaint: false, scrollX: 0, scrollY: 0, windowWidth, windowHeight },
           jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
           pagebreak: { mode: ["css", "legacy"] }
         }).save();
       };
 
       requestAnimationFrame(() => {
-        run().finally(() => {
-          try { document.body.removeChild(wrapper); } catch {}
+        requestAnimationFrame(() => {
+          run().finally(() => { try { document.body.removeChild(wrapper); } catch {} });
         });
       });
     } catch (e) {
@@ -1216,7 +1215,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
         </div>
 
-        {/* KPI */}
+        {/* KPI, графики, таблицы (как выше) */}
         <div className="card">
           <div className="kpi-header-pills">
             <span className="badge">Выбрано вилл: {lines.length}</span>
@@ -1263,7 +1262,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
         </div>
 
-        {/* График платежей, Финмодель, Годовой и Период рассрочки */}
         <div className="cashflow-block">
           <div className="card">
             <div className="card-header">
@@ -1476,11 +1474,10 @@ function App() {
   const [catalog, setCatalog] = useState(loadCatalog());
   useEffect(() => saveCatalog(catalog), [catalog]);
 
-  const [calcInput, setCalcInput] = useState(null); // { project, villa }
+  const [calcInput, setCalcInput] = useState(null);
   useRevealOnRoute(calcInput ? "calc" : "catalog");
 
   function handleCalculate(project, villa) {
-    // всегда только 1 вилла: просто переходим с заменой
     setCalcInput({ project, villa });
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
   }
