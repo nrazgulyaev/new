@@ -277,3 +277,11 @@ input[type="range"].range::-moz-range-track{
 .masterplan-img{width:100%;height:240px;object-fit:cover;border-radius:8px}
 .print-mode .project-actions,.print-mode .btn{display:none!important}
 .print-mode .includes-title{margin-top:0}
+
+/* styles.css — добавьте в конец для печати/экспорта */
+.print-mode .table-wrap{overflow:visible!important;max-width:none!important}
+.print-mode .catalog-table{width:100%!important;min-width:auto!important;table-layout:fixed!important}
+.print-mode .catalog-table th,
+.print-mode .catalog-table td{white-space:nowrap;font-size:11px;padding:6px 8px}
+.print-mode .project-actions,
+.print-mode .btn{display:none!important}
