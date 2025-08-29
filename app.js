@@ -1,6 +1,6 @@
 // app.js
 // продолжаем
-const { useEffect, useMemo, useState } = React;
+const { useEffect, useMemo, useRef, useState } = React;
 const { createRoot } = ReactDOM;
 
 /* =========================
@@ -66,6 +66,28 @@ function useRevealOnRoute(routeKey) {
       document.querySelectorAll(".reveal").forEach(el => el.classList.add("is-visible"));
     });
   }, [routeKey]);
+}
+
+/* =========================
+   Портал для модалок + lock-scroll
+========================= */
+function Portal({ children }) {
+  const elRef = useRef(null);
+  if (!elRef.current) {
+    elRef.current = document.createElement("div");
+    elRef.current.className = "portal-root";
+  }
+  useEffect(() => {
+    const el = elRef.current;
+    document.body.appendChild(el);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      try { document.body.removeChild(el); } catch {}
+    };
+  }, []);
+  return ReactDOM.createPortal(children, elRef.current);
 }
 
 /* =========================
@@ -293,54 +315,44 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
     setReportsProject(null);
   }
 
-  // Экспорт каталога проекта в PDF (альбомная), без обрезаний
+  // Экспорт каталога проекта в PDF (клон в body, без обрезаний)
   function exportProjectPDF(projectId) {
     if (typeof html2pdf === "undefined") {
       alert("html2pdf не загружен. Подключите скрипт в index.html до app.js");
       return;
     }
-    const card = document.getElementById(`project-${projectId}`);
-    if (!card) { alert("Не найден DOM блока проекта"); return; }
-    card.classList.add("print-mode");
-    const wrap = card.querySelector(".table-wrap");
-    const table = card.querySelector(".catalog-table");
-    const prev = {
-      wrapOverflow: wrap?.style.overflow,
-      wrapMaxWidth: wrap?.style.maxWidth,
-      tableWidth: table?.style.width,
-      tableMinWidth: table?.style.minWidth,
-      tableLayout: table?.style.tableLayout,
-    };
-    if (wrap) {
-      wrap.style.overflow = "visible";
-      wrap.style.maxWidth = "none";
-    }
-    if (table) {
-      table.style.width = "100%";
-      table.style.minWidth = "auto";
-      table.style.tableLayout = "fixed";
-    }
-    const windowWidth = card.scrollWidth;
-    const windowHeight = Math.max(card.scrollHeight, 800);
-    const opt = {
+    const original = document.getElementById(`project-${projectId}`);
+    if (!original) { alert("Не найден блок проекта"); return; }
+
+    const clone = original.cloneNode(true);
+    const wrapper = document.createElement("div");
+    wrapper.className = "project-print print-mode";
+    wrapper.style.position = "fixed";
+    wrapper.style.inset = "0";
+    wrapper.style.background = "#fff";
+    wrapper.style.overflow = "auto";
+    wrapper.style.visibility = "hidden"; // видим для движка, но не мешаем пользователю
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    // Убрать скроллы/ограничения внутри копии
+    const wrap = wrapper.querySelector(".table-wrap");
+    const table = wrapper.querySelector(".catalog-table");
+    if (wrap) { wrap.style.overflow = "visible"; wrap.style.maxWidth = "none"; }
+    if (table) { table.style.width = "100%"; table.style.minWidth = "auto"; table.style.tableLayout = "fixed"; }
+
+    const windowWidth = wrapper.scrollWidth;
+    const windowHeight = Math.max(wrapper.scrollHeight, 800);
+
+    html2pdf().from(wrapper).set({
       margin: 6,
       filename: `arconique-project-${projectId}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, windowWidth, windowHeight },
       jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
       pagebreak: { mode: ["css", "legacy"] }
-    };
-    html2pdf().from(card).set(opt).save().finally(() => {
-      if (wrap) {
-        wrap.style.overflow = prev.wrapOverflow || "";
-        wrap.style.maxWidth = prev.wrapMaxWidth || "";
-      }
-      if (table) {
-        table.style.width = prev.tableWidth || "";
-        table.style.minWidth = prev.tableMinWidth || "";
-        table.style.tableLayout = prev.tableLayout || "";
-      }
-      card.classList.remove("print-mode");
+    }).save().finally(() => {
+      try { document.body.removeChild(wrapper); } catch {}
     });
   }
 
@@ -454,148 +466,162 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
         ))}
       </div>
 
-      {/* Модалки: проект, вилла, отчёты */}
+      {/* МОДАЛКИ через Portal */}
       {showAddProjectModal && (
-        <div className="modal-overlay" onClick={() => setShowAddProjectModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Добавить проект</h3>
-            <div className="form-group"><label>Название проекта</label><input className="input" value={newProjectForm.projectName} onChange={e => setNewProjectForm(p => ({ ...p, projectName: e.target.value }))} /></div>
-            <div className="form-group"><label>Планируемая дата завершения (месяц/год)</label><input type="month" className="input" value={newProjectForm.plannedCompletion} onChange={e => setNewProjectForm(p => ({ ...p, plannedCompletion: e.target.value }))} /></div>
-            <div className="form-group"><label>Достигнутый прогресс строительства (%)</label><input type="number" min="0" max="100" className="input" value={newProjectForm.constructionProgressPct} onChange={e => setNewProjectForm(p => ({ ...p, constructionProgressPct: clamp(parseFloat(e.target.value||0),0,100) }))} /></div>
-            <div className="form-group"><label>Ссылка на презентацию (PDF)</label><input className="input" placeholder="https://..." value={newProjectForm.presentationUrl} onChange={e => setNewProjectForm(p => ({ ...p, presentationUrl: e.target.value }))} /></div>
-            <div className="row">
-              <div className="form-group"><label>URL мастер‑плана (изображение)</label><input className="input" placeholder="https://..." value={newProjectForm.masterPlan.url} onChange={e => setNewProjectForm(p => ({ ...p, masterPlan: { ...p.masterPlan, url: e.target.value } }))} /></div>
-              <div className="form-group"><label>Подпись к мастер‑плану</label><input className="input" value={newProjectForm.masterPlan.caption} onChange={e => setNewProjectForm(p => ({ ...p, masterPlan: { ...p.masterPlan, caption: e.target.value } }))} /></div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn primary" onClick={saveProject}>Сохранить</button>
-              <button className="btn" onClick={() => setShowAddProjectModal(false)}>Отмена</button>
+        <Portal>
+          <div className="modal-overlay" onClick={() => setShowAddProjectModal(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h3>Добавить проект</h3>
+              <div className="form-group"><label>Название проекта</label><input className="input" value={newProjectForm.projectName} onChange={e => setNewProjectForm(p => ({ ...p, projectName: e.target.value }))} /></div>
+              <div className="form-group"><label>Планируемая дата завершения (месяц/год)</label><input type="month" className="input" value={newProjectForm.plannedCompletion} onChange={e => setNewProjectForm(p => ({ ...p, plannedCompletion: e.target.value }))} /></div>
+              <div className="form-group"><label>Достигнутый прогресс строительства (%)</label><input type="number" min="0" max="100" className="input" value={newProjectForm.constructionProgressPct} onChange={e => setNewProjectForm(p => ({ ...p, constructionProgressPct: clamp(parseFloat(e.target.value||0),0,100) }))} /></div>
+              <div className="form-group"><label>Ссылка на презентацию (PDF)</label><input className="input" placeholder="https://..." value={newProjectForm.presentationUrl} onChange={e => setNewProjectForm(p => ({ ...p, presentationUrl: e.target.value }))} /></div>
+              <div className="row">
+                <div className="form-group"><label>URL мастер‑плана (изображение)</label><input className="input" placeholder="https://..." value={newProjectForm.masterPlan.url} onChange={e => setNewProjectForm(p => ({ ...p, masterPlan: { ...p.masterPlan, url: e.target.value } }))} /></div>
+                <div className="form-group"><label>Подпись к мастер‑плану</label><input className="input" value={newProjectForm.masterPlan.caption} onChange={e => setNewProjectForm(p => ({ ...p, masterPlan: { ...p.masterPlan, caption: e.target.value } }))} /></div>
+              </div>
+              <div className="modal-actions">
+                <button className="btn primary" onClick={saveProject}>Сохранить</button>
+                <button className="btn" onClick={() => setShowAddProjectModal(false)}>Отмена</button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
+
       {editingProject && (
-        <div className="modal-overlay" onClick={() => setEditingProject(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Правка проекта</h3>
-            <div className="form-group"><label>Название проекта</label><input className="input" value={editingProject.projectName} onChange={e => setEditingProject(p => ({ ...p, projectName: e.target.value }))} /></div>
-            <div className="form-group"><label>Планируемая дата завершения (месяц/год)</label><input type="month" className="input" value={editingProject.plannedCompletion || ""} onChange={e => setEditingProject(p => ({ ...p, plannedCompletion: e.target.value }))} /></div>
-            <div className="form-group"><label>Достигнутый прогресс строительства (%)</label><input type="number" min="0" max="100" className="input" value={editingProject.constructionProgressPct ?? 0} onChange={e => setEditingProject(p => ({ ...p, constructionProgressPct: clamp(parseFloat(e.target.value||0),0,100) }))} /></div>
-            <div className="form-group"><label>Ссылка на презентацию (PDF)</label><input className="input" placeholder="https://..." value={editingProject.presentationUrl || ""} onChange={e => setEditingProject(p => ({ ...p, presentationUrl: e.target.value }))} /></div>
-            <div className="row">
-              <div className="form-group"><label>URL мастер‑плана (изображение)</label><input className="input" placeholder="https://..." value={editingProject.masterPlan?.url || ""} onChange={e => setEditingProject(p => ({ ...p, masterPlan: { ...(p.masterPlan||{}), url: e.target.value } }))} /></div>
-              <div className="form-group"><label>Подпись к мастер‑плану</label><input className="input" value={editingProject.masterPlan?.caption || ""} onChange={e => setEditingProject(p => ({ ...p, masterPlan: { ...(p.masterPlan||{}), caption: e.target.value } }))} /></div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn primary" onClick={commitEditProject}>Сохранить</button>
-              <button className="btn" onClick={() => setEditingProject(null)}>Отмена</button>
+        <Portal>
+          <div className="modal-overlay" onClick={() => setEditingProject(null)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h3>Правка проекта</h3>
+              <div className="form-group"><label>Название проекта</label><input className="input" value={editingProject.projectName} onChange={e => setEditingProject(p => ({ ...p, projectName: e.target.value }))} /></div>
+              <div className="form-group"><label>Планируемая дата завершения (месяц/год)</label><input type="month" className="input" value={editingProject.plannedCompletion || ""} onChange={e => setEditingProject(p => ({ ...p, plannedCompletion: e.target.value }))} /></div>
+              <div className="form-group"><label>Достигнутый прогресс строительства (%)</label><input type="number" min="0" max="100" className="input" value={editingProject.constructionProgressPct ?? 0} onChange={e => setEditingProject(p => ({ ...p, constructionProgressPct: clamp(parseFloat(e.target.value||0),0,100) }))} /></div>
+              <div className="form-group"><label>Ссылка на презентацию (PDF)</label><input className="input" placeholder="https://..." value={editingProject.presentationUrl || ""} onChange={e => setEditingProject(p => ({ ...p, presentationUrl: e.target.value }))} /></div>
+              <div className="row">
+                <div className="form-group"><label>URL мастер‑плана (изображение)</label><input className="input" placeholder="https://..." value={editingProject.masterPlan?.url || ""} onChange={e => setEditingProject(p => ({ ...p, masterPlan: { ...(p.masterPlan||{}), url: e.target.value } }))} /></div>
+                <div className="form-group"><label>Подпись к мастер‑плану</label><input className="input" value={editingProject.masterPlan?.caption || ""} onChange={e => setEditingProject(p => ({ ...p, masterPlan: { ...(p.masterPlan||{}), caption: e.target.value } }))} /></div>
+              </div>
+              <div className="modal-actions">
+                <button className="btn primary" onClick={commitEditProject}>Сохранить</button>
+                <button className="btn" onClick={() => setEditingProject(null)}>Отмена</button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
+
       {showAddVillaModal && (
-        <div className="modal-overlay" onClick={() => setShowAddVillaModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Добавить виллу</h3>
-            <div className="form-row">
-              <div className="form-group"><label>Название</label><input className="input" value={newVillaForm.name} onChange={e => setNewVillaForm(v => ({ ...v, name: e.target.value }))} /></div>
-              <div className="form-group"><label>Статус</label>
-                <select className="input" value={newVillaForm.status} onChange={e => setNewVillaForm(v => ({ ...v, status: e.target.value }))}>
-                  <option value="available">available</option><option value="reserved">reserved</option><option value="hold">hold</option>
-                </select>
+        <Portal>
+          <div className="modal-overlay" onClick={() => setShowAddVillaModal(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h3>Добавить виллу</h3>
+              <div className="form-row">
+                <div className="form-group"><label>Название</label><input className="input" value={newVillaForm.name} onChange={e => setNewVillaForm(v => ({ ...v, name: e.target.value }))} /></div>
+                <div className="form-group"><label>Статус</label>
+                  <select className="input" value={newVillaForm.status} onChange={e => setNewVillaForm(v => ({ ...v, status: e.target.value }))}>
+                    <option value="available">available</option><option value="reserved">reserved</option><option value="hold">hold</option>
+                  </select>
+                </div>
+                <div className="form-group"><label>Комнат</label><input className="input" value={newVillaForm.rooms} onChange={e => setNewVillaForm(v => ({ ...v, rooms: e.target.value }))} /></div>
+                <div className="form-group"><label>Земля (м²)</label><input type="number" className="input" value={newVillaForm.land} onChange={e => setNewVillaForm(v => ({ ...v, land: +e.target.value }))} /></div>
+                <div className="form-group"><label>Вилла (м²)</label><input type="number" className="input" value={newVillaForm.area} onChange={e => setNewVillaForm(v => ({ ...v, area: +e.target.value }))} /></div>
+                <div className="form-group"><label>1 этаж (м²)</label><input type="number" className="input" value={newVillaForm.f1} onChange={e => setNewVillaForm(v => ({ ...v, f1: +e.target.value }))} /></div>
+                <div className="form-group"><label>2 этаж (м²)</label><input type="number" className="input" value={newVillaForm.f2} onChange={e => setNewVillaForm(v => ({ ...v, f2: +e.target.value }))} /></div>
+                <div className="form-group"><label>Rooftop (м²)</label><input type="number" className="input" value={newVillaForm.roof} onChange={e => setNewVillaForm(v => ({ ...v, roof: +e.target.value }))} /></div>
+                <div className="form-group"><label>Сад и бассейн (м²)</label><input type="number" className="input" value={newVillaForm.garden} onChange={e => setNewVillaForm(v => ({ ...v, garden: +e.target.value }))} /></div>
+                <div className="form-group"><label>Цена за м² ($)</label><input type="number" className="input" value={newVillaForm.ppsm} onChange={e => setNewVillaForm(v => ({ ...v, ppsm: +e.target.value }))} /></div>
+                <div className="form-group"><label>Цена (USD)</label><input type="number" className="input" value={newVillaForm.baseUSD} onChange={e => setNewVillaForm(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Месячный рост до ключей (%)</label><input type="number" step="0.1" className="input" value={newVillaForm.monthlyPriceGrowthPct} onChange={e => setNewVillaForm(v => ({ ...v, monthlyPriceGrowthPct: +e.target.value }))} /></div>
+                <div className="form-group"><label>Дата окончания лизхолда</label><input type="date" className="input" value={newVillaForm.leaseholdEndDate} onChange={e => setNewVillaForm(v => ({ ...v, leaseholdEndDate: e.target.value }))} /></div>
+                <div className="form-group"><label>Сутки (USD)</label><input type="number" className="input" value={newVillaForm.dailyRateUSD} onChange={e => setNewVillaForm(v => ({ ...v, dailyRateUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Заполняемость (%)</label><input type="number" className="input" value={newVillaForm.occupancyPct} onChange={e => setNewVillaForm(v => ({ ...v, occupancyPct: clamp(+e.target.value,0,100) }))} /></div>
+                <div className="form-group"><label>Индекс аренды (%/год)</label><input type="number" step="0.1" className="input" value={newVillaForm.rentalPriceIndexPct} onChange={e => setNewVillaForm(v => ({ ...v, rentalPriceIndexPct: +e.target.value }))} /></div>
               </div>
-              <div className="form-group"><label>Комнат</label><input className="input" value={newVillaForm.rooms} onChange={e => setNewVillaForm(v => ({ ...v, rooms: e.target.value }))} /></div>
-              <div className="form-group"><label>Земля (м²)</label><input type="number" className="input" value={newVillaForm.land} onChange={e => setNewVillaForm(v => ({ ...v, land: +e.target.value }))} /></div>
-              <div className="form-group"><label>Площадь (м²)</label><input type="number" className="input" value={newVillaForm.area} onChange={e => setNewVillaForm(v => ({ ...v, area: +e.target.value }))} /></div>
-              <div className="form-group"><label>1 этаж (м²)</label><input type="number" className="input" value={newVillaForm.f1} onChange={e => setNewVillaForm(v => ({ ...v, f1: +e.target.value }))} /></div>
-              <div className="form-group"><label>2 этаж (м²)</label><input type="number" className="input" value={newVillaForm.f2} onChange={e => setNewVillaForm(v => ({ ...v, f2: +e.target.value }))} /></div>
-              <div className="form-group"><label>Rooftop (м²)</label><input type="number" className="input" value={newVillaForm.roof} onChange={e => setNewVillaForm(v => ({ ...v, roof: +e.target.value }))} /></div>
-              <div className="form-group"><label>Garden & pool (м²)</label><input type="number" className="input" value={newVillaForm.garden} onChange={e => setNewVillaForm(v => ({ ...v, garden: +e.target.value }))} /></div>
-              <div className="form-group"><label>$ / м²</label><input type="number" className="input" value={newVillaForm.ppsm} onChange={e => setNewVillaForm(v => ({ ...v, ppsm: +e.target.value }))} /></div>
-              <div className="form-group"><label>Цена (USD)</label><input type="number" className="input" value={newVillaForm.baseUSD} onChange={e => setNewVillaForm(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
-              <div className="form-group"><label>Месячный рост до ключей (%)</label><input type="number" step="0.1" className="input" value={newVillaForm.monthlyPriceGrowthPct} onChange={e => setNewVillaForm(v => ({ ...v, monthlyPriceGrowthPct: +e.target.value }))} /></div>
-              <div className="form-group"><label>Дата окончания лизхолда</label><input type="date" className="input" value={newVillaForm.leaseholdEndDate} onChange={e => setNewVillaForm(v => ({ ...v, leaseholdEndDate: e.target.value }))} /></div>
-              <div className="form-group"><label>Сутки (USD)</label><input type="number" className="input" value={newVillaForm.dailyRateUSD} onChange={e => setNewVillaForm(v => ({ ...v, dailyRateUSD: +e.target.value }))} /></div>
-              <div className="form-group"><label>Заполняемость (%)</label><input type="number" className="input" value={newVillaForm.occupancyPct} onChange={e => setNewVillaForm(v => ({ ...v, occupancyPct: clamp(+e.target.value,0,100) }))} /></div>
-              <div className="form-group"><label>Индекс аренды (%/год)</label><input type="number" step="0.1" className="input" value={newVillaForm.rentalPriceIndexPct} onChange={e => setNewVillaForm(v => ({ ...v, rentalPriceIndexPct: +e.target.value }))} /></div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn primary" onClick={saveVilla}>Сохранить</button>
-              <button className="btn" onClick={() => setShowAddVillaModal(false)}>Отмена</button>
+              <div className="modal-actions">
+                <button className="btn primary" onClick={saveVilla}>Сохранить</button>
+                <button className="btn" onClick={() => setShowAddVillaModal(false)}>Отмена</button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
+
       {editingVilla && (
-        <div className="modal-overlay" onClick={() => setEditingVilla(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Править виллу</h3>
-            <div className="form-row">
-              <div className="form-group"><label>Название</label><input className="input" value={editingVilla.name || ""} onChange={e => setEditingVilla(v => ({ ...v, name: e.target.value }))} /></div>
-              <div className="form-group"><label>Статус</label>
-                <select className="input" value={editingVilla.status || "available"} onChange={e => setEditingVilla(v => ({ ...v, status: e.target.value }))}>
-                  <option value="available">available</option>
-                  <option value="reserved">reserved</option>
-                  <option value="hold">hold</option>
-                </select>
+        <Portal>
+          <div className="modal-overlay" onClick={() => setEditingVilla(null)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h3>Править виллу</h3>
+              <div className="form-row">
+                <div className="form-group"><label>Название</label><input className="input" value={editingVilla.name || ""} onChange={e => setEditingVilla(v => ({ ...v, name: e.target.value }))} /></div>
+                <div className="form-group"><label>Статус</label>
+                  <select className="input" value={editingVilla.status || "available"} onChange={e => setEditingVilla(v => ({ ...v, status: e.target.value }))}>
+                    <option value="available">available</option>
+                    <option value="reserved">reserved</option>
+                    <option value="hold">hold</option>
+                  </select>
+                </div>
+                <div className="form-group"><label>Комнат</label><input className="input" value={editingVilla.rooms || ""} onChange={e => setEditingVilla(v => ({ ...v, rooms: e.target.value }))} /></div>
+                <div className="form-group"><label>Земля (м²)</label><input type="number" className="input" value={editingVilla.land ?? 0} onChange={e => setEditingVilla(v => ({ ...v, land: +e.target.value }))} /></div>
+                <div className="form-group"><label>Вилла (м²)</label><input type="number" className="input" value={editingVilla.area ?? 0} onChange={e => setEditingVilla(v => ({ ...v, area: +e.target.value }))} /></div>
+                <div className="form-group"><label>1 этаж (м²)</label><input type="number" className="input" value={editingVilla.f1 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f1: +e.target.value }))} /></div>
+                <div className="form-group"><label>2 этаж (м²)</label><input type="number" className="input" value={editingVilla.f2 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f2: +e.target.value }))} /></div>
+                <div className="form-group"><label>Rooftop (м²)</label><input type="number" className="input" value={editingVilla.roof ?? 0} onChange={e => setEditingVilla(v => ({ ...v, roof: +e.target.value }))} /></div>
+                <div className="form-group"><label>Сад и бассейн (м²)</label><input type="number" className="input" value={editingVilla.garden ?? 0} onChange={e => setEditingVilla(v => ({ ...v, garden: +e.target.value }))} /></div>
+                <div className="form-group"><label>Цена за м² ($)</label><input type="number" className="input" value={editingVilla.ppsm ?? 0} onChange={e => setEditingVilla(v => ({ ...v, ppsm: +e.target.value }))} /></div>
+                <div className="form-group"><label>Цена (USD)</label><input type="number" className="input" value={editingVilla.baseUSD ?? 0} onChange={e => setEditingVilla(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Сутки (USD)</label><input type="number" className="input" value={editingVilla.dailyRateUSD ?? 0} onChange={e => setEditingVilla(v => ({ ...v, dailyRateUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Заполняемость (%)</label><input type="number" className="input" value={editingVilla.occupancyPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, occupancyPct: clamp(+e.target.value,0,100) }))} /></div>
+                <div className="form-group"><label>Индекс аренды (%/год)</label><input type="number" step="0.1" className="input" value={editingVilla.rentalPriceIndexPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, rentalPriceIndexPct: +e.target.value }))} /></div>
+                <div className="form-group"><label>Месячный рост до ключей (%)</label><input type="number" step="0.1" className="input" value={editingVilla.monthlyPriceGrowthPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, monthlyPriceGrowthPct: +e.target.value }))} /></div>
+                <div className="form-group"><label>Дата окончания лизхолда</label><input type="date" className="input" value={(editingVilla.leaseholdEndDate || "").slice(0,10)} onChange={e => setEditingVilla(v => ({ ...v, leaseholdEndDate: e.target.value }))} /></div>
               </div>
-              <div className="form-group"><label>Комнат</label><input className="input" value={editingVilla.rooms || ""} onChange={e => setEditingVilla(v => ({ ...v, rooms: e.target.value }))} /></div>
-              <div className="form-group"><label>Земля (м²)</label><input type="number" className="input" value={editingVilla.land ?? 0} onChange={e => setEditingVilla(v => ({ ...v, land: +e.target.value }))} /></div>
-              <div className="form-group"><label>Вилла (м²)</label><input type="number" className="input" value={editingVilla.area ?? 0} onChange={e => setEditingVilla(v => ({ ...v, area: +e.target.value }))} /></div>
-              <div className="form-group"><label>1 этаж (м²)</label><input type="number" className="input" value={editingVilla.f1 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f1: +e.target.value }))} /></div>
-              <div className="form-group"><label>2 этаж (м²)</label><input type="number" className="input" value={editingVilla.f2 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f2: +e.target.value }))} /></div>
-              <div className="form-group"><label>Rooftop (м²)</label><input type="number" className="input" value={editingVilla.roof ?? 0} onChange={e => setEditingVilla(v => ({ ...v, roof: +e.target.value }))} /></div>
-              <div className="form-group"><label>Сад и бассейн (м²)</label><input type="number" className="input" value={editingVilla.garden ?? 0} onChange={e => setEditingVilla(v => ({ ...v, garden: +e.target.value }))} /></div>
-              <div className="form-group"><label>Цена за м² ($)</label><input type="number" className="input" value={editingVilla.ppsm ?? 0} onChange={e => setEditingVilla(v => ({ ...v, ppsm: +e.target.value }))} /></div>
-              <div className="form-group"><label>Цена (USD)</label><input type="number" className="input" value={editingVilla.baseUSD ?? 0} onChange={e => setEditingVilla(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
-              <div className="form-group"><label>Сутки (USD)</label><input type="number" className="input" value={editingVilla.dailyRateUSD ?? 0} onChange={e => setEditingVilla(v => ({ ...v, dailyRateUSD: +e.target.value }))} /></div>
-              <div className="form-group"><label>Заполняемость (%)</label><input type="number" className="input" value={editingVilla.occupancyPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, occupancyPct: clamp(+e.target.value,0,100) }))} /></div>
-              <div className="form-group"><label>Индекс аренды (%/год)</label><input type="number" step="0.1" className="input" value={editingVilla.rentalPriceIndexPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, rentalPriceIndexPct: +e.target.value }))} /></div>
-              <div className="form-group"><label>Месячный рост до ключей (%)</label><input type="number" step="0.1" className="input" value={editingVilla.monthlyPriceGrowthPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, monthlyPriceGrowthPct: +e.target.value }))} /></div>
-              <div className="form-group"><label>Дата окончания лизхолда</label><input type="date" className="input" value={(editingVilla.leaseholdEndDate || "").slice(0,10)} onChange={e => setEditingVilla(v => ({ ...v, leaseholdEndDate: e.target.value }))} /></div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn primary" onClick={commitEditVilla}>Сохранить</button>
-              <button className="btn" onClick={() => setEditingVilla(null)}>Отмена</button>
+              <div className="modal-actions">
+                <button className="btn primary" onClick={commitEditVilla}>Сохранить</button>
+                <button className="btn" onClick={() => setEditingVilla(null)}>Отмена</button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
+
       {reportsProject && (
-        <div className="modal-overlay" onClick={() => setReportsProject(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Отчёты о стройке — {reportsProject.projectName}</h3>
-            <div className="catalog-grid">
-              {(reportsProject.constructionReports || []).length === 0 && <div className="label">Пока нет отчётов</div>}
-              {(reportsProject.constructionReports || []).slice().reverse().map(item => {
-                const ytId = item.type === "youtube" ? getYoutubeId(item.url) : null;
-                const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
-                return (
-                  <div key={item.id} className="villa-item" onClick={() => window.open(item.url, "_blank", "noreferrer")}>
-                    <div className="villa-info">
-                      <div className="value">{item.title || "(без названия)"} — {item.date || "—"}</div>
-                      <div className="label">{item.type === "youtube" ? "YouTube" : "Фото/Альбом"}</div>
+        <Portal>
+          <div className="modal-overlay" onClick={() => setReportsProject(null)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h3>Отчёты о стройке — {reportsProject.projectName}</h3>
+              <div className="catalog-grid">
+                {(reportsProject.constructionReports || []).length === 0 && <div className="label">Пока нет отчётов</div>}
+                {(reportsProject.constructionReports || []).slice().reverse().map(item => {
+                  const ytId = item.type === "youtube" ? getYoutubeId(item.url) : null;
+                  const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+                  return (
+                    <div key={item.id} className="villa-item" onClick={() => window.open(item.url, "_blank", "noreferrer")}>
+                      <div className="villa-info">
+                        <div className="value">{item.title || "(без названия)"} — {item.date || "—"}</div>
+                        <div className="label">{item.type === "youtube" ? "YouTube" : "Фото/Альбом"}</div>
+                      </div>
+                      {thumb ? <img src={thumb} alt="" style={{ width:72, height:40, objectFit:"cover", borderRadius:8 }} /> : <span className="badge">Открыть</span>}
+                      {!isClient && (
+                        <button className="btn danger small" onClick={(e) => { e.stopPropagation(); deleteReport(item.id); }}>Удалить</button>
+                      )}
                     </div>
-                    {thumb ? <img src={thumb} alt="" style={{ width:72, height:40, objectFit:"cover", borderRadius:8 }} /> : <span className="badge">Открыть</span>}
-                    {!isClient && (
-                      <button className="btn danger small" onClick={(e) => { e.stopPropagation(); deleteReport(item.id); }}>Удалить</button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {!isClient && (
-              <>
-                <div className="divider-line" />
-                <AddReportForm onAdd={(r) => addReport(r)} />
-              </>
-            )}
-            <div className="modal-actions">
-              {!isClient && <button className="btn primary" onClick={saveReportsToProject}>Сохранить</button>}
-              <button className="btn" onClick={() => setReportsProject(null)}>Закрыть</button>
+                  );
+                })}
+              </div>
+              {!isClient && (
+                <>
+                  <div className="divider-line" />
+                  <AddReportForm onAdd={(r) => addReport(r)} />
+                </>
+              )}
+              <div className="modal-actions">
+                {!isClient && <button className="btn primary" onClick={saveReportsToProject}>Сохранить</button>}
+                <button className="btn" onClick={() => setReportsProject(null)}>Закрыть</button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );
@@ -887,7 +913,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return { years: Math.max(...terms.map(t => t.years)), months: Math.max(...terms.map(t => t.months)) };
   }, [lines, startMonth, handoverMonth]);
 
-  // Экспорт PDF калькулятора (портретная, без обрезаний) — только от "Объект недвижимости" до "Период рассрочки"
+  // Экспорт PDF калькулятора (книжная, без обрезаний) — только от "Объект недвижимости" до "Период рассрочки"
   function exportCalcPDF() {
     if (typeof html2pdf === "undefined") {
       alert("html2pdf не загружен. Подключите скрипт в index.html до app.js");
@@ -900,14 +926,13 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     const wrapper = document.createElement("div");
     wrapper.className = "calc-print print-mode";
     wrapper.style.position = "fixed";
-    wrapper.style.left = "-10000px";
-    wrapper.style.top = "0";
+    wrapper.style.inset = "0";
     wrapper.style.background = "#fff";
-    wrapper.style.padding = "0";
+    wrapper.style.overflow = "auto";
+    wrapper.style.visibility = "hidden";
     wrapper.appendChild(clone);
     document.body.appendChild(wrapper);
 
-    // Временная правка ширины и скроллов
     wrapper.querySelectorAll(".calc-scroll,.factors-table-scroll").forEach(el => { el.style.overflow = "visible"; el.style.maxWidth = "none"; });
     wrapper.querySelectorAll(".calc-table,.factors-table").forEach(t => { t.style.width = "100%"; t.style.minWidth = "auto"; t.style.tableLayout = "fixed"; });
     wrapper.querySelectorAll("th,td").forEach(cell => { cell.style.whiteSpace = "nowrap"; });
@@ -923,11 +948,10 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       pagebreak: { mode: ["css", "legacy"] }
     }).save().finally(() => {
-      document.body.removeChild(wrapper);
+      try { document.body.removeChild(wrapper); } catch {}
     });
   }
 
-  // Если нет данных — мягкое сообщение
   if (!lines.length || !selectedVilla) {
     return (
       <div className="container reveal">
@@ -944,7 +968,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
 
   return (
     <div className="container reveal">
-      {/* Верх: слева этапы, справа настройки */}
+      {/* Верх: слева этапы, справа настройки (не входят в печать) */}
       <div className="top-section">
         <div className="card stages-card">
           <div className="card-header">
@@ -1087,7 +1111,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
         </div>
 
-        {/* KPI */}
+        {/* KPI, Полный график платежей, Финмодель, Годовой и Период рассрочки — как ранее */}
         <div className="card">
           <div className="kpi-header-pills">
             <span className="badge">Выбрано вилл: {lines.length}</span>
@@ -1134,7 +1158,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
         </div>
 
-        {/* Полный график платежей */}
         <div className="cashflow-block">
           <div className="card">
             <div className="card-header">
@@ -1197,7 +1220,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
         </div>
 
-        {/* Финмодель + график */}
         <div className="card">
           <h3>Финмодель доходности инвестиций</h3>
           <div className="calculation-params-compact">
@@ -1244,7 +1266,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
             </div>
           </div>
 
-          {/* Годовой расчет */}
           <div className="factors-table-container">
             <h4>Расчет показателей (годовой)</h4>
             <div className="factors-table-scroll">
@@ -1290,7 +1311,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
             </div>
           </div>
 
-          {/* Период рассрочки (месячный) */}
           <div className="factors-table-container">
             <h4>Расчет показателей (на период рассрочки)</h4>
             <div className="factors-table-scroll">
