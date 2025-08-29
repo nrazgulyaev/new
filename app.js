@@ -9,176 +9,16 @@ const { createRoot } = ReactDOM;
 const PIN_CODE = "334346";
 const LS_CATALOG = "arq_catalog_v2";
 const LS_RATES = "arq_rates_v1";
-const LS_LANG = "arq_lang_v1";
 
 /* =========================
-   I18n
-========================= */
-const DICT = {
-  en: {
-    app_title: "Arconique / Investment Property Catalog in Bali",
-    projects_title: "Projects",
-    search_placeholder: "Search by name...",
-    btn_presentation: "Project presentation PDF",
-    btn_reports: "Construction reports",
-    btn_price_list: "Download price list",
-    pill_keys_in: (label) => `Keys in ${label}`,
-    pill_progress: (pct) => `Current progress: ${pct}%`,
-    table_villa: "Villa",
-    table_rooms: "Rooms",
-    table_land: "Land, m²",
-    table_villa_area: "Villa, m²",
-    table_floor1: "1st floor, m²",
-    table_floor2: "2nd floor, m²",
-    table_rooftop: "Rooftop, m²",
-    table_garden: "Garden & pool, m²",
-    table_ppsm: "Price per m², $",
-    table_price_vat: "Price incl. VAT, $",
-    table_status: "Status",
-    table_action: "Payments & model",
-    status_available: "available",
-    status_reserved: "reserved",
-    status_hold: "on hold",
-    catalog_includes: "Included in price",
-    modal_add_project: "Add project",
-    modal_edit_project: "Edit project",
-    label_project_name: "Project name",
-    label_planned_completion: "Planned completion (month/year)",
-    label_progress: "Construction progress (%)",
-    label_presentation_url: "Presentation URL (PDF)",
-    label_master_url: "Master plan URL (image)",
-    label_master_caption: "Master plan caption",
-    btn_save: "Save",
-    btn_cancel: "Cancel",
-    btn_add_villa: "Add villa",
-    btn_edit: "Edit",
-    btn_delete: "Delete",
-    reports_title: (n) => `Construction reports — ${n}`,
-    reports_empty: "No reports yet",
-    report_type_yt: "YouTube",
-    report_type_album: "Photo/Album",
-    reports_add: "Add report",
-    report_name: "Title",
-    report_date: "Date (month/year)",
-    report_type: "Type",
-    report_link: "URL",
-    btn_open: "Open",
-    // calculator (key ones)
-    calc_back: "← Back to catalog",
-    preinstallments_title: "Installments before key handover (set a comfortable plan)",
-    btn_add_stage: "Add stage",
-    stages_head_name: "Stage",
-    stages_head_pct: "%",
-    stages_head_month: "Month",
-    stages_head_actions: "Actions",
-    stages_sum_exceeds: (sum, target) => `Stages sum: ${sum}% — exceeds target ${target}%`,
-    stages_sum_below: (sum, target) => `Stages sum: ${sum}% — below target ${target}%`,
-    stages_sum_equal: (sum, target) => `Stages sum: ${sum}% — equals target ${target}%`,
-    settings_title_lang: "Interface language",
-    settings_title_currency: "Display currency",
-    settings_contract: "Contract signing",
-    settings_handover_label: "Key handover",
-    settings_duration_fallback: "Construction duration (months)",
-    settings_global_rate: "Global monthly rate, %/mo",
-    settings_global_term: "Global post‑handover term (6–24 mo)",
-    settings_months: (m) => `months: ${m}`,
-    object_title: "Property object",
-    // currency selector
-    curr_usd: "USD",
-    curr_idr: "IDR",
-    curr_eur: "EUR",
-  },
-  ru: {
-    app_title: "Arconique / Каталог инвестиционной недвижимости на Бали",
-    projects_title: "Проекты",
-    search_placeholder: "Поиск по названию...",
-    btn_presentation: "Презентация проекта PDF",
-    btn_reports: "Отчеты о строительстве",
-    btn_price_list: "Скачать прайс-лист",
-    pill_keys_in: (label) => `Ключи в ${label}`,
-    pill_progress: (pct) => `Текущий прогресс: ${pct}%`,
-    table_villa: "Вилла",
-    table_rooms: "Комнат",
-    table_land: "Земля, м²",
-    table_villa_area: "Вилла, м²",
-    table_floor1: "1 этаж, м²",
-    table_floor2: "2 этаж, м²",
-    table_rooftop: "Руфтоп, м²",
-    table_garden: "Сад и бассейн, м²",
-    table_ppsm: "Цена за м², $",
-    table_price_vat: "Цена с НДС, $",
-    table_status: "Статус",
-    table_action: "Платежи и финмодель",
-    status_available: "в наличии",
-    status_reserved: "забронировано",
-    status_hold: "на паузе",
-    catalog_includes: "В стоимость включено",
-    modal_add_project: "Добавить проект",
-    modal_edit_project: "Правка проекта",
-    label_project_name: "Название проекта",
-    label_planned_completion: "Планируемая дата завершения (месяц/год)",
-    label_progress: "Достигнутый прогресс строительства (%)",
-    label_presentation_url: "Ссылка на презентацию (PDF)",
-    label_master_url: "URL мастер‑плана (изображение)",
-    label_master_caption: "Подпись к мастер‑плану",
-    btn_save: "Сохранить",
-    btn_cancel: "Отмена",
-    btn_add_villa: "Добавить виллу",
-    btn_edit: "Править",
-    btn_delete: "Удалить",
-    reports_title: (n) => `Отчеты о строительстве — ${n}`,
-    reports_empty: "Пока нет отчётов",
-    report_type_yt: "YouTube",
-    report_type_album: "Фото/Альбом",
-    reports_add: "Добавить отчёт",
-    report_name: "Название",
-    report_date: "Дата (месяц/год)",
-    report_type: "Тип",
-    report_link: "Ссылка",
-    btn_open: "Открыть",
-    calc_back: "← К каталогу",
-    preinstallments_title: "Рассрочка до получения ключей (установите комфортный план оплаты)",
-    btn_add_stage: "Добавить этап",
-    stages_head_name: "Этап",
-    stages_head_pct: "%",
-    stages_head_month: "Месяц",
-    stages_head_actions: "Действия",
-    stages_sum_exceeds: (sum, target) => `Сумма этапов: ${sum}% — превышает ${target}%`,
-    stages_sum_below: (sum, target) => `Сумма этапов: ${sum}% — ниже целевого ${target}%`,
-    stages_sum_equal: (sum, target) => `Сумма этапов: ${sum}% — совпадает с целевым ${target}%`,
-    settings_title_lang: "Язык интерфейса",
-    settings_title_currency: "Валюта отображения",
-    settings_contract: "Заключение договора",
-    settings_handover_label: "Завершение строительства",
-    settings_duration_fallback: "Срок строительства (мес)",
-    settings_global_rate: "Глобальная ставка, %/мес",
-    settings_global_term: "Глобальный срок post‑handover (6–24 мес)",
-    settings_months: (m) => `месяцев: ${m}`,
-    object_title: "Объект недвижимости",
-    curr_usd: "USD",
-    curr_idr: "IDR",
-    curr_eur: "EUR",
-  }
-};
-function useLang() {
-  const [lang, setLang] = useState(() => {
-    try { return localStorage.getItem(LS_LANG) || "en"; } catch { return "en"; }
-  });
-  useEffect(() => { try { localStorage.setItem(LS_LANG, lang); } catch {} }, [lang]);
-  const dict = DICT[lang] || DICT.en;
-  const t = (key, ...args) => {
-    const v = dict[key];
-    return typeof v === "function" ? v(...args) : (v ?? key);
-  };
-  return { lang, setLang, t };
-}
-
-/* =========================
-   Форматирование, даты, деньги
+   Утилиты форматирования
 ========================= */
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const fmtInt = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(n || 0));
 const fmt2 = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(+n || 0);
+function fmtMoney(n, c = "USD", max = 0) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: max }).format(Math.round(+n || 0));
+}
 function ruMonthName(i) {
   const m = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
   return m[Math.max(0, Math.min(11, i))];
@@ -225,9 +65,6 @@ const getYoutubeId = (url) => {
   } catch {}
   return null;
 };
-function fmtMoney(n, c = "USD", max = 0) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: max }).format(Math.round(+n || 0));
-}
 
 /* =========================
    Reveal анимация
@@ -248,7 +85,7 @@ function useRevealOnRoute(routeKey) {
 }
 
 /* =========================
-   Портал для модалок
+   Портал для модалок + lock-scroll
 ========================= */
 function Portal({ children }) {
   const elRef = useRef(null);
@@ -270,7 +107,7 @@ function Portal({ children }) {
 }
 
 /* =========================
-   Дефолтные данные каталога
+   Дефолтные данные каталога (+ поля документов)
 ========================= */
 function defaults() {
   return [
@@ -372,9 +209,8 @@ function calculateIRR(cashFlows, maxIterations = 100, tolerance = 1e-4) {
 /* =========================
    CatalogManager
 ========================= */
-function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setLang, rates, setRates, t }) {
+function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
   const [searchTerm, setSearchTerm] = useState("");
-
   const [editingProject, setEditingProject] = useState(null);
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const [showAddVillaModal, setShowAddVillaModal] = useState(false);
@@ -394,9 +230,9 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
   });
 
   function StatusPill({ status }) {
-    const key = status === "available" ? "status_available" : status === "reserved" ? "status_reserved" : "status_hold";
+    const label = status === "available" ? "в наличии" : status === "reserved" ? "забронировано" : "на паузе";
     const cls = status === "available" ? "status-available" : status === "reserved" ? "status-reserved" : "status-hold";
-    return <span className={`status ${cls}`}>{t(key)}</span>;
+    return <span className={`status ${cls}`}>{label}</span>;
   }
 
   const filtered = useMemo(() => {
@@ -408,18 +244,6 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
     })).filter(p => p.villas.length > 0 || (p.projectName || "").toLowerCase().includes(s));
   }, [catalog, searchTerm]);
 
-  function convertUSD(valueUSD) {
-    if (rates.currency === "IDR") return +valueUSD * (rates.idrPerUsd || 1);
-    if (rates.currency === "EUR") return +valueUSD * (rates.eurPerUsd || 1);
-    return +valueUSD;
-  }
-  function displayMoney(valueUSD, max = 0) {
-    const v = convertUSD(valueUSD);
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: rates.currency || "USD", maximumFractionDigits: max }).format(Math.round(v || 0));
-  }
-
-  const projectAnchors = useMemo(() => filtered.map(p => ({ id: p.projectId, name: p.projectName })), [filtered]);
-
   const addProject = () => {
     setNewProjectForm({
       projectId: "", projectName: "", plannedCompletion: "2026-12", constructionProgressPct: 20,
@@ -428,7 +252,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
     setShowAddProjectModal(true);
   };
   const saveProject = () => {
-    if (!newProjectForm.projectName) { alert(t("label_project_name")); return; }
+    if (!newProjectForm.projectName) { alert("Введите название проекта"); return; }
     const projectIdBase = newProjectForm.projectName.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
     let projectId = projectIdBase || `project-${Date.now()}`;
     let suffix = 2;
@@ -439,7 +263,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
     setShowAddProjectModal(false);
   };
   const deleteProject = (projectId) => {
-    if (!confirm("Delete? / Удалить?")) return;
+    if (!confirm("Удалить проект и все его виллы?")) return;
     setCatalog(prev => prev.filter(p => p.projectId !== projectId));
   };
 
@@ -472,15 +296,15 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
   };
   const saveVilla = () => {
     const project = catalog.find(p => p.projectId === newVillaForm.projectId);
-    if (!project) { alert("No project"); return; }
-    if (!newVillaForm.name) { alert("Name / Название"); return; }
+    if (!project) { alert("Нет выбранного проекта"); return; }
+    if (!newVillaForm.name) { alert("Введите название виллы"); return; }
     const villaId = uniqueVillaId(project, newVillaForm.name);
     const v = { ...newVillaForm, villaId };
     setCatalog(prev => prev.map(p => p.projectId === project.projectId ? { ...p, villas: [...p.villas, v] } : p));
     setShowAddVillaModal(false);
   };
   const deleteVilla = (projectId, villaId) => {
-    if (!confirm("Delete? / Удалить?")) return;
+    if (!confirm("Удалить виллу?")) return;
     setCatalog(prev => prev.map(p => p.projectId === projectId ? { ...p, villas: p.villas.filter(v => v.villaId !== villaId) } : p));
   };
 
@@ -511,11 +335,11 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
   function exportProjectPDF(projectId) {
     try {
       if (typeof html2pdf === "undefined") {
-        alert("html2pdf not loaded");
+        alert("html2pdf не загружен. Подключите скрипт в index.html до app.js");
         return;
       }
       const original = document.getElementById(`project-${projectId}`);
-      if (!original) { alert("Project block not found"); return; }
+      if (!original) { alert("Не найден блок проекта"); return; }
 
       const clone = original.cloneNode(true);
       const wrapper = document.createElement("div");
@@ -524,8 +348,8 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
       wrapper.style.inset = "0";
       wrapper.style.background = "#fff";
       wrapper.style.overflow = "auto";
-      wrapper.style.opacity = "0";
-      // скрыть все изображения (CORS)
+      wrapper.style.opacity = "0"; // вместо visibility:hidden
+      // скрыть все изображения (во избежание таинта canvas)
       clone.querySelectorAll("img").forEach(img => { img.style.display = "none"; });
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
@@ -555,46 +379,18 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
       });
     } catch (e) {
       console.error(e);
-      alert("PDF failed, see console");
+      alert("Не удалось сформировать PDF. Проверьте консоль и подключение html2pdf.");
     }
   }
 
   return (
     <div className="catalog-section reveal">
       <div className="catalog-header">
-        <h2>{t("projects_title")}</h2>
+        <h2>Проекты</h2>
         <div className="catalog-controls">
-          <input className="search-input" placeholder={t("search_placeholder")} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-          <select className="btn small" value={lang} onChange={e => setLang(e.target.value)}>
-            <option value="en">EN</option>
-            <option value="ru">RU</option>
-          </select>
-          <select className="btn small" value={rates.currency} onChange={e => setRates(prev => ({ ...prev, currency: e.target.value }))}>
-            <option value="USD">{t("curr_usd")}</option>
-            <option value="IDR">{t("curr_idr")}</option>
-            <option value="EUR">{t("curr_eur")}</option>
-          </select>
-          {!isClient && (
-            <>
-              <input className="btn small" style={{ width:110 }} type="number" step="1" value={rates.idrPerUsd || 16300}
-                     onChange={e => setRates(prev => ({ ...prev, idrPerUsd: clamp(parseFloat(e.target.value||0), 1, 1e9) }))} title="IDR per USD" />
-              <input className="btn small" style={{ width:110 }} type="number" step="0.01" value={rates.eurPerUsd || 0.88}
-                     onChange={e => setRates(prev => ({ ...prev, eurPerUsd: clamp(parseFloat(e.target.value||0), 0.01, 100) }))} title="EUR per USD" />
-            </>
-          )}
-          {!isClient && <button className="btn primary small" onClick={addProject}>{t("modal_add_project")}</button>}
+          <input className="search-input" placeholder="Поиск по названию..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          {!isClient && <button className="btn primary" onClick={addProject}>Добавить проект</button>}
         </div>
-      </div>
-
-      {/* Якоря проектов */}
-      <div className="project-anchors">
-        <button className="pill link" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>All</button>
-        {projectAnchors.map(a => (
-          <button key={a.id} className="pill link" onClick={() => {
-            const el = document.getElementById(`project-${a.id}`);
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}>{a.name}</button>
-        ))}
       </div>
 
       <div className="catalog-list">
@@ -604,29 +400,29 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
               <h3>{project.projectName}</h3>
               <div className="project-actions" style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
                 {project.presentationUrl && (
-                  <a className="btn small" href={project.presentationUrl} target="_blank" rel="noreferrer">{t("btn_presentation")}</a>
+                  <a className="btn small" href={project.presentationUrl} target="_blank" rel="noreferrer">Презентация проекта PDF</a>
                 )}
-                <button className="btn small" onClick={() => openReports(project)}>{t("btn_reports")}</button>
-                <button className="btn small" onClick={() => exportProjectPDF(project.projectId)}>{t("btn_price_list")}</button>
+                <button className="btn small" onClick={() => openReports(project)}>Отчеты о строительстве</button>
+                <button className="btn small" onClick={() => exportProjectPDF(project.projectId)}>Скачать прайс-лист</button>
                 {!isClient && <button className="btn small" onClick={() => openEditProject(project)}>✏️</button>}
-                {!isClient && <button className="btn danger small" onClick={() => deleteProject(project.projectId)}>{t("btn_delete")}</button>}
-                {!isClient && <button className="btn success small" onClick={() => addVilla(project.projectId)}>{t("btn_add_villa")}</button>}
+                {!isClient && <button className="btn danger small" onClick={() => deleteProject(project.projectId)}>🗑️</button>}
+                {!isClient && <button className="btn success small" onClick={() => addVilla(project.projectId)}>Добавить виллу</button>}
               </div>
             </div>
 
             <div className="pill-row">
               {project.plannedCompletion && (
-                <span className="pill">{t("pill_keys_in", ymLabelPrepositional(project.plannedCompletion))}</span>
+                <span className="pill">{`Ключи в ${ymLabelPrepositional(project.plannedCompletion)}`}</span>
               )}
               {Number.isFinite(project.constructionProgressPct) && (
-                <span className="pill pill-muted">{t("pill_progress", project.constructionProgressPct)}</span>
+                <span className="pill pill-muted">{`Текущий прогресс: ${project.constructionProgressPct}%`}</span>
               )}
             </div>
 
             <div className="project-details-grid">
               <div>
                 <div className="project-includes">
-                  <div className="includes-title">{t("catalog_includes")}</div>
+                  <div className="includes-title">В стоимость включено</div>
                   <ul className="includes-list">
                     {(project.includes || []).map((item, i) => (<li key={i}>{item}</li>))}
                   </ul>
@@ -634,12 +430,12 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
               </div>
               <div>
                 {project.masterPlan?.url ? (
-                  <a className="masterplan-card" href={project.masterPlan.url} target="_blank" rel="noreferrer" title="Master plan">
+                  <a className="masterplan-card" href={project.masterPlan.url} target="_blank" rel="noreferrer" title="Открыть мастер-план">
                     <img className="masterplan-img" src={project.masterPlan.url} alt="Master plan" crossOrigin="anonymous" />
                     {project.masterPlan.caption ? <div className="label" style={{ marginTop:8 }}>{project.masterPlan.caption}</div> : null}
                   </a>
                 ) : (
-                  !isClient ? <div className="masterplan-card"><div className="label">Add master plan URL</div></div> : null
+                  !isClient ? <div className="masterplan-card"><div className="label">Добавьте ссылку на мастер‑план в настройках проекта</div></div> : null
                 )}
               </div>
             </div>
@@ -648,18 +444,18 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
               <table className="catalog-table">
                 <thead>
                   <tr>
-                    <th className="w-1">{t("table_villa")}</th>
-                    <th className="w-1">{t("table_rooms")}</th>
-                    <th className="w-1">{t("table_land")}</th>
-                    <th className="w-1">{t("table_villa_area")}</th>
-                    <th className="w-1">{t("table_floor1")}</th>
-                    <th className="w-1">{t("table_floor2")}</th>
-                    <th className="w-1">{t("table_rooftop")}</th>
-                    <th className="w-1">{t("table_garden")}</th>
-                    <th className="w-1">{t("table_ppsm")}</th>
-                    <th className="w-1">{t("table_price_vat")}</th>
-                    <th className="w-1">{t("table_status")}</th>
-                    <th className="w-1">{t("table_action")}</th>
+                    <th className="w-1">Вилла</th>
+                    <th className="w-1">Комнат</th>
+                    <th className="w-1">Земля, м²</th>
+                    <th className="w-1">Вилла, м²</th>
+                    <th className="w-1">1 этаж, м²</th>
+                    <th className="w-1">2 этаж, м²</th>
+                    <th className="w-1">Руфтоп, м²</th>
+                    <th className="w-1">Сад и бассейн, м²</th>
+                    <th className="w-1">Цена за м², $</th>
+                    <th className="w-1">Цена с НДС, $</th>
+                    <th className="w-1">Статус</th>
+                    <th className="w-1">Платежи и финмодель</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -675,17 +471,17 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
                         <td>{v.f2 ?? 0}</td>
                         <td>{v.roof ?? 0}</td>
                         <td>{v.garden ?? 0}</td>
-                        <td>{isAvail ? (rates.currency === "USD" ? (v.ppsm ?? 0) : Math.round(convertUSD((v.ppsm ?? 0)))) : "—"}</td>
-                        <td>{isAvail ? displayMoney((v.baseUSD || 0) * 1.10) : "—"}</td>
+                        <td>{isAvail ? (v.ppsm ?? 0) : "—"}</td>
+                        <td>{isAvail ? fmtMoney((v.baseUSD || 0) * 1.10, "USD") : "—"}</td>
                         <td><StatusPill status={v.status} /></td>
                         <td>
                           {isAvail ? (
-                            <button className="btn small primary" onClick={() => onCalculate(project, v)}>{lang === "en" ? "Calculate" : "Рассчитать"}</button>
+                            <button className="btn small primary" onClick={() => onCalculate(project, v)}>Рассчитать</button>
                           ) : null}
                           {!isClient && (
                             <div style={{ display: "inline-flex", gap: 6, marginLeft: 8 }}>
-                              <button className="btn small" onClick={() => openEditVilla(v, project.projectId)}>{t("btn_edit")}</button>
-                              <button className="btn danger small" onClick={() => deleteVilla(project.projectId, v.villaId)}>{t("btn_delete")}</button>
+                              <button className="btn small" onClick={() => openEditVilla(v, project.projectId)}>Править</button>
+                              <button className="btn danger small" onClick={() => deleteVilla(project.projectId, v.villaId)}>Удалить</button>
                             </div>
                           )}
                         </td>
@@ -699,23 +495,23 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
         ))}
       </div>
 
-      {/* МОДАЛКИ через Portal — (без изменений логики, только тексты) */}
+      {/* МОДАЛКИ через Portal */}
       {showAddProjectModal && (
         <Portal>
           <div className="modal-overlay" onClick={() => setShowAddProjectModal(false)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <h3>{t("modal_add_project")}</h3>
-              <div className="form-group"><label>{t("label_project_name")}</label><input className="input" value={newProjectForm.projectName} onChange={e => setNewProjectForm(p => ({ ...p, projectName: e.target.value }))} /></div>
-              <div className="form-group"><label>{t("label_planned_completion")}</label><input type="month" className="input" value={newProjectForm.plannedCompletion} onChange={e => setNewProjectForm(p => ({ ...p, plannedCompletion: e.target.value }))} /></div>
-              <div className="form-group"><label>{t("label_progress")}</label><input type="number" min="0" max="100" className="input" value={newProjectForm.constructionProgressPct} onChange={e => setNewProjectForm(p => ({ ...p, constructionProgressPct: clamp(parseFloat(e.target.value||0),0,100) }))} /></div>
-              <div className="form-group"><label>{t("label_presentation_url")}</label><input className="input" placeholder="https://..." value={newProjectForm.presentationUrl} onChange={e => setNewProjectForm(p => ({ ...p, presentationUrl: e.target.value }))} /></div>
+              <h3>Добавить проект</h3>
+              <div className="form-group"><label>Название проекта</label><input className="input" value={newProjectForm.projectName} onChange={e => setNewProjectForm(p => ({ ...p, projectName: e.target.value }))} /></div>
+              <div className="form-group"><label>Планируемая дата завершения (месяц/год)</label><input type="month" className="input" value={newProjectForm.plannedCompletion} onChange={e => setNewProjectForm(p => ({ ...p, plannedCompletion: e.target.value }))} /></div>
+              <div className="form-group"><label>Достигнутый прогресс строительства (%)</label><input type="number" min="0" max="100" className="input" value={newProjectForm.constructionProgressPct} onChange={e => setNewProjectForm(p => ({ ...p, constructionProgressPct: clamp(parseFloat(e.target.value||0),0,100) }))} /></div>
+              <div className="form-group"><label>Ссылка на презентацию (PDF)</label><input className="input" placeholder="https://..." value={newProjectForm.presentationUrl} onChange={e => setNewProjectForm(p => ({ ...p, presentationUrl: e.target.value }))} /></div>
               <div className="row">
-                <div className="form-group"><label>{t("label_master_url")}</label><input className="input" placeholder="https://..." value={newProjectForm.masterPlan.url} onChange={e => setNewProjectForm(p => ({ ...p, masterPlan: { ...p.masterPlan, url: e.target.value } }))} /></div>
-                <div className="form-group"><label>{t("label_master_caption")}</label><input className="input" value={newProjectForm.masterPlan.caption} onChange={e => setNewProjectForm(p => ({ ...p, masterPlan: { ...p.masterPlan, caption: e.target.value } }))} /></div>
+                <div className="form-group"><label>URL мастер‑плана (изображение)</label><input className="input" placeholder="https://..." value={newProjectForm.masterPlan.url} onChange={e => setNewProjectForm(p => ({ ...p, masterPlan: { ...p.masterPlan, url: e.target.value } }))} /></div>
+                <div className="form-group"><label>Подпись к мастер‑плану</label><input className="input" value={newProjectForm.masterPlan.caption} onChange={e => setNewProjectForm(p => ({ ...p, masterPlan: { ...p.masterPlan, caption: e.target.value } }))} /></div>
               </div>
               <div className="modal-actions">
-                <button className="btn primary" onClick={saveProject}>{t("btn_save")}</button>
-                <button className="btn" onClick={() => setShowAddProjectModal(false)}>{t("btn_cancel")}</button>
+                <button className="btn primary" onClick={saveProject}>Сохранить</button>
+                <button className="btn" onClick={() => setShowAddProjectModal(false)}>Отмена</button>
               </div>
             </div>
           </div>
@@ -726,18 +522,18 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
         <Portal>
           <div className="modal-overlay" onClick={() => setEditingProject(null)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <h3>{t("modal_edit_project")}</h3>
-              <div className="form-group"><label>{t("label_project_name")}</label><input className="input" value={editingProject.projectName} onChange={e => setEditingProject(p => ({ ...p, projectName: e.target.value }))} /></div>
-              <div className="form-group"><label>{t("label_planned_completion")}</label><input type="month" className="input" value={editingProject.plannedCompletion || ""} onChange={e => setEditingProject(p => ({ ...p, plannedCompletion: e.target.value }))} /></div>
-              <div className="form-group"><label>{t("label_progress")}</label><input type="number" min="0" max="100" className="input" value={editingProject.constructionProgressPct ?? 0} onChange={e => setEditingProject(p => ({ ...p, constructionProgressPct: clamp(parseFloat(e.target.value||0),0,100) }))} /></div>
-              <div className="form-group"><label>{t("label_presentation_url")}</label><input className="input" placeholder="https://..." value={editingProject.presentationUrl || ""} onChange={e => setEditingProject(p => ({ ...p, presentationUrl: e.target.value }))} /></div>
+              <h3>Правка проекта</h3>
+              <div className="form-group"><label>Название проекта</label><input className="input" value={editingProject.projectName} onChange={e => setEditingProject(p => ({ ...p, projectName: e.target.value }))} /></div>
+              <div className="form-group"><label>Планируемая дата завершения (месяц/год)</label><input type="month" className="input" value={editingProject.plannedCompletion || ""} onChange={e => setEditingProject(p => ({ ...p, plannedCompletion: e.target.value }))} /></div>
+              <div className="form-group"><label>Достигнутый прогресс строительства (%)</label><input type="number" min="0" max="100" className="input" value={editingProject.constructionProgressPct ?? 0} onChange={e => setEditingProject(p => ({ ...p, constructionProgressPct: clamp(parseFloat(e.target.value||0),0,100) }))} /></div>
+              <div className="form-group"><label>Ссылка на презентацию (PDF)</label><input className="input" placeholder="https://..." value={editingProject.presentationUrl || ""} onChange={e => setEditingProject(p => ({ ...p, presentationUrl: e.target.value }))} /></div>
               <div className="row">
-                <div className="form-group"><label>{t("label_master_url")}</label><input className="input" placeholder="https://..." value={editingProject.masterPlan?.url || ""} onChange={e => setEditingProject(p => ({ ...p, masterPlan: { ...(p.masterPlan||{}), url: e.target.value } }))} /></div>
-                <div className="form-group"><label>{t("label_master_caption")}</label><input className="input" value={editingProject.masterPlan?.caption || ""} onChange={e => setEditingProject(p => ({ ...p, masterPlan: { ...(p.masterPlan||{}), caption: e.target.value } }))} /></div>
+                <div className="form-group"><label>URL мастер‑плана (изображение)</label><input className="input" placeholder="https://..." value={editingProject.masterPlan?.url || ""} onChange={e => setEditingProject(p => ({ ...p, masterPlan: { ...(p.masterPlan||{}), url: e.target.value } }))} /></div>
+                <div className="form-group"><label>Подпись к мастер‑плану</label><input className="input" value={editingProject.masterPlan?.caption || ""} onChange={e => setEditingProject(p => ({ ...p, masterPlan: { ...(p.masterPlan||{}), caption: e.target.value } }))} /></div>
               </div>
               <div className="modal-actions">
-                <button className="btn primary" onClick={commitEditProject}>{t("btn_save")}</button>
-                <button className="btn" onClick={() => setEditingProject(null)}>{t("btn_cancel")}</button>
+                <button className="btn primary" onClick={commitEditProject}>Сохранить</button>
+                <button className="btn" onClick={() => setEditingProject(null)}>Отмена</button>
               </div>
             </div>
           </div>
@@ -748,29 +544,32 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
         <Portal>
           <div className="modal-overlay" onClick={() => setShowAddVillaModal(false)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <h3>{t("btn_add_villa")}</h3>
+              <h3>Добавить виллу</h3>
               <div className="form-row">
-                <div className="form-group"><label>{t("table_villa")}</label><input className="input" value={newVillaForm.name} onChange={e => setNewVillaForm(v => ({ ...v, name: e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_status")}</label>
+                <div className="form-group"><label>Название</label><input className="input" value={newVillaForm.name} onChange={e => setNewVillaForm(v => ({ ...v, name: e.target.value }))} /></div>
+                <div className="form-group"><label>Статус</label>
                   <select className="input" value={newVillaForm.status} onChange={e => setNewVillaForm(v => ({ ...v, status: e.target.value }))}>
-                    <option value="available">{t("status_available")}</option>
-                    <option value="reserved">{t("status_reserved")}</option>
-                    <option value="hold">{t("status_hold")}</option>
+                    <option value="available">available</option><option value="reserved">reserved</option><option value="hold">hold</option>
                   </select>
                 </div>
-                <div className="form-group"><label>{t("table_rooms")}</label><input className="input" value={newVillaForm.rooms} onChange={e => setNewVillaForm(v => ({ ...v, rooms: e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_land")}</label><input type="number" className="input" value={newVillaForm.land} onChange={e => setNewVillaForm(v => ({ ...v, land: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_villa_area")}</label><input type="number" className="input" value={newVillaForm.area} onChange={e => setNewVillaForm(v => ({ ...v, area: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_floor1")}</label><input type="number" className="input" value={newVillaForm.f1} onChange={e => setNewVillaForm(v => ({ ...v, f1: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_floor2")}</label><input type="number" className="input" value={newVillaForm.f2} onChange={e => setNewVillaForm(v => ({ ...v, f2: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_rooftop")}</label><input type="number" className="input" value={newVillaForm.roof} onChange={e => setNewVillaForm(v => ({ ...v, roof: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_garden")}</label><input type="number" className="input" value={newVillaForm.garden} onChange={e => setNewVillaForm(v => ({ ...v, garden: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_ppsm")}</label><input type="number" className="input" value={newVillaForm.ppsm} onChange={e => setNewVillaForm(v => ({ ...v, ppsm: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_price_vat")}</label><input type="number" className="input" value={newVillaForm.baseUSD} onChange={e => setNewVillaForm(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Комнат</label><input className="input" value={newVillaForm.rooms} onChange={e => setNewVillaForm(v => ({ ...v, rooms: e.target.value }))} /></div>
+                <div className="form-group"><label>Земля (м²)</label><input type="number" className="input" value={newVillaForm.land} onChange={e => setNewVillaForm(v => ({ ...v, land: +e.target.value }))} /></div>
+                <div className="form-group"><label>Вилла (м²)</label><input type="number" className="input" value={newVillaForm.area} onChange={e => setNewVillaForm(v => ({ ...v, area: +e.target.value }))} /></div>
+                <div className="form-group"><label>1 этаж (м²)</label><input type="number" className="input" value={newVillaForm.f1} onChange={e => setNewVillaForm(v => ({ ...v, f1: +e.target.value }))} /></div>
+                <div className="form-group"><label>2 этаж (м²)</label><input type="number" className="input" value={newVillaForm.f2} onChange={e => setNewVillaForm(v => ({ ...v, f2: +e.target.value }))} /></div>
+                <div className="form-group"><label>Rooftop (м²)</label><input type="number" className="input" value={newVillaForm.roof} onChange={e => setNewVillaForm(v => ({ ...v, roof: +e.target.value }))} /></div>
+                <div className="form-group"><label>Сад и бассейн (м²)</label><input type="number" className="input" value={newVillaForm.garden} onChange={e => setNewVillaForm(v => ({ ...v, garden: +e.target.value }))} /></div>
+                <div className="form-group"><label>Цена за м² ($)</label><input type="number" className="input" value={newVillaForm.ppsm} onChange={e => setNewVillaForm(v => ({ ...v, ppsm: +e.target.value }))} /></div>
+                <div className="form-group"><label>Цена (USD)</label><input type="number" className="input" value={newVillaForm.baseUSD} onChange={e => setNewVillaForm(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Месячный рост до ключей (%)</label><input type="number" step="0.1" className="input" value={newVillaForm.monthlyPriceGrowthPct} onChange={e => setNewVillaForm(v => ({ ...v, monthlyPriceGrowthPct: +e.target.value }))} /></div>
+                <div className="form-group"><label>Дата окончания лизхолда</label><input type="date" className="input" value={newVillaForm.leaseholdEndDate} onChange={e => setNewVillaForm(v => ({ ...v, leaseholdEndDate: e.target.value }))} /></div>
+                <div className="form-group"><label>Сутки (USD)</label><input type="number" className="input" value={newVillaForm.dailyRateUSD} onChange={e => setNewVillaForm(v => ({ ...v, dailyRateUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Заполняемость (%)</label><input type="number" className="input" value={newVillaForm.occupancyPct} onChange={e => setNewVillaForm(v => ({ ...v, occupancyPct: clamp(+e.target.value,0,100) }))} /></div>
+                <div className="form-group"><label>Индекс аренды (%/год)</label><input type="number" step="0.1" className="input" value={newVillaForm.rentalPriceIndexPct} onChange={e => setNewVillaForm(v => ({ ...v, rentalPriceIndexPct: +e.target.value }))} /></div>
               </div>
               <div className="modal-actions">
-                <button className="btn primary" onClick={saveVilla}>{t("btn_save")}</button>
-                <button className="btn" onClick={() => setShowAddVillaModal(false)}>{t("btn_cancel")}</button>
+                <button className="btn primary" onClick={saveVilla}>Сохранить</button>
+                <button className="btn" onClick={() => setShowAddVillaModal(false)}>Отмена</button>
               </div>
             </div>
           </div>
@@ -781,29 +580,34 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
         <Portal>
           <div className="modal-overlay" onClick={() => setEditingVilla(null)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <h3>{t("btn_edit")} — {editingVilla.name}</h3>
+              <h3>Править виллу</h3>
               <div className="form-row">
-                <div className="form-group"><label>{t("table_villa")}</label><input className="input" value={editingVilla.name || ""} onChange={e => setEditingVilla(v => ({ ...v, name: e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_status")}</label>
+                <div className="form-group"><label>Название</label><input className="input" value={editingVilla.name || ""} onChange={e => setEditingVilla(v => ({ ...v, name: e.target.value }))} /></div>
+                <div className="form-group"><label>Статус</label>
                   <select className="input" value={editingVilla.status || "available"} onChange={e => setEditingVilla(v => ({ ...v, status: e.target.value }))}>
-                    <option value="available">{t("status_available")}</option>
-                    <option value="reserved">{t("status_reserved")}</option>
-                    <option value="hold">{t("status_hold")}</option>
+                    <option value="available">available</option>
+                    <option value="reserved">reserved</option>
+                    <option value="hold">hold</option>
                   </select>
                 </div>
-                <div className="form-group"><label>{t("table_rooms")}</label><input className="input" value={editingVilla.rooms || ""} onChange={e => setEditingVilla(v => ({ ...v, rooms: e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_land")}</label><input type="number" className="input" value={editingVilla.land ?? 0} onChange={e => setEditingVilla(v => ({ ...v, land: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_villa_area")}</label><input type="number" className="input" value={editingVilla.area ?? 0} onChange={e => setEditingVilla(v => ({ ...v, area: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_floor1")}</label><input type="number" className="input" value={editingVilla.f1 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f1: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_floor2")}</label><input type="number" className="input" value={editingVilla.f2 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f2: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_rooftop")}</label><input type="number" className="input" value={editingVilla.roof ?? 0} onChange={e => setEditingVilla(v => ({ ...v, roof: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_garden")}</label><input type="number" className="input" value={editingVilla.garden ?? 0} onChange={e => setEditingVilla(v => ({ ...v, garden: +e.target.value }))} /></div>
-                <div className="form-group"><label>{t("table_ppsm")}</label><input type="number" className="input" value={editingVilla.ppsm ?? 0} onChange={e => setEditingVilla(v => ({ ...v, ppsm: +e.target.value }))} /></div>
-                <div className="form-group"><label>Price (USD)</label><input type="number" className="input" value={editingVilla.baseUSD ?? 0} onChange={e => setEditingVilla(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Комнат</label><input className="input" value={editingVilla.rooms || ""} onChange={e => setEditingVilla(v => ({ ...v, rooms: e.target.value }))} /></div>
+                <div className="form-group"><label>Земля (м²)</label><input type="number" className="input" value={editingVilla.land ?? 0} onChange={e => setEditingVilla(v => ({ ...v, land: +e.target.value }))} /></div>
+                <div className="form-group"><label>Вилла (м²)</label><input type="number" className="input" value={editingVilla.area ?? 0} onChange={e => setEditingVilla(v => ({ ...v, area: +e.target.value }))} /></div>
+                <div className="form-group"><label>1 этаж (м²)</label><input type="number" className="input" value={editingVilla.f1 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f1: +e.target.value }))} /></div>
+                <div className="form-group"><label>2 этаж (м²)</label><input type="number" className="input" value={editingVilla.f2 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f2: +e.target.value }))} /></div>
+                <div className="form-group"><label>Rooftop (м²)</label><input type="number" className="input" value={editingVilla.roof ?? 0} onChange={e => setEditingVilla(v => ({ ...v, roof: +e.target.value }))} /></div>
+                <div className="form-group"><label>Сад и бассейн (м²)</label><input type="number" className="input" value={editingVilla.garden ?? 0} onChange={e => setEditingVilla(v => ({ ...v, garden: +e.target.value }))} /></div>
+                <div className="form-group"><label>Цена за м² ($)</label><input type="number" className="input" value={editingVilla.ppsm ?? 0} onChange={e => setEditingVilla(v => ({ ...v, ppsm: +e.target.value }))} /></div>
+                <div className="form-group"><label>Цена (USD)</label><input type="number" className="input" value={editingVilla.baseUSD ?? 0} onChange={e => setEditingVilla(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Сутки (USD)</label><input type="number" className="input" value={editingVilla.dailyRateUSD ?? 0} onChange={e => setEditingVilla(v => ({ ...v, dailyRateUSD: +e.target.value }))} /></div>
+                <div className="form-group"><label>Заполняемость (%)</label><input type="number" className="input" value={editingVilla.occupancyPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, occupancyPct: clamp(+e.target.value,0,100) }))} /></div>
+                <div className="form-group"><label>Индекс аренды (%/год)</label><input type="number" step="0.1" className="input" value={editingVilla.rentalPriceIndexPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, rentalPriceIndexPct: +e.target.value }))} /></div>
+                <div className="form-group"><label>Месячный рост до ключей (%)</label><input type="number" step="0.1" className="input" value={editingVilla.monthlyPriceGrowthPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, monthlyPriceGrowthPct: +e.target.value }))} /></div>
+                <div className="form-group"><label>Дата окончания лизхолда</label><input type="date" className="input" value={(editingVilla.leaseholdEndDate || "").slice(0,10)} onChange={e => setEditingVilla(v => ({ ...v, leaseholdEndDate: e.target.value }))} /></div>
               </div>
               <div className="modal-actions">
-                <button className="btn primary" onClick={commitEditVilla}>{t("btn_save")}</button>
-                <button className="btn" onClick={() => setEditingVilla(null)}>{t("btn_cancel")}</button>
+                <button className="btn primary" onClick={commitEditVilla}>Сохранить</button>
+                <button className="btn" onClick={() => setEditingVilla(null)}>Отмена</button>
               </div>
             </div>
           </div>
@@ -814,21 +618,21 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
         <Portal>
           <div className="modal-overlay" onClick={() => setReportsProject(null)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <h3>{t("reports_title", reportsProject.projectName)}</h3>
+              <h3>Отчеты о строительстве — {reportsProject.projectName}</h3>
               <div className="catalog-grid">
-                {(reportsProject.constructionReports || []).length === 0 && <div className="label">{t("reports_empty")}</div>}
+                {(reportsProject.constructionReports || []).length === 0 && <div className="label">Пока нет отчётов</div>}
                 {(reportsProject.constructionReports || []).slice().reverse().map(item => {
                   const ytId = item.type === "youtube" ? getYoutubeId(item.url) : null;
                   const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
                   return (
                     <div key={item.id} className="villa-item" onClick={() => window.open(item.url, "_blank", "noreferrer")}>
                       <div className="villa-info">
-                        <div className="value">{item.title || "(untitled)"} — {item.date || "—"}</div>
-                        <div className="label">{item.type === "youtube" ? t("report_type_yt") : t("report_type_album")}</div>
+                        <div className="value">{item.title || "(без названия)"} — {item.date || "—"}</div>
+                        <div className="label">{item.type === "youtube" ? "YouTube" : "Фото/Альбом"}</div>
                       </div>
-                      {thumb ? <img src={thumb} alt="" style={{ width:72, height:40, objectFit:"cover", borderRadius:8 }} /> : <span className="badge">{t("btn_open")}</span>}
+                      {thumb ? <img src={thumb} alt="" style={{ width:72, height:40, objectFit:"cover", borderRadius:8 }} /> : <span className="badge">Открыть</span>}
                       {!isClient && (
-                        <button className="btn danger small" onClick={(e) => { e.stopPropagation(); deleteReport(item.id); }}>{t("btn_delete")}</button>
+                        <button className="btn danger small" onClick={(e) => { e.stopPropagation(); deleteReport(item.id); }}>Удалить</button>
                       )}
                     </div>
                   );
@@ -837,12 +641,12 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
               {!isClient && (
                 <>
                   <div className="divider-line" />
-                  <AddReportForm t={t} onAdd={(r) => addReport(r)} />
+                  <AddReportForm onAdd={(r) => addReport(r)} />
                 </>
               )}
               <div className="modal-actions">
-                {!isClient && <button className="btn primary" onClick={saveReportsToProject}>{t("btn_save")}</button>}
-                <button className="btn" onClick={() => setReportsProject(null)}>{t("btn_cancel")}</button>
+                {!isClient && <button className="btn primary" onClick={saveReportsToProject}>Сохранить</button>}
+                <button className="btn" onClick={() => setReportsProject(null)}>Закрыть</button>
               </div>
             </div>
           </div>
@@ -852,24 +656,24 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
   );
 }
 
-function AddReportForm({ onAdd, t }) {
+function AddReportForm({ onAdd }) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [type, setType] = useState("youtube");
   const [url, setUrl] = useState("");
   return (
     <div className="row" style={{ marginTop: 10 }}>
-      <div className="form-group"><label>{t("report_name")}</label><input className="input" value={title} onChange={e => setTitle(e.target.value)} /></div>
-      <div className="form-group"><label>{t("report_date")}</label><input type="month" className="input" value={date} onChange={e => setDate(e.target.value)} /></div>
-      <div className="form-group"><label>{t("report_type")}</label>
+      <div className="form-group"><label>Название</label><input className="input" value={title} onChange={e => setTitle(e.target.value)} /></div>
+      <div className="form-group"><label>Дата (месяц/год)</label><input type="month" className="input" value={date} onChange={e => setDate(e.target.value)} /></div>
+      <div className="form-group"><label>Тип</label>
         <select className="input" value={type} onChange={e => setType(e.target.value)}>
-          <option value="youtube">{t("report_type_yt")}</option>
-          <option value="album">{t("report_type_album")}</option>
+          <option value="youtube">YouTube</option>
+          <option value="album">Фото/Альбом</option>
         </select>
       </div>
-      <div className="form-group"><label>{t("report_link")}</label><input className="input" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} /></div>
+      <div className="form-group"><label>Ссылка</label><input className="input" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} /></div>
       <div className="form-group" style={{ alignSelf:"end" }}>
-        <button className="btn" onClick={() => { if (!url) return; onAdd({ title, date, type, url }); setTitle(""); setDate(""); setUrl(""); }}>{t("reports_add")}</button>
+        <button className="btn" onClick={() => { if (!url) return; onAdd({ title, date, type, url }); setTitle(""); setDate(""); setUrl(""); }}>Добавить</button>
       </div>
     </div>
   );
@@ -878,8 +682,17 @@ function AddReportForm({ onAdd, t }) {
 /* =========================
    Калькулятор
 ========================= */
-function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToCatalog, lang, rates, setRates, t }) {
+function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToCatalog }) {
   useRevealOnMount();
+
+  const [lang, setLang] = useState("ru");
+  const [rates, setRates] = useState(() => {
+    try {
+      const raw = localStorage.getItem(LS_RATES);
+      return raw ? JSON.parse(raw) : { currency: "USD", idrPerUsd: 16300, eurPerUsd: 0.88 };
+    } catch { return { currency: "USD", idrPerUsd: 16300, eurPerUsd: 0.88 }; }
+  });
+  useEffect(() => { try { localStorage.setItem(LS_RATES, JSON.stringify(rates)); } catch {} }, [rates]);
 
   const [startMonth, setStartMonth] = useState(new Date());
   const [handoverMonth, setHandoverMonth] = useState(12);
@@ -895,11 +708,11 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
   }, [initialProject, startMonth]);
 
   const [stages, setStages] = useState([
-    { id: 1, label: "Contract", pct: 30, month: 0 },
-    { id: 2, label: "50% ready", pct: 30, month: 6 },
-    { id: 3, label: "70% ready", pct: 20, month: 9 },
-    { id: 4, label: "90% ready", pct: 15, month: 11 },
-    { id: 5, label: "Keys", pct: 5, month: 12 }
+    { id: 1, label: "Договор", pct: 30, month: 0 },
+    { id: 2, label: "50% готовности", pct: 30, month: 6 },
+    { id: 3, label: "70% готовности", pct: 20, month: 9 },
+    { id: 4, label: "90% готовности", pct: 15, month: 11 },
+    { id: 5, label: "Ключи", pct: 5, month: 12 }
   ]);
   const stagesSumPct = useMemo(() => stages.reduce((s, x) => s + (+x.pct || 0), 0), [stages]);
 
@@ -988,7 +801,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
         const payment = principalShare + interest;
         postRows.push({
           month: handoverMonth + i,
-          label: `Month ${i}`,
+          label: `Месяц ${i}`,
           principalUSD: principalShare,
           interestUSD: interest,
           paymentUSD: payment,
@@ -1046,7 +859,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     };
     linesData.forEach(ld => {
       ld.preSchedule.forEach(r => push(r.month, r.amountUSD, `${ld.line.snapshot?.name || 'Villa'} ×${ld.qty}: ${r.label}`));
-      if (ld.firstPostUSD > 0) push(handoverMonth + 1, ld.firstPostUSD, `${ld.line.snapshot?.name || 'Villa'} ×${ld.qty}: First payment`);
+      if (ld.firstPostUSD > 0) push(handoverMonth + 1, ld.firstPostUSD, `${ld.line.snapshot?.name || 'Villa'} ×${ld.qty}: Первый платёж`);
       ld.postRows.forEach(r => push(r.month, r.paymentUSD, `${ld.line.snapshot?.name || 'Villa'} ×${ld.qty}: ${r.label}`));
     });
 
@@ -1090,6 +903,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     const r = (line.monthlyPriceGrowthPct || 0) / 100;
     return base * Math.pow(1 + r, handoverMonth);
   }
+
   function generatePricingData(villa, line) {
     if (!villa?.leaseholdEndDate) return [];
     const end = new Date(villa.leaseholdEndDate);
@@ -1105,6 +919,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     }
     return data;
   }
+
   function generateMonthlyPricingData(villa, line, linesData) {
     if (!villa?.leaseholdEndDate || !line) return [];
     const totalMonths = months + handoverMonth;
@@ -1124,6 +939,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
         ageF = Math.exp(-0.025 * yo);
         brandF = (yo <= 3) ? 1 + (1.2 - 1) * (yo / 3) : (yo <= 7 ? 1.2 : (yo <= 15 ? 1.2 - (1.2 - 1.0) * ((yo - 7) / 8) : 1.0));
         finalPrice = mph * inflationF * leaseF * ageF * brandF;
+
         if (m >= handoverMonth + 3) {
           const price = getIndexedRentalPrice(line.dailyRateUSD, line.rentalPriceIndexPct, yo);
           const dim = getDaysInMonthFrom(startMonth, m);
@@ -1149,15 +965,15 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return { years: Math.max(...terms.map(t => t.years)), months: Math.max(...terms.map(t => t.months)) };
   }, [lines, startMonth, handoverMonth]);
 
-  // Экспорт калькулятора — клон
+  // Экспорт PDF калькулятора — клон (устойчиво)
   function exportCalcPDF() {
     try {
       if (typeof html2pdf === "undefined") {
-        alert("html2pdf not loaded");
+        alert("html2pdf не загружен. Подключите скрипт в index.html до app.js");
         return;
       }
       const scope = document.getElementById("calc-print-scope");
-      if (!scope) { alert("calc-print-scope missing"); return; }
+      if (!scope) { alert("Не найден экспортируемый блок калькулятора"); return; }
 
       const clone = scope.cloneNode(true);
       const wrapper = document.createElement("div");
@@ -1167,6 +983,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
       wrapper.style.background = "#fff";
       wrapper.style.overflow = "auto";
       wrapper.style.opacity = "0";
+      // скрыть все изображения (на случай внешних источников)
       clone.querySelectorAll("img").forEach(img => { img.style.display = "none"; });
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
@@ -1195,7 +1012,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
       });
     } catch (e) {
       console.error(e);
-      alert("PDF failed, see console");
+      alert("Не удалось сформировать PDF. Проверьте консоль и подключение html2pdf.");
     }
   }
 
@@ -1203,10 +1020,10 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return (
       <div className="container reveal">
         <div className="card">
-          <div className="card-header"><h3>Calculator</h3></div>
-          <div>No data. Select a villa in catalog.</div>
+          <div className="card-header"><h3>Калькулятор</h3></div>
+          <div>Нет данных по объекту. Вернитесь в каталог и выберите виллу.</div>
           <div className="row" style={{ marginTop: 10 }}>
-            <button className="btn" onClick={onBackToCatalog}>{t("calc_back")}</button>
+            <button className="btn" onClick={onBackToCatalog}>← К каталогу</button>
           </div>
         </div>
       </div>
@@ -1215,18 +1032,18 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
 
   const targetPrePct = clamp(lines[0]?.prePct ?? 100, 50, 100);
   const compareText = stagesSumPct > targetPrePct
-    ? t("stages_sum_exceeds", stagesSumPct.toFixed(2), targetPrePct.toFixed(2))
+    ? `— превышает ${targetPrePct.toFixed(2)}%`
     : stagesSumPct < targetPrePct
-      ? t("stages_sum_below", stagesSumPct.toFixed(2), targetPrePct.toFixed(2))
-      : t("stages_sum_equal", stagesSumPct.toFixed(2), targetPrePct.toFixed(2));
+      ? `— ниже целевого ${targetPrePct.toFixed(2)}%`
+      : `— совпадает с целевым ${targetPrePct.toFixed(2)}%`;
 
   return (
     <div className="container reveal">
       <div className="top-section">
         <div className="card stages-card">
           <div className="card-header">
-            <h3>{t("preinstallments_title")}</h3>
-            <button className="btn primary" onClick={() => setStages(prev => [...prev, { id: (prev.at(-1)?.id || 0) + 1, label: "Stage", pct: 0, month: 0 }])}>{t("btn_add_stage")}</button>
+            <h3>Рассрочка до получения ключей (установите комфортный план оплаты)</h3>
+            <button className="btn primary" onClick={() => setStages(prev => [...prev, { id: (prev.at(-1)?.id || 0) + 1, label: "Новый этап", pct: 0, month: 0 }])}>Добавить этап</button>
           </div>
           <div className="stages-scroll" style={{ overflowX: "auto" }}>
             <table className="factors-table" style={{ tableLayout: "fixed", width: "100%" }}>
@@ -1234,98 +1051,104 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
                 <col className="stages-col-name" style={{ width: "58%" }} />
                 <col className="stages-col-pct" style={{ width: "16%" }} />
                 <col className="stages-col-month" style={{ width: "16%" }} />
-                <col className="stages-col-actions" style={{ width: "10%" }} />
+                <col />
               </colgroup>
-              <thead><tr><th>{t("stages_head_name")}</th><th>{t("stages_head_pct")}</th><th>{t("stages_head_month")}</th><th>{t("stages_head_actions")}</th></tr></thead>
+              <thead><tr><th>Этап</th><th>%</th><th>Месяц</th><th>Действия</th></tr></thead>
               <tbody>
                 {stages.map(s => (
                   <tr key={s.id}>
                     <td>
                       <input className="compact-input" value={s.label} onChange={e => {
-                        const v = (e.target.value || "").slice(0, 20);
+                        const v = limitStageLabel(e.target.value || "");
+                        setStages(prev => prev.map(x => x.id === s.id ? { ...x, label: v } : x));
+                      }} onBlur={e => {
+                        const v = limitStageLabel(e.target.value || "");
                         setStages(prev => prev.map(x => x.id === s.id ? { ...x, label: v } : x));
                       }} />
                     </td>
                     <td>
                       <input className="compact-input" inputMode="decimal" placeholder="0–100" style={{ maxWidth: 96 }}
                         value={String(s.pct)} onChange={e => {
-                          const v = (e.target.value || "");
-                          const parsed = v.replace(/,/g,'.').replace(/[^0-9.]/g,'');
-                          const ix = parsed.indexOf('.');
-                          const cleaned = ix >= 0 ? parsed.slice(0, ix + 1) + parsed.slice(ix + 1).replace(/\./g,'') : parsed;
-                          const trimmed = cleaned.slice(0, 6);
-                          const num = parseFloat(trimmed);
-                          setStages(prev => prev.map(x => x.id === s.id ? { ...x, pct: isNaN(num) ? 0 : clamp(num, 0, 100) } : x));
+                          const num = parsePct(e.target.value);
+                          setStages(prev => prev.map(x => x.id === s.id ? { ...x, pct: num } : x));
                         }} />
                     </td>
                     <td>
                       <input className="compact-input" inputMode="numeric" placeholder="0–120" style={{ maxWidth: 96 }}
                         value={String(s.month)} onChange={e => {
-                          const s3 = (e.target.value || "").replace(/[^0-9]/g,'').slice(0,3);
-                          const n = clamp(parseInt(s3 || "0", 10), 0, 120);
-                          setStages(prev => prev.map(x => x.id === s.id ? { ...x, month: n } : x));
+                          const num = parseMonth3(e.target.value);
+                          setStages(prev => prev.map(x => x.id === s.id ? { ...x, month: num } : x));
                         }} />
                     </td>
-                    <td>
-                      <button className="btn danger icon tiny" title={t("btn_delete")} onClick={() => setStages(prev => prev.filter(x => x.id !== s.id))}>🗑</button>
-                    </td>
+                    <td><button className="btn danger small" onClick={() => setStages(prev => prev.filter(x => x.id !== s.id))}>🗑️</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="stages-summary">
-            <div className="pill">{compareText}</div>
+            <div className="pill">Сумма этапов: {stagesSumPct.toFixed(2)}% {compareText}</div>
           </div>
         </div>
 
         <div className="card settings-card">
           <div className="row">
-            <div className="field compact"><label>{t("settings_title_lang")}</label>
-              <select value={lang} onChange={e => { try { localStorage.setItem(LS_LANG, e.target.value); } catch {}; location.reload(); }}>
-                <option value="en">EN</option><option value="ru">RU</option>
+            <div className="field compact"><label>Язык интерфейса</label>
+              <select value={lang} onChange={e => setLang(e.target.value)}>
+                <option value="ru">Русский</option><option value="en">English</option>
               </select>
             </div>
 
-            <div className="field compact"><label>{t("settings_title_currency")}</label>
+            <div className="field compact"><label>Валюта отображения</label>
               <select value={rates.currency} onChange={e => setRates(prev => ({ ...prev, currency: e.target.value }))}>
-                <option value="USD">{t("curr_usd")}</option><option value="IDR">{t("curr_idr")}</option><option value="EUR">{t("curr_eur")}</option>
+                <option>USD</option><option>IDR</option><option>EUR</option>
               </select>
             </div>
 
-            <div className="field compact"><label>{t("settings_contract")}</label>
+            {!isClient && (
+              <>
+                <div className="field compact"><label>IDR за 1 USD</label>
+                  <input type="number" min="1" step="1" value={rates.idrPerUsd} onChange={e => setRates(prev => ({ ...prev, idrPerUsd: clamp(parseFloat(e.target.value || 0), 1, 1e9) }))} />
+                </div>
+                <div className="field compact"><label>EUR за 1 USD</label>
+                  <input type="number" min="0.01" step="0.01" value={rates.eurPerUsd} onChange={e => setRates(prev => ({ ...prev, eurPerUsd: clamp(parseFloat(e.target.value || 0), 0.01, 100) }))} />
+                </div>
+              </>
+            )}
+
+            <div className="field compact"><label>Заключение договора</label>
               <div className="info-display">{startMonth.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "long", year: "numeric" })}</div>
             </div>
 
             {normalizeYM(initialProject?.plannedCompletion) ? (
-              <div className="field compact"><label>{t("settings_handover_label")}</label>
+              <div className="field compact"><label>Завершение строительства</label>
                 <div className="info-display">{ymLabel(initialProject.plannedCompletion)}</div>
               </div>
             ) : (
-              <div className="field compact"><label>{t("settings_duration_fallback")}</label>
+              <div className="field compact"><label>Срок строительства (мес)</label>
                 <input type="number" min="1" step="1" value={handoverMonth} onChange={e => setHandoverMonth(clamp(parseInt(e.target.value || 0, 10), 1, 120))} />
               </div>
             )}
 
             {!isClient ? (
               <>
-                <div className="field compact"><label>{t("settings_global_rate")}</label>
+                <div className="field compact"><label>Глобальная ставка, %/мес</label>
                   <input type="number" min="0" step="0.01" value={monthlyRatePct} onChange={e => setMonthlyRatePct(clamp(parseFloat(e.target.value || 0), 0, 1000))} />
                 </div>
-                <div className="field compact"><label>{t("settings_global_term")}</label>
+                <div className="field compact"><label>Глобальный срок post‑handover (6–24 мес)</label>
                   <input type="range" min="6" max="24" step="1" value={months} onChange={e => setMonths(parseInt(e.target.value, 10))} />
-                  <div className="pill">{t("settings_months", months)}</div>
+                  <div className="pill">месяцев: {months}</div>
                 </div>
               </>
             ) : (
-              <div className="field compact"><label>Post‑handover (months)</label>
+              <div className="field compact"><label>Post‑handover рассрочка (мес)</label>
                 <input type="number" min="6" step="1" value={months} onChange={e => setMonths(clamp(parseInt(e.target.value || 0, 10), 6, 120))} />
               </div>
             )}
           </div>
 
           <div className="row">
-            <button className="btn" onClick={onBackToCatalog}>{t("calc_back")}</button>
+            <button className="btn" onClick={onBackToCatalog}>← К каталогу</button>
           </div>
         </div>
       </div>
@@ -1334,21 +1157,21 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
       <div id="calc-print-scope">
         {/* Объект недвижимости */}
         <div className="card">
-          <h3 style={{ margin: "6px 0" }}>{t("object_title")}</h3>
+          <h3 style={{ margin: "6px 0" }}>Объект недвижимости</h3>
           <div className="calc-scroll">
             <table className="calc-table">
               <thead>
                 <tr>
-                  <th>Project</th><th>Villa</th><th>m²</th><th>$ / m²</th><th>Base price (USD)</th>
-                  {!isClient && <th>Discount, %</th>}
-                  <th>Pre-keys, %</th>
-                  {!isClient && <th>Term, mo</th>}
-                  {!isClient && <th>Rate, %/mo</th>}
-                  {!isClient && <th>Monthly price growth (%)</th>}
-                  <th>Daily rate (USD)</th>
-                  <th>Avg occupancy, %</th>
-                  <th>Rent index, %/yr</th>
-                  <th>Total with plan</th>
+                  <th>Проект</th><th>Вилла</th><th>м²</th><th>$ / м²</th><th>Текущая стоимость (USD)</th>
+                  {!isClient && <th>Скидка, %</th>}
+                  <th>До ключей, %</th>
+                  {!isClient && <th>Срок рассрочки, мес</th>}
+                  {!isClient && <th>Ставка, %/мес</th>}
+                  {!isClient && <th>Месячный рост цены до ключей (%)</th>}
+                  <th>Стоимость проживания в сутки (USD)</th>
+                  <th>Средняя заполняемость за месяц (%)</th>
+                  <th>Рост цены аренды в год (%)</th>
+                  <th>Итоговая стоимость (с учетом выбранного плана рассрочки)</th>
                 </tr>
               </thead>
               <tbody>
@@ -1392,8 +1215,250 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
         </div>
 
-        {/* Остальные блоки калькулятора — без изменений (см. предыдущую версию) */}
-        {/* KPI, Cashflow, Pricing chart, Annual/Monthly tables, Export buttons */}
+        {/* KPI, графики, таблицы (как выше) */}
+        <div className="card">
+          <div className="kpi-header-pills">
+            <span className="badge">Выбрано вилл: {lines.length}</span>
+            <span className="badge">Ключи через {handoverMonth} мес.</span>
+            <span className="badge">Срок рассрочки после получения ключей: {months} мес.</span>
+          </div>
+          <div className="kpis">
+            {!isClient && (<div className="kpi"><div className="muted">Общая сумма:</div><div className="v">{display(project.totals.baseUSD)}</div></div>)}
+            <div className="kpi kpi-pair">
+              <div className="pair-item"><div className="muted">Оплата до ключей</div><div className="v">{display(project.totals.preUSD)}</div></div>
+              <div className="pair-item"><div className="muted">Оплата после ключей</div><div className="v">{display(project.totals.afterUSD)}</div></div>
+            </div>
+            {!isClient && (<div className="kpi"><div className="muted">Проценты:</div><div className="v">{display(project.totals.interestUSD)}</div></div>)}
+            <div className="kpi"><div className="muted">Итоговая стоимость</div><div className="v">{display(project.totals.finalUSD)}</div></div>
+            <div className="kpi kpi-pair">
+              <div className="pair-item"><div className="muted">ROI при продаже перед ключами</div><div className="v">
+                {(() => {
+                  const l0 = lines[0];
+                  const pd = generateMonthlyPricingData(selectedVilla, l0, linesData);
+                  const m = handoverMonth - 1;
+                  const mm = pd.find(x => x.month === m);
+                  if (!mm) return "0.0%";
+                  const paid = project.totals.preUSD;
+                  const roiAnnual = paid > 0 ? ((mm.finalPrice - project.totals.finalUSD) / paid) * 100 * (12 / Math.max(1, m + 1)) : 0;
+                  return `${fmt2(roiAnnual)}%`;
+                })()}
+              </div></div>
+              <div className="pair-item"><div className="muted">Чистый доход</div><div className="v">
+                {(() => {
+                  const l0 = lines[0];
+                  const pd = generateMonthlyPricingData(selectedVilla, l0, linesData);
+                  const m = handoverMonth - 1;
+                  const mm = pd.find(x => x.month === m);
+                  const net = (mm?.finalPrice || 0) - project.totals.finalUSD;
+                  return display(net);
+                })()}
+              </div></div>
+            </div>
+            <div className="kpi"><div className="muted">Чистый срок лизхолда (с момента получения ключей)</div><div className="v">{totalLeaseholdTerm.years} лет {totalLeaseholdTerm.months} месяцев</div></div>
+            <div className="kpi kpi-pair">
+              <div className="pair-item"><div className="muted">Точка выхода с макс. IRR</div><div className="v">{Math.floor(startMonth.getFullYear() + handoverMonth/12 + 4)}</div></div>
+              <div className="pair-item"><div className="muted">IRR</div><div className="v">22.1%</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="cashflow-block">
+          <div className="card">
+            <div className="card-header">
+              <h2>Полный график платежей</h2>
+              <div className="export-buttons">
+                <button className="btn" onClick={() => {
+                  const rows = [
+                    ["Месяц","Описание","Платеж","Арендный доход","Чистый платеж/доход в месяц","Остаток по договору"],
+                    ...project.cashflow.map(c => [
+                      formatMonth(c.month),
+                      (c.items || []).join(" + "),
+                      Math.round(c.amountUSD),
+                      Math.round(c.rentalIncome || 0),
+                      Math.round(c.netPayment || 0),
+                      Math.round(c.balanceUSD)
+                    ])
+                  ];
+                  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                  const a = document.createElement("a");
+                  a.href = URL.createObjectURL(blob);
+                  a.download = `arconique_cashflow_${new Date().toISOString().slice(0,10)}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(a.href);
+                }}>Экспорт CSV</button>
+                <button className="btn" onClick={() => {
+                  if (typeof XLSX === "undefined") { alert("Библиотека XLSX не загружена"); return; }
+                  const ws1 = XLSX.utils.json_to_sheet(project.cashflow.map(c => ({
+                    "Месяц": formatMonth(c.month),
+                    "Описание": (c.items || []).join(" + "),
+                    "Платеж": Math.round(c.amountUSD),
+                    "Арендный доход": Math.round(c.rentalIncome || 0),
+                    "Чистый платеж/доход в месяц": Math.round(c.netPayment || 0),
+                    "Остаток по договору": Math.round(c.balanceUSD)
+                  })));
+                  const wb = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(wb, ws1, "Кэшфлоу");
+                  XLSX.writeFile(wb, `arconique_installments_${new Date().toISOString().slice(0,10)}.xlsx`);
+                }}>Экспорт Excel</button>
+                <button className="btn" onClick={exportCalcPDF}>Сохранить в PDF</button>
+              </div>
+            </div>
+            <div className="cashflow-scroll">
+              <table className="factors-table">
+                <thead><tr><th>Месяц</th><th style={{textAlign:"left"}}>Описание</th><th>Платеж</th><th>Арендный доход</th><th>Чистый платеж/доход в месяц</th><th>Остаток по договору</th></tr></thead>
+                <tbody>
+                  {project.cashflow.map(c => (
+                    <tr key={c.month}>
+                      <td>{formatMonth(c.month)}</td>
+                      <td style={{ textAlign:"left" }}>{(c.items || []).join(" + ")}</td>
+                      <td>{display(c.amountUSD)}</td>
+                      <td>{display(c.rentalIncome || 0)}</td>
+                      <td className={c.netPayment >= 0 ? "positive" : "negative"}>{display(c.netPayment || 0)}</td>
+                      <td>{display(c.balanceUSD)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <h3>Финмодель доходности инвестиций</h3>
+          <div className="calculation-params-compact">
+            <div className="param-item-compact"><span className="param-label-compact">ИНФЛЯЦИЯ:</span><span className="param-value-compact">g = 10%/год</span></div>
+            <div className="param-item-compact"><span className="param-label-compact">СТАРЕНИЕ:</span><span className="param-value-compact">β = 0.025/год</span></div>
+            <div className="param-item-compact"><span className="param-label-compact">LEASE DECAY:</span><span className="param-value-compact">α = 1</span></div>
+            <div className="param-item-compact"><span className="param-label-compact">BRAND FACTOR:</span><span className="param-value-compact">Пик = 1.2x</span></div>
+          </div>
+
+          <div className="pricing-chart-container">
+            <h4>Динамика стоимости виллы и арендного дохода</h4>
+            <p className="chart-subtitle">Влияние факторов на цену и доходность от аренды</p>
+            <div className="pricing-chart-svg">
+              <svg width="100%" height="300" viewBox="0 0 800 300">
+                {(() => {
+                  const l0 = lines[0];
+                  const annual = generatePricingData(selectedVilla, l0);
+                  if (!annual.length) return null;
+                  const rental = annual.map(d => {
+                    const price = getIndexedRentalPrice(l0.dailyRateUSD, l0.rentalPriceIndexPct, d.year);
+                    const monthsWorked = d.year === 0 ? Math.max(0, 12 - (handoverMonth + 3)) : 12;
+                    const avgDays = 30.4;
+                    const income = price * 0.55 * (l0.occupancyPct / 100) * (monthsWorked * avgDays) * (l0.qty || 1);
+                    return { year: d.year, rentalIncome: income };
+                  });
+                  const maxV = Math.max(...annual.map(x => x.finalPrice), ...rental.map(x => x.rentalIncome));
+                  const minV = 0;
+                  const range = Math.max(1, maxV - minV);
+                  const x = i => 50 + i * (700 / Math.max(1, annual.length - 1));
+                  const y = v => 250 - ((v - minV) / range) * 200;
+                  return (
+                    <>
+                      <polyline fill="none" stroke="#1f6feb" strokeWidth="2" points={annual.map((d,i)=>`${x(i)},${y(d.finalPrice)}`).join(" ")} />
+                      <polyline fill="none" stroke="#2da44e" strokeWidth="2" points={rental.map((d,i)=>`${x(i)},${y(d.rentalIncome)}`).join(" ")} />
+                      {annual.map((d,i)=>(<circle key={i} cx={x(i)} cy={y(d.finalPrice)} r="3" fill="#1f6feb" />))}
+                      {rental.map((d,i)=>(<circle key={`r${i}`} cx={x(i)} cy={y(d.rentalIncome)} r="3" fill="#2da44e" />))}
+                      <line x1="50" y1="50" x2="50" y2="250" stroke="#666" />
+                      <line x1="50" y1="250" x2="750" y2="250" stroke="#666" />
+                      {annual.map((d,i)=>(<text key={`t${i}`} x={x(i)} y="270" fontSize="11" textAnchor="middle" fill="#666">{Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year)}</text>))}
+                    </>
+                  );
+                })()}
+              </svg>
+            </div>
+          </div>
+
+          <div className="factors-table-container">
+            <h4>Расчет показателей (годовой)</h4>
+            <div className="factors-table-scroll">
+              <table className="factors-table">
+                <thead>
+                  <tr>
+                    <th>Год</th><th>Lease Factor</th><th>Age Factor</th><th>Brand Factor</th><th>Коэффициент инфляции</th>
+                    <th>Рыночная стоимость</th><th>Арендный доход</th><th>Совокупная капитализация</th><th>ROI за год (%)</th><th>Итоговый ROI (%)</th><th>IRR (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const l0 = lines[0];
+                    const data = generatePricingData(selectedVilla, l0);
+                    return data.map((d, i) => {
+                      const inflF = Math.pow(1 + 0.10, d.year);
+                      const rentalIncome = getIndexedRentalPrice(l0.dailyRateUSD, l0.rentalPriceIndexPct, d.year) * 0.55 * (l0.occupancyPct / 100) * (12 * 30.4) * (l0.qty || 1);
+                      const totalCapital = d.finalPrice + rentalIncome;
+                      const prev = data[i - 1]?.finalPrice || d.finalPrice;
+                      const yearlyRoi = i > 0 ? ((rentalIncome + (d.finalPrice - prev)) / prev) * 100 : 0;
+                      const cumulativeRoi = i > 0 ? ((d.finalPrice + rentalIncome - project.totals.finalUSD) / project.totals.finalUSD) * 100 : 0;
+                      const cashFlows = [ -project.totals.finalUSD, ...Array.from({length: i}, ()=> rentalIncome ), rentalIncome + d.finalPrice ];
+                      const irr = i > 0 ? calculateIRR(cashFlows) : 0;
+                      return (
+                        <tr key={i}>
+                          <td>{Math.floor(startMonth.getFullYear() + handoverMonth/12 + d.year)}</td>
+                          <td>{d.leaseFactor.toFixed(3)}</td>
+                          <td>{d.ageFactor.toFixed(3)}</td>
+                          <td>{d.brandFactor.toFixed(3)}</td>
+                          <td>{inflF.toFixed(3)}</td>
+                          <td className="price-cell">{display(d.finalPrice)}</td>
+                          <td className="rental-cell">{display(rentalIncome)}</td>
+                          <td className="total-capital-cell">{display(totalCapital)}</td>
+                          <td className="yearly-roi-cell">{fmt2(yearlyRoi)}%</td>
+                          <td className="cumulative-roi-cell">{fmt2(cumulativeRoi)}%</td>
+                          <td className="irr-cell">{fmt2(irr)}%</td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="factors-table-container">
+            <h4>Расчет показателей (на период рассрочки)</h4>
+            <div className="factors-table-scroll">
+              <table className="factors-table">
+                <thead>
+                  <tr>
+                    <th>Период</th><th>Lease Factor</th><th>Age Factor</th><th>Brand Factor</th><th>Коэффициент инфляции</th>
+                    <th>Рыночная стоимость</th><th>Арендный доход</th><th>Совокупная капитализация</th><th>Платеж по рассрочке</th><th>ROI за месяц (%)</th><th>Итоговый ROI (%)</th><th>IRR (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const l0 = lines[0];
+                    const md = generateMonthlyPricingData(selectedVilla, l0, linesData);
+                    let paid = 0;
+                    return md.map((m, idx) => {
+                      paid += m.paymentAmount || 0;
+                      const prev = md[idx - 1]?.finalPrice || m.finalPrice;
+                      const monthlyRoi = paid > 0 ? ((m.rentalIncome + (m.finalPrice - prev)) / paid) * 100 : 0;
+                      const cumulativeRoi = project.totals.finalUSD > 0 ? (((m.finalPrice - project.totals.finalUSD) + m.rentalIncome) / project.totals.finalUSD) * 100 : 0;
+                      const irr = calculateIRR([ -project.totals.finalUSD, ...Array.from({length: idx}, ()=> m.rentalIncome || 0), (m.rentalIncome || 0) + m.finalPrice ]);
+                      return (
+                        <tr key={m.month}>
+                          <td>{m.monthName}</td>
+                          <td>{m.leaseFactor.toFixed(3)}</td>
+                          <td>{m.ageFactor.toFixed(3)}</td>
+                          <td>{m.brandFactor.toFixed(3)}</td>
+                          <td>{m.inflationFactor.toFixed(3)}</td>
+                          <td className="price-cell">{display(m.finalPrice)}</td>
+                          <td className="rental-cell">{display(m.rentalIncome)}</td>
+                          <td className="total-capital-cell">{display(m.finalPrice + m.rentalIncome)}</td>
+                          <td className="payment-cell">{m.paymentAmount > 0 ? display(m.paymentAmount) : "-"}</td>
+                          <td className="monthly-roi-cell">{fmt2(monthlyRoi)}%</td>
+                          <td className="cumulative-roi-cell">{fmt2(cumulativeRoi)}%</td>
+                          <td className="irr-cell">{fmt2(irr)}%</td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>{/* /#calc-print-scope */}
       </div>
     </div>
   );
@@ -1404,19 +1469,10 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
 ========================= */
 function App() {
   useRevealOnMount();
-  const { lang, setLang, t } = useLang();
 
   const [isClient, setIsClient] = useState(true);
   const [catalog, setCatalog] = useState(loadCatalog());
   useEffect(() => saveCatalog(catalog), [catalog]);
-
-  const [rates, setRates] = useState(() => {
-    try {
-      const raw = localStorage.getItem(LS_RATES);
-      return raw ? JSON.parse(raw) : { currency: "USD", idrPerUsd: 16300, eurPerUsd: 0.88 };
-    } catch { return { currency: "USD", idrPerUsd: 16300, eurPerUsd: 0.88 }; }
-  });
-  useEffect(() => { try { localStorage.setItem(LS_RATES, JSON.stringify(rates)); } catch {} }, [rates]);
 
   const [calcInput, setCalcInput] = useState(null);
   useRevealOnRoute(calcInput ? "calc" : "catalog");
@@ -1432,9 +1488,9 @@ function App() {
 
   function toggleMode() {
     if (isClient) {
-      const pin = prompt("PIN:");
+      const pin = prompt("Введите PIN для входа в редакторский режим:");
       if (pin === PIN_CODE) setIsClient(false);
-      else if (pin !== null) alert("Wrong PIN");
+      else if (pin !== null) alert("Неверный PIN");
     } else setIsClient(true);
   }
 
@@ -1442,10 +1498,10 @@ function App() {
     <>
       <div className="container reveal">
         <div className="header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h1 className="h1" style={{ margin: 0, fontSize: 24 }}>{t("app_title")}</h1>
+          <h1 className="h1" style={{ margin: 0, fontSize: 24 }}>Arconique / Каталог инвестиционной недвижимости на Бали</h1>
           <div style={{ display: "flex", gap: 8 }}>
-            {calcInput && <button className="btn" onClick={handleBackToCatalog}>{t("calc_back")}</button>}
-            <button className="btn icon tiny" title={isClient ? "Editor" : "Client"} onClick={toggleMode}>🛠</button>
+            {calcInput && <button className="btn" onClick={handleBackToCatalog}>← К каталогу</button>}
+            <button className="btn" onClick={toggleMode}>{isClient ? "Переключиться в редактор" : "Переключиться в клиент"}</button>
           </div>
         </div>
       </div>
@@ -1456,11 +1512,6 @@ function App() {
           setCatalog={setCatalog}
           onCalculate={handleCalculate}
           isClient={isClient}
-          lang={lang}
-          setLang={setLang}
-          rates={rates}
-          setRates={setRates}
-          t={t}
         />
       ) : (
         <Calculator
@@ -1469,10 +1520,6 @@ function App() {
           initialVilla={calcInput.villa}
           isClient={isClient}
           onBackToCatalog={handleBackToCatalog}
-          lang={lang}
-          rates={rates}
-          setRates={setRates}
-          t={t}
         />
       )}
     </>
