@@ -616,10 +616,10 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
 
             <div className="pill-row">
               {project.plannedCompletion && (
-                <span className="pill">{t("pill_keys_in")(ymLabelPrepositional(project.plannedCompletion))}</span>
+                <span className="pill">{t("pill_keys_in", ymLabelPrepositional(project.plannedCompletion))}</span>
               )}
               {Number.isFinite(project.constructionProgressPct) && (
-                <span className="pill pill-muted">{t("pill_progress")(project.constructionProgressPct)}</span>
+                <span className="pill pill-muted">{t("pill_progress", project.constructionProgressPct)}</span>
               )}
             </div>
 
@@ -814,7 +814,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient, lang, setL
         <Portal>
           <div className="modal-overlay" onClick={() => setReportsProject(null)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <h3>{t("reports_title")(reportsProject.projectName)}</h3>
+              <h3>{t("reports_title", reportsProject.projectName)}</h3>
               <div className="catalog-grid">
                 {(reportsProject.constructionReports || []).length === 0 && <div className="label">{t("reports_empty")}</div>}
                 {(reportsProject.constructionReports || []).slice().reverse().map(item => {
@@ -1122,7 +1122,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
         inflationF = Math.pow(1 + 0.10, yo);
         leaseF = 1;
         ageF = Math.exp(-0.025 * yo);
-        brandF = (yo <= 3) ? 1 + (1.2 - 1) * (yo / 3) : (yo <= 7 ? 1.2 : (yo <= 15 ? 1.2 - (1.2 - 1.0) * ((y - 7) / 8) : 1.0));
+        brandF = (yo <= 3) ? 1 + (1.2 - 1) * (yo / 3) : (yo <= 7 ? 1.2 : (yo <= 15 ? 1.2 - (1.2 - 1.0) * ((yo - 7) / 8) : 1.0));
         finalPrice = mph * inflationF * leaseF * ageF * brandF;
         if (m >= handoverMonth + 3) {
           const price = getIndexedRentalPrice(line.dailyRateUSD, line.rentalPriceIndexPct, yo);
@@ -1215,10 +1215,10 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
 
   const targetPrePct = clamp(lines[0]?.prePct ?? 100, 50, 100);
   const compareText = stagesSumPct > targetPrePct
-    ? t("stages_sum_exceeds")(stagesSumPct.toFixed(2), targetPrePct.toFixed(2))
+    ? t("stages_sum_exceeds", stagesSumPct.toFixed(2), targetPrePct.toFixed(2))
     : stagesSumPct < targetPrePct
-      ? t("stages_sum_below")(stagesSumPct.toFixed(2), targetPrePct.toFixed(2))
-      : t("stages_sum_equal")(stagesSumPct.toFixed(2), targetPrePct.toFixed(2));
+      ? t("stages_sum_below", stagesSumPct.toFixed(2), targetPrePct.toFixed(2))
+      : t("stages_sum_equal", stagesSumPct.toFixed(2), targetPrePct.toFixed(2));
 
   return (
     <div className="container reveal">
@@ -1314,7 +1314,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
                 </div>
                 <div className="field compact"><label>{t("settings_global_term")}</label>
                   <input type="range" min="6" max="24" step="1" value={months} onChange={e => setMonths(parseInt(e.target.value, 10))} />
-                  <div className="pill">{t("settings_months")(months)}</div>
+                  <div className="pill">{t("settings_months", months)}</div>
                 </div>
               </>
             ) : (
