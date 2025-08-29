@@ -19,6 +19,10 @@ const fmt2 = (n) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 })
 function fmtMoney(n, c = "USD", max = 0) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: max }).format(Math.round(+n || 0));
 }
+function ruMonthNameGenitive(i) {
+  const m = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+  return m[Math.max(0, Math.min(11, i))];
+}
 function ruMonthName(i) {
   const m = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
   return m[Math.max(0, Math.min(11, i))];
@@ -27,6 +31,28 @@ function ymLabel(yyyyMm) {
   if (!/^\d{4}-\d{2}$/.test(yyyyMm)) return "—";
   const [y, m] = yyyyMm.split("-").map(Number);
   return `${ruMonthName(m - 1)} ${y}`;
+}
+function normalizeYM(input) {
+  if (!input) return "";
+  if (/^\d{4}-\d{2}$/.test(input)) return input;
+  const mapRu = {
+    "январ": "01","феврал": "02","март": "03","апрел": "04","май": "05","мая": "05","июн": "06","июл": "07",
+    "август": "08","сентябр": "09","октябр": "10","ноябр": "11","декабр": "12"
+  };
+  let v = (input || "").toString().trim().toLowerCase();
+  const ym = v.match(/(20\d{2})[-/.](\d{1,2})/);
+  if (ym) {
+    const y = ym[1];
+    const m = ym[2].padStart(2, "0");
+    return `${y}-${m}`;
+  }
+  const ru = v.match(/([а-я]+)/i);
+  const y = v.match(/(20\d{2})/);
+  if (ru && y) {
+    const k = Object.keys(mapRu).find(k => ru[1].startsWith(k));
+    if (k) return `${y[1]}-${mapRu[k]}`;
+  }
+  return "";
 }
 
 /* =========================
@@ -91,15 +117,19 @@ function defaults() {
 const loadCatalog = () => {
   try {
     const raw = localStorage.getItem(LS_CATALOG);
-    if (!raw) return defaults();
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : defaults();
+    const cat = raw ? JSON.parse(raw) : defaults();
+    const norm = Array.isArray(cat) ? cat : defaults();
+    // миграция plannedCompletion в YYYY-MM
+    return norm.map(p => ({
+      ...p,
+      plannedCompletion: normalizeYM(p.plannedCompletion) || "",
+    }));
   } catch { return defaults(); }
 };
 const saveCatalog = (c) => { try { localStorage.setItem(LS_CATALOG, JSON.stringify(c)); } catch {} };
 
 /* =========================
-   Финансовые утилиты
+   Финансовые утилиты (калькулятор)
 ========================= */
 function getDaysInMonthFrom(startDate, offsetMonths) {
   const d = new Date(startDate);
@@ -144,14 +174,19 @@ function CatalogManager({
   const [editingProject, setEditingProject] = useState(null);
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const [showAddVillaModal, setShowAddVillaModal] = useState(false);
-  const [newProjectForm, setNewProjectForm] = useState({ projectId: "", projectName: "", plannedCompletion: "2026-12", constructionProgressPct: 20, includes: [] });
+  const [editingVilla, setEditingVilla] = useState(null);
+
+  const [newProjectForm, setNewProjectForm] = useState({
+    projectId: "", projectName: "", plannedCompletion: "2026-12", constructionProgressPct: 20, includes: []
+  });
   const [newVillaForm, setNewVillaForm] = useState({
-    villaId: "", name: "", status: "available", area: 100, ppsm: 2500, baseUSD: 250000,
+    projectId: "", villaId: "", name: "", status: "available",
+    rooms: "", land: 0, area: 100, f1: 0, f2: 0, roof: 0, garden: 0,
+    ppsm: 2500, baseUSD: 250000,
     monthlyPriceGrowthPct: 2, leaseholdEndDate: new Date().toISOString().slice(0,10),
     dailyRateUSD: 150, occupancyPct: 70, rentalPriceIndexPct: 5
   });
 
-  // Плашка статуса
   function StatusPill({ status }) {
     const label = status === "available" ? "в наличии" : status === "reserved" ? "забронировано" : "на паузе";
     const cls = status === "available" ? "status-available" : status === "reserved" ? "status-reserved" : "status-hold";
@@ -163,8 +198,8 @@ function CatalogManager({
     const s = searchTerm.toLowerCase();
     return catalog.map(p => ({
       ...p,
-      villas: p.villas.filter(v => v.name.toLowerCase().includes(s))
-    })).filter(p => p.villas.length > 0 || p.projectName.toLowerCase().includes(s));
+      villas: p.villas.filter(v => (v.name || "").toLowerCase().includes(s))
+    })).filter(p => p.villas.length > 0 || (p.projectName || "").toLowerCase().includes(s));
   }, [catalog, searchTerm]);
 
   const addProject = () => {
@@ -173,9 +208,15 @@ function CatalogManager({
   };
   const saveProject = () => {
     if (!newProjectForm.projectName) { alert("Введите название проекта"); return; }
-    const projectId = newProjectForm.projectName.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
-    if (catalog.find(p => p.projectId === projectId)) { alert("Проект с таким ID уже существует"); return; }
-    setCatalog(prev => [...prev, { ...newProjectForm, projectId, villas: [] }]);
+    const projectIdBase = newProjectForm.projectName.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+    let projectId = projectIdBase || `project-${Date.now()}`;
+    let suffix = 2;
+    while (catalog.find(p => p.projectId === projectId)) {
+      projectId = `${projectIdBase}-${suffix++}`;
+    }
+    const planned = normalizeYM(newProjectForm.plannedCompletion);
+    const newProject = { ...newProjectForm, projectId, plannedCompletion: planned };
+    setCatalog(prev => [...prev, { ...newProject, villas: [] }]);
     setShowAddProjectModal(false);
   };
   const deleteProject = (projectId) => {
@@ -185,26 +226,34 @@ function CatalogManager({
 
   const openEditProject = (project) => setEditingProject({ ...project });
   const commitEditProject = () => {
-    setCatalog(prev => prev.map(p => p.projectId === editingProject.projectId ? editingProject : p));
+    const planned = normalizeYM(editingProject.plannedCompletion);
+    setCatalog(prev => prev.map(p => p.projectId === editingProject.projectId ? { ...editingProject, plannedCompletion: planned } : p));
     setEditingProject(null);
   };
 
   const addVilla = (projectId) => {
     setShowAddVillaModal(true);
     setNewVillaForm({
-      villaId: "", name: "", status: "available",
-      area: 100, ppsm: 2500, baseUSD: 250000,
+      projectId, villaId: "", name: "", status: "available",
+      rooms: "", land: 0, area: 100, f1: 0, f2: 0, roof: 0, garden: 0,
+      ppsm: 2500, baseUSD: 250000,
       monthlyPriceGrowthPct: 2, leaseholdEndDate: new Date().toISOString().slice(0,10),
-      dailyRateUSD: 150, occupancyPct: 70, rentalPriceIndexPct: 5,
-      projectId
+      dailyRateUSD: 150, occupancyPct: 70, rentalPriceIndexPct: 5
     });
   };
+  const uniqueVillaId = (project, baseName) => {
+    const base = `${project.projectId}-${(baseName || "").toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"")}` || `${project.projectId}-villa`;
+    if (!project.villas.find(v => v.villaId === base)) return base;
+    let i = 2;
+    let id = `${base}-${i}`;
+    while (project.villas.find(v => v.villaId === id)) { i += 1; id = `${base}-${i}`; }
+    return id;
+  };
   const saveVilla = () => {
-    if (!newVillaForm.projectId) { alert("Нет выбранного проекта"); return; }
-    if (!newVillaForm.name) { alert("Введите название виллы"); return; }
     const project = catalog.find(p => p.projectId === newVillaForm.projectId);
-    const villaId = `${project.projectId}-${newVillaForm.name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"")}`;
-    if (project.villas.find(v => v.villaId === villaId)) { alert("Вилла уже существует"); return; }
+    if (!project) { alert("Нет выбранного проекта"); return; }
+    if (!newVillaForm.name) { alert("Введите название виллы"); return; }
+    const villaId = uniqueVillaId(project, newVillaForm.name);
     const v = { ...newVillaForm, villaId };
     setCatalog(prev => prev.map(p => p.projectId === project.projectId ? { ...p, villas: [...p.villas, v] } : p));
     setShowAddVillaModal(false);
@@ -213,6 +262,17 @@ function CatalogManager({
     if (!confirm("Удалить виллу?")) return;
     setCatalog(prev => prev.map(p => p.projectId === projectId ? { ...p, villas: p.villas.filter(v => v.villaId !== villaId) } : p));
   };
+
+  function openEditVilla(villa, projectId) {
+    setEditingVilla({ ...villa, projectId });
+  }
+  function commitEditVilla() {
+    setCatalog(prev => prev.map(p => p.projectId === editingVilla.projectId
+      ? { ...p, villas: p.villas.map(x => x.villaId === editingVilla.villaId ? editingVilla : x) }
+      : p
+    ));
+    setEditingVilla(null);
+  }
 
   return (
     <div className="catalog-section reveal">
@@ -268,8 +328,9 @@ function CatalogManager({
                     <th className="w-1">Rooftop, м²</th>
                     <th className="w-1">Garden & pool, м²</th>
                     <th className="w-1">Price per м², $</th>
+                    <th className="w-1">Price with VAT, $</th>
                     <th className="w-1">Статус</th>
-                    <th className="w-1">Действие</th>
+                    <th className="w-1">График платежей и финмодель</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -284,14 +345,19 @@ function CatalogManager({
                       <td>{v.roof ?? 0}</td>
                       <td>{v.garden ?? 0}</td>
                       <td>{v.ppsm ?? 0}</td>
-                      <td>
-                        <StatusPill status={v.status} />
-                      </td>
+                      <td>{fmtMoney((v.baseUSD || 0) * 1.10, "USD")}</td>
+                      <td><StatusPill status={v.status} /></td>
                       <td>
                         {v.status === "available" ? (
                           <button className="btn primary btn-sm" onClick={() => onCalculate(project, v)}>Рассчитать</button>
                         ) : (
                           <span className="badge">Недоступно</span>
+                        )}
+                        {!isClient && (
+                          <div style={{ display: "inline-flex", gap: 6, marginLeft: 8 }}>
+                            <button className="btn btn-sm" onClick={() => openEditVilla(v, project.projectId)}>Править</button>
+                            <button className="btn danger btn-sm" onClick={() => deleteVilla(project.projectId, v.villaId)}>Удалить</button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -343,18 +409,59 @@ function CatalogManager({
                   <option value="available">available</option><option value="reserved">reserved</option><option value="hold">hold</option>
                 </select>
               </div>
+              <div className="form-group"><label>Комнат</label><input className="input" value={newVillaForm.rooms} onChange={e => setNewVillaForm(v => ({ ...v, rooms: e.target.value }))} /></div>
+              <div className="form-group"><label>Земля (м²)</label><input type="number" className="input" value={newVillaForm.land} onChange={e => setNewVillaForm(v => ({ ...v, land: +e.target.value }))} /></div>
               <div className="form-group"><label>Площадь (м²)</label><input type="number" className="input" value={newVillaForm.area} onChange={e => setNewVillaForm(v => ({ ...v, area: +e.target.value }))} /></div>
+              <div className="form-group"><label>1 этаж (м²)</label><input type="number" className="input" value={newVillaForm.f1} onChange={e => setNewVillaForm(v => ({ ...v, f1: +e.target.value }))} /></div>
+              <div className="form-group"><label>2 этаж (м²)</label><input type="number" className="input" value={newVillaForm.f2} onChange={e => setNewVillaForm(v => ({ ...v, f2: +e.target.value }))} /></div>
+              <div className="form-group"><label>Rooftop (м²)</label><input type="number" className="input" value={newVillaForm.roof} onChange={e => setNewVillaForm(v => ({ ...v, roof: +e.target.value }))} /></div>
+              <div className="form-group"><label>Garden & pool (м²)</label><input type="number" className="input" value={newVillaForm.garden} onChange={e => setNewVillaForm(v => ({ ...v, garden: +e.target.value }))} /></div>
               <div className="form-group"><label>$ / м²</label><input type="number" className="input" value={newVillaForm.ppsm} onChange={e => setNewVillaForm(v => ({ ...v, ppsm: +e.target.value }))} /></div>
               <div className="form-group"><label>Цена (USD)</label><input type="number" className="input" value={newVillaForm.baseUSD} onChange={e => setNewVillaForm(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
               <div className="form-group"><label>Месячный рост до ключей (%)</label><input type="number" step="0.1" className="input" value={newVillaForm.monthlyPriceGrowthPct} onChange={e => setNewVillaForm(v => ({ ...v, monthlyPriceGrowthPct: +e.target.value }))} /></div>
               <div className="form-group"><label>Дата окончания лизхолда</label><input type="date" className="input" value={newVillaForm.leaseholdEndDate} onChange={e => setNewVillaForm(v => ({ ...v, leaseholdEndDate: e.target.value }))} /></div>
-              <div className="form-group"><label>Ставка ночи (USD)</label><input type="number" className="input" value={newVillaForm.dailyRateUSD} onChange={e => setNewVillaForm(v => ({ ...v, dailyRateUSD: +e.target.value }))} /></div>
+              <div className="form-group"><label>Сутки (USD)</label><input type="number" className="input" value={newVillaForm.dailyRateUSD} onChange={e => setNewVillaForm(v => ({ ...v, dailyRateUSD: +e.target.value }))} /></div>
               <div className="form-group"><label>Заполняемость (%)</label><input type="number" className="input" value={newVillaForm.occupancyPct} onChange={e => setNewVillaForm(v => ({ ...v, occupancyPct: clamp(+e.target.value,0,100) }))} /></div>
-              <div className="form-group"><label>Индексация аренды (%/год)</label><input type="number" step="0.1" className="input" value={newVillaForm.rentalPriceIndexPct} onChange={e => setNewVillaForm(v => ({ ...v, rentalPriceIndexPct: +e.target.value }))} /></div>
+              <div className="form-group"><label>Индекс аренды (%/год)</label><input type="number" step="0.1" className="input" value={newVillaForm.rentalPriceIndexPct} onChange={e => setNewVillaForm(v => ({ ...v, rentalPriceIndexPct: +e.target.value }))} /></div>
             </div>
             <div className="modal-actions">
               <button className="btn primary" onClick={saveVilla}>Сохранить</button>
               <button className="btn" onClick={() => setShowAddVillaModal(false)}>Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {editingVilla && (
+        <div className="modal-overlay" onClick={() => setEditingVilla(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>Править виллу</h3>
+            <div className="form-row">
+              <div className="form-group"><label>Название</label><input className="input" value={editingVilla.name || ""} onChange={e => setEditingVilla(v => ({ ...v, name: e.target.value }))} /></div>
+              <div className="form-group"><label>Статус</label>
+                <select className="input" value={editingVilla.status || "available"} onChange={e => setEditingVilla(v => ({ ...v, status: e.target.value }))}>
+                  <option value="available">available</option>
+                  <option value="reserved">reserved</option>
+                  <option value="hold">hold</option>
+                </select>
+              </div>
+              <div className="form-group"><label>Q Rooms</label><input className="input" value={editingVilla.rooms || ""} onChange={e => setEditingVilla(v => ({ ...v, rooms: e.target.value }))} /></div>
+              <div className="form-group"><label>Land (м²)</label><input type="number" className="input" value={editingVilla.land ?? 0} onChange={e => setEditingVilla(v => ({ ...v, land: +e.target.value }))} /></div>
+              <div className="form-group"><label>Villa (м²)</label><input type="number" className="input" value={editingVilla.area ?? 0} onChange={e => setEditingVilla(v => ({ ...v, area: +e.target.value }))} /></div>
+              <div className="form-group"><label>1 floor (м²)</label><input type="number" className="input" value={editingVilla.f1 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f1: +e.target.value }))} /></div>
+              <div className="form-group"><label>2 floor (м²)</label><input type="number" className="input" value={editingVilla.f2 ?? 0} onChange={e => setEditingVilla(v => ({ ...v, f2: +e.target.value }))} /></div>
+              <div className="form-group"><label>Rooftop (м²)</label><input type="number" className="input" value={editingVilla.roof ?? 0} onChange={e => setEditingVilla(v => ({ ...v, roof: +e.target.value }))} /></div>
+              <div className="form-group"><label>Garden & pool (м²)</label><input type="number" className="input" value={editingVilla.garden ?? 0} onChange={e => setEditingVilla(v => ({ ...v, garden: +e.target.value }))} /></div>
+              <div className="form-group"><label>Price per м² ($)</label><input type="number" className="input" value={editingVilla.ppsm ?? 0} onChange={e => setEditingVilla(v => ({ ...v, ppsm: +e.target.value }))} /></div>
+              <div className="form-group"><label>Цена (USD)</label><input type="number" className="input" value={editingVilla.baseUSD ?? 0} onChange={e => setEditingVilla(v => ({ ...v, baseUSD: +e.target.value }))} /></div>
+              <div className="form-group"><label>Сутки (USD)</label><input type="number" className="input" value={editingVilla.dailyRateUSD ?? 0} onChange={e => setEditingVilla(v => ({ ...v, dailyRateUSD: +e.target.value }))} /></div>
+              <div className="form-group"><label>Заполняемость (%)</label><input type="number" className="input" value={editingVilla.occupancyPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, occupancyPct: clamp(+e.target.value,0,100) }))} /></div>
+              <div className="form-group"><label>Индекс аренды (%/год)</label><input type="number" step="0.1" className="input" value={editingVilla.rentalPriceIndexPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, rentalPriceIndexPct: +e.target.value }))} /></div>
+              <div className="form-group"><label>Месячный рост до ключей (%)</label><input type="number" step="0.1" className="input" value={editingVilla.monthlyPriceGrowthPct ?? 0} onChange={e => setEditingVilla(v => ({ ...v, monthlyPriceGrowthPct: +e.target.value }))} /></div>
+              <div className="form-group"><label>Дата окончания лизхолда</label><input type="date" className="input" value={(editingVilla.leaseholdEndDate || "").slice(0,10)} onChange={e => setEditingVilla(v => ({ ...v, leaseholdEndDate: e.target.value }))} /></div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn primary" onClick={commitEditVilla}>Сохранить</button>
+              <button className="btn" onClick={() => setEditingVilla(null)}>Отмена</button>
             </div>
           </div>
         </div>
@@ -378,13 +485,11 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
   });
   useEffect(() => { try { localStorage.setItem(LS_RATES, JSON.stringify(rates)); } catch {} }, [rates]);
 
-  // Настройки
   const [handoverMonth, setHandoverMonth] = useState(12);
   const [months, setMonths] = useState(12);
   const [monthlyRatePct, setMonthlyRatePct] = useState(8.33);
   const [startMonth, setStartMonth] = useState(new Date());
 
-  // Этапы до ключей
   const [stages, setStages] = useState([
     { id: 1, label: "Договор", pct: 30, month: 0 },
     { id: 2, label: "50% готовности", pct: 30, month: 6 },
@@ -394,7 +499,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
   ]);
   const stagesSumPct = useMemo(() => stages.reduce((s, x) => s + (+x.pct || 0), 0), [stages]);
 
-  // Выбранные строки
   const [lines, setLines] = useState(() => {
     if (!initialVilla || !initialProject) return [];
     return [{
@@ -422,7 +526,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     }];
   });
 
-  // Валюта
   function convertUSD(valueUSD) {
     if (rates.currency === "IDR") return +valueUSD * (rates.idrPerUsd || 1);
     if (rates.currency === "EUR") return +valueUSD * (rates.eurPerUsd || 1);
@@ -437,7 +540,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "long", year: "numeric" });
   }
 
-  // Расчёт строк
   const linesData = useMemo(() => {
     return lines.map(line => {
       const baseOne = line.snapshot?.baseUSD ?? ((line.snapshot?.area || 0) * (line.snapshot?.ppsm || 0));
@@ -506,7 +608,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     });
   }, [lines, stages, stagesSumPct, handoverMonth, months, monthlyRatePct]);
 
-  // Сводный проект
   const project = useMemo(() => {
     const totals = {
       baseUSD: linesData.reduce((s, x) => s + x.base, 0),
@@ -530,7 +631,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
       ld.postRows.forEach(r => push(r.month, r.paymentUSD, `${ld.line.snapshot?.name || 'Villa'} ×${ld.qty}: ${r.label}`));
     });
 
-    // Аренда (с 3-го месяца после ключей)
     const rentalIncomeMap = new Map();
     linesData.forEach(ld => {
       const startRentalMonth = handoverMonth + 3;
@@ -561,7 +661,6 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return { totals, cashflow };
   }, [linesData, handoverMonth, months, startMonth]);
 
-  // Вычисления для графика/таблиц
   const selectedVilla = useMemo(() => {
     if (!lines.length) return null;
     const vid = lines[0].villaId;
@@ -640,14 +739,12 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return { years: Math.max(...terms.map(t => t.years)), months: Math.max(...terms.map(t => t.months)) };
   }, [lines, startMonth, handoverMonth]);
 
-  // Действия
   const addStage = () => setStages(prev => [...prev, { id: (prev.at(-1)?.id || 0) + 1, label: "Новый этап", pct: 0, month: 0 }]);
   const delStage = (id) => setStages(prev => prev.filter(s => s.id !== id));
   const updStage = (id, patch) => setStages(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
   const updLine = (id, patch) => setLines(prev => prev.map(l => l.id === id ? { ...l, ...patch } : l));
   const delLine = (id) => setLines(prev => prev.filter(l => l.id !== id));
 
-  // Экспорт
   function exportCSV() {
     const rows = [
       ["Месяц","Описание","Платеж","Арендный доход","Чистый платеж/доход в месяц","Остаток по договору"],
