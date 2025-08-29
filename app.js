@@ -23,10 +23,19 @@ function ruMonthName(i) {
   const m = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
   return m[Math.max(0, Math.min(11, i))];
 }
+function ruMonthNamePrepositional(i) {
+  const m = ["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"];
+  return m[Math.max(0, Math.min(11, i))];
+}
 function ymLabel(yyyyMm) {
   if (!/^\d{4}-\d{2}$/.test(yyyyMm)) return "—";
   const [y, m] = yyyyMm.split("-").map(Number);
   return `${ruMonthName(m - 1)} ${y}`;
+}
+function ymLabelPrepositional(yyyyMm) {
+  if (!/^\d{4}-\d{2}$/.test(yyyyMm)) return "—";
+  const [y, m] = yyyyMm.split("-").map(Number);
+  return `${ruMonthNamePrepositional(m - 1)} ${y}`;
 }
 function normalizeYM(input) {
   if (!input) return "";
@@ -38,6 +47,13 @@ function normalizeYM(input) {
   const ru = v.match(/([а-я]+)/i), y = v.match(/(20\d{2})/);
   if (ru && y) { const k = Object.keys(mapRu).find(k => ru[1].startsWith(k)); if (k) return `${y[1]}-${mapRu[k]}`; }
   return "";
+}
+function monthsDiff(fromDate, yyyyMm) {
+  if (!/^\d{4}-\d{2}$/.test(yyyyMm)) return null;
+  const [y, m] = yyyyMm.split("-").map(Number);
+  const target = new Date(y, m - 1, 1);
+  const base = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+  return Math.max(0, (target.getFullYear() - base.getFullYear()) * 12 + (target.getMonth() - base.getMonth()));
 }
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const getYoutubeId = (url) => {
@@ -315,51 +331,60 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
     setReportsProject(null);
   }
 
-  // Экспорт каталога проекта в PDF (клон в body, без обрезаний)
+  // Экспорт проекта в PDF — через клон
   function exportProjectPDF(projectId) {
-    if (typeof html2pdf === "undefined") {
-      alert("html2pdf не загружен. Подключите скрипт в index.html до app.js");
-      return;
+    try {
+      if (typeof html2pdf === "undefined") {
+        alert("html2pdf не загружен. Подключите скрипт в index.html до app.js");
+        return;
+      }
+      const original = document.getElementById(`project-${projectId}`);
+      if (!original) { alert("Не найден блок проекта"); return; }
+
+      const clone = original.cloneNode(true);
+      const wrapper = document.createElement("div");
+      wrapper.className = "project-print print-mode";
+      wrapper.style.position = "fixed";
+      wrapper.style.inset = "0";
+      wrapper.style.background = "#fff";
+      wrapper.style.overflow = "auto";
+      wrapper.style.visibility = "hidden";
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      const wrap = wrapper.querySelector(".table-wrap");
+      const table = wrapper.querySelector(".catalog-table");
+      if (wrap) { wrap.style.overflow = "visible"; wrap.style.maxWidth = "none"; }
+      if (table) { table.style.width = "100%"; table.style.minWidth = "auto"; table.style.tableLayout = "fixed"; }
+
+      const run = () => {
+        const windowWidth = wrapper.scrollWidth;
+        const windowHeight = Math.max(wrapper.scrollHeight, 800);
+        return html2pdf().from(wrapper).set({
+          margin: 6,
+          filename: `arconique-price-list-${projectId}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, allowTaint: false, scrollX: 0, scrollY: 0, windowWidth, windowHeight },
+          jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+          pagebreak: { mode: ["css", "legacy"] }
+        }).save();
+      };
+
+      requestAnimationFrame(() => {
+        run().finally(() => {
+          try { document.body.removeChild(wrapper); } catch {}
+        });
+      });
+    } catch (e) {
+      console.error(e);
+      alert("Не удалось сформировать PDF. Проверьте консоль и подключение html2pdf.");
     }
-    const original = document.getElementById(`project-${projectId}`);
-    if (!original) { alert("Не найден блок проекта"); return; }
-
-    const clone = original.cloneNode(true);
-    const wrapper = document.createElement("div");
-    wrapper.className = "project-print print-mode";
-    wrapper.style.position = "fixed";
-    wrapper.style.inset = "0";
-    wrapper.style.background = "#fff";
-    wrapper.style.overflow = "auto";
-    wrapper.style.visibility = "hidden"; // видим для движка, но не мешаем пользователю
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-
-    // Убрать скроллы/ограничения внутри копии
-    const wrap = wrapper.querySelector(".table-wrap");
-    const table = wrapper.querySelector(".catalog-table");
-    if (wrap) { wrap.style.overflow = "visible"; wrap.style.maxWidth = "none"; }
-    if (table) { table.style.width = "100%"; table.style.minWidth = "auto"; table.style.tableLayout = "fixed"; }
-
-    const windowWidth = wrapper.scrollWidth;
-    const windowHeight = Math.max(wrapper.scrollHeight, 800);
-
-    html2pdf().from(wrapper).set({
-      margin: 6,
-      filename: `arconique-project-${projectId}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, windowWidth, windowHeight },
-      jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-      pagebreak: { mode: ["css", "legacy"] }
-    }).save().finally(() => {
-      try { document.body.removeChild(wrapper); } catch {}
-    });
   }
 
   return (
     <div className="catalog-section reveal">
       <div className="catalog-header">
-        <h2>Каталог проектов</h2>
+        <h2>Проекты</h2>
         <div className="catalog-controls">
           <input className="search-input" placeholder="Поиск по названию..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           {!isClient && <button className="btn primary" onClick={addProject}>Добавить проект</button>}
@@ -373,10 +398,10 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
               <h3>{project.projectName}</h3>
               <div className="project-actions" style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
                 {project.presentationUrl && (
-                  <a className="btn small" href={project.presentationUrl} target="_blank" rel="noreferrer">Презентация</a>
+                  <a className="btn small" href={project.presentationUrl} target="_blank" rel="noreferrer">Презентация проекта PDF</a>
                 )}
-                <button className="btn small" onClick={() => openReports(project)}>Отчёты</button>
-                <button className="btn small" onClick={() => exportProjectPDF(project.projectId)}>Каталог PDF</button>
+                <button className="btn small" onClick={() => openReports(project)}>Отчеты о строительстве</button>
+                <button className="btn small" onClick={() => exportProjectPDF(project.projectId)}>Скачать прайс-лист</button>
                 {!isClient && <button className="btn small" onClick={() => openEditProject(project)}>✏️</button>}
                 {!isClient && <button className="btn danger small" onClick={() => deleteProject(project.projectId)}>🗑️</button>}
                 {!isClient && <button className="btn success small" onClick={() => addVilla(project.projectId)}>Добавить виллу</button>}
@@ -384,8 +409,12 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
             </div>
 
             <div className="pill-row">
-              {project.plannedCompletion && (<span className="pill">{`План завершения: ${ymLabel(project.plannedCompletion)}`}</span>)}
-              {Number.isFinite(project.constructionProgressPct) && (<span className="pill pill-muted">{`Прогресс стройки: ${project.constructionProgressPct}%`}</span>)}
+              {project.plannedCompletion && (
+                <span className="pill">{`Ключи в ${ymLabelPrepositional(project.plannedCompletion)}`}</span>
+              )}
+              {Number.isFinite(project.constructionProgressPct) && (
+                <span className="pill pill-muted">{`Текущий прогресс: ${project.constructionProgressPct}%`}</span>
+              )}
             </div>
 
             <div className="project-details-grid">
@@ -446,9 +475,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
                         <td>
                           {isAvail ? (
                             <button className="btn small primary" onClick={() => onCalculate(project, v)}>Рассчитать</button>
-                          ) : (
-                            <span className="badge">Недоступно</span>
-                          )}
+                          ) : null}
                           {!isClient && (
                             <div style={{ display: "inline-flex", gap: 6, marginLeft: 8 }}>
                               <button className="btn small" onClick={() => openEditVilla(v, project.projectId)}>Править</button>
@@ -589,7 +616,7 @@ function CatalogManager({ catalog, setCatalog, onCalculate, isClient }) {
         <Portal>
           <div className="modal-overlay" onClick={() => setReportsProject(null)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <h3>Отчёты о стройке — {reportsProject.projectName}</h3>
+              <h3>Отчеты о строительстве — {reportsProject.projectName}</h3>
               <div className="catalog-grid">
                 {(reportsProject.constructionReports || []).length === 0 && <div className="label">Пока нет отчётов</div>}
                 {(reportsProject.constructionReports || []).slice().reverse().map(item => {
@@ -665,10 +692,19 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
   });
   useEffect(() => { try { localStorage.setItem(LS_RATES, JSON.stringify(rates)); } catch {} }, [rates]);
 
+  const [startMonth, setStartMonth] = useState(new Date());
   const [handoverMonth, setHandoverMonth] = useState(12);
   const [months, setMonths] = useState(12);
   const [monthlyRatePct, setMonthlyRatePct] = useState(8.33);
-  const [startMonth, setStartMonth] = useState(new Date());
+
+  // Рассчитать handoverMonth от plannedCompletion (если есть)
+  useEffect(() => {
+    const ym = initialProject?.plannedCompletion && normalizeYM(initialProject.plannedCompletion);
+    if (ym) {
+      const md = monthsDiff(startMonth, ym);
+      if (md != null) setHandoverMonth(md);
+    }
+  }, [initialProject, startMonth]);
 
   const [stages, setStages] = useState([
     { id: 1, label: "Договор", pct: 30, month: 0 },
@@ -679,6 +715,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
   ]);
   const stagesSumPct = useMemo(() => stages.reduce((s, x) => s + (+x.pct || 0), 0), [stages]);
 
+  // Одна строка в калькуляторе, prePct по умолчанию 100%
   const [lines, setLines] = useState(() => {
     if (!initialVilla || !initialProject) return [];
     return [{
@@ -686,7 +723,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
       projectId: initialProject.projectId,
       villaId: initialVilla.villaId,
       qty: 1,
-      prePct: 70,
+      prePct: 100,
       ownTerms: false,
       months: null,
       monthlyRatePct: null,
@@ -706,6 +743,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     }];
   });
 
+  // Помощники отображения
   function convertUSD(valueUSD) {
     if (rates.currency === "IDR") return +valueUSD * (rates.idrPerUsd || 1);
     if (rates.currency === "EUR") return +valueUSD * (rates.eurPerUsd || 1);
@@ -720,13 +758,30 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "long", year: "numeric" });
   }
 
+  // Узкие колонки рассрочки + фильтрация ввода
+  const limitStageLabel = (v) => (v || "").slice(0, 20);
+  const parsePct = (v) => {
+    const s = (v || "").replace(/,/g,'.').replace(/[^0-9.]/g,'');
+    const ix = s.indexOf('.');
+    const cleaned = ix >= 0 ? s.slice(0, ix + 1) + s.slice(ix + 1).replace(/\./g,'') : s;
+    const trimmed = cleaned.slice(0, 6);
+    const num = parseFloat(trimmed);
+    return isNaN(num) ? 0 : clamp(num, 0, 100);
+  };
+  const parseMonth3 = (v) => {
+    const s = (v || "").replace(/[^0-9]/g,'').slice(0,3);
+    const num = parseInt(s || "0", 10);
+    return clamp(num, 0, 120);
+  };
+
+  // Подготовка данных
   const linesData = useMemo(() => {
     return lines.map(line => {
       const baseOne = line.snapshot?.baseUSD ?? ((line.snapshot?.area || 0) * (line.snapshot?.ppsm || 0));
       const disc = clamp(+line.discountPct || 0, 0, 20);
       const base = baseOne * (1 - disc / 100);
 
-      const prePct = clamp(line.prePct ?? 70, 50, 100);
+      const prePct = clamp(line.prePct ?? 100, 50, 100);
       const vMonths = line.ownTerms && line.months ? line.months : months;
       const rate = (line.ownTerms && line.monthlyRatePct != null) ? (line.monthlyRatePct / 100) : (monthlyRatePct / 100);
       const firstPostUSD = Math.max(0, +line.firstPostUSD || 0);
@@ -913,43 +968,53 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     return { years: Math.max(...terms.map(t => t.years)), months: Math.max(...terms.map(t => t.months)) };
   }, [lines, startMonth, handoverMonth]);
 
-  // Экспорт PDF калькулятора (книжная, без обрезаний) — только от "Объект недвижимости" до "Период рассрочки"
+  // Экспорт PDF калькулятора — клон
   function exportCalcPDF() {
-    if (typeof html2pdf === "undefined") {
-      alert("html2pdf не загружен. Подключите скрипт в index.html до app.js");
-      return;
+    try {
+      if (typeof html2pdf === "undefined") {
+        alert("html2pdf не загружен. Подключите скрипт в index.html до app.js");
+        return;
+      }
+      const scope = document.getElementById("calc-print-scope");
+      if (!scope) { alert("Не найден экспортируемый блок калькулятора"); return; }
+
+      const clone = scope.cloneNode(true);
+      const wrapper = document.createElement("div");
+      wrapper.className = "calc-print print-mode";
+      wrapper.style.position = "fixed";
+      wrapper.style.inset = "0";
+      wrapper.style.background = "#fff";
+      wrapper.style.overflow = "auto";
+      wrapper.style.visibility = "hidden";
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      wrapper.querySelectorAll(".calc-scroll,.factors-table-scroll").forEach(el => { el.style.overflow = "visible"; el.style.maxWidth = "none"; });
+      wrapper.querySelectorAll(".calc-table,.factors-table").forEach(t => { t.style.width = "100%"; t.style.minWidth = "auto"; t.style.tableLayout = "fixed"; });
+      wrapper.querySelectorAll("th,td").forEach(cell => { cell.style.whiteSpace = "nowrap"; });
+
+      const run = () => {
+        const windowWidth = wrapper.scrollWidth;
+        const windowHeight = Math.max(wrapper.scrollHeight, 800);
+        return html2pdf().from(wrapper).set({
+          margin: 6,
+          filename: `arconique-calculator-${new Date().toISOString().slice(0,10)}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, allowTaint: false, scrollX: 0, scrollY: 0, windowWidth, windowHeight },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          pagebreak: { mode: ["css", "legacy"] }
+        }).save();
+      };
+
+      requestAnimationFrame(() => {
+        run().finally(() => {
+          try { document.body.removeChild(wrapper); } catch {}
+        });
+      });
+    } catch (e) {
+      console.error(e);
+      alert("Не удалось сформировать PDF. Проверьте консоль и подключение html2pdf.");
     }
-    const scope = document.getElementById("calc-print-scope");
-    if (!scope) { alert("Не найден экспортируемый блок калькулятора"); return; }
-
-    const clone = scope.cloneNode(true);
-    const wrapper = document.createElement("div");
-    wrapper.className = "calc-print print-mode";
-    wrapper.style.position = "fixed";
-    wrapper.style.inset = "0";
-    wrapper.style.background = "#fff";
-    wrapper.style.overflow = "auto";
-    wrapper.style.visibility = "hidden";
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-
-    wrapper.querySelectorAll(".calc-scroll,.factors-table-scroll").forEach(el => { el.style.overflow = "visible"; el.style.maxWidth = "none"; });
-    wrapper.querySelectorAll(".calc-table,.factors-table").forEach(t => { t.style.width = "100%"; t.style.minWidth = "auto"; t.style.tableLayout = "fixed"; });
-    wrapper.querySelectorAll("th,td").forEach(cell => { cell.style.whiteSpace = "nowrap"; });
-
-    const windowWidth = wrapper.scrollWidth;
-    const windowHeight = Math.max(wrapper.scrollHeight, 800);
-
-    html2pdf().from(wrapper).set({
-      margin: 6,
-      filename: `arconique-calculator-${new Date().toISOString().slice(0,10)}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, windowWidth, windowHeight },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["css", "legacy"] }
-    }).save().finally(() => {
-      try { document.body.removeChild(wrapper); } catch {}
-    });
   }
 
   if (!lines.length || !selectedVilla) {
@@ -966,9 +1031,15 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
     );
   }
 
+  const targetPrePct = clamp(lines[0]?.prePct ?? 100, 50, 100);
+  const compareText = stagesSumPct > targetPrePct
+    ? `— превышает ${targetPrePct.toFixed(2)}%`
+    : stagesSumPct < targetPrePct
+      ? `— ниже целевого ${targetPrePct.toFixed(2)}%`
+      : `— совпадает с целевым ${targetPrePct.toFixed(2)}%`;
+
   return (
     <div className="container reveal">
-      {/* Верх: слева этапы, справа настройки (не входят в печать) */}
       <div className="top-section">
         <div className="card stages-card">
           <div className="card-header">
@@ -977,20 +1048,48 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
           <div className="stages-scroll">
             <table className="factors-table">
+              <colgroup>
+                <col className="stages-col-name" />
+                <col className="stages-col-pct" />
+                <col className="stages-col-month" />
+                <col />
+              </colgroup>
               <thead><tr><th>Этап</th><th>%</th><th>Месяц</th><th>Действия</th></tr></thead>
               <tbody>
                 {stages.map(s => (
                   <tr key={s.id}>
-                    <td><input className="compact-input" value={s.label} onChange={e => setStages(prev => prev.map(x => x.id===s.id?{...x,label:e.target.value}:x))} /></td>
-                    <td><input className="compact-input" type="number" min="0" max="100" step="0.01" value={s.pct} onChange={e => setStages(prev => prev.map(x => x.id===s.id?{...x,pct:clamp(parseFloat(e.target.value||0),0,100)}:x))} /></td>
-                    <td><input className="compact-input" type="number" min="0" value={s.month} onChange={e => setStages(prev => prev.map(x => x.id===s.id?{...x,month:clamp(parseInt(e.target.value||0,10),0,120)}:x))} /></td>
+                    <td>
+                      <input className="compact-input" value={s.label} onChange={e => {
+                        const v = limitStageLabel(e.target.value || "");
+                        setStages(prev => prev.map(x => x.id === s.id ? { ...x, label: v } : x));
+                      }} onBlur={e => {
+                        const v = limitStageLabel(e.target.value || "");
+                        setStages(prev => prev.map(x => x.id === s.id ? { ...x, label: v } : x));
+                      }} />
+                    </td>
+                    <td>
+                      <input className="compact-input" inputMode="decimal" placeholder="0–100"
+                        value={String(s.pct)} onChange={e => {
+                          const num = parsePct(e.target.value);
+                          setStages(prev => prev.map(x => x.id === s.id ? { ...x, pct: num } : x));
+                        }} />
+                    </td>
+                    <td>
+                      <input className="compact-input" inputMode="numeric" placeholder="0–120"
+                        value={String(s.month)} onChange={e => {
+                          const num = parseMonth3(e.target.value);
+                          setStages(prev => prev.map(x => x.id === s.id ? { ...x, month: num } : x));
+                        }} />
+                    </td>
                     <td><button className="btn danger small" onClick={() => setStages(prev => prev.filter(x => x.id !== s.id))}>🗑️</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="stages-summary"><div className="pill">Сумма этапов: {stagesSumPct.toFixed(2)}%</div></div>
+          <div className="stages-summary">
+            <div className="pill">Сумма этапов: {stagesSumPct.toFixed(2)}% {compareText}</div>
+          </div>
         </div>
 
         <div className="card settings-card">
@@ -1022,9 +1121,15 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
               <div className="info-display">{startMonth.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "long", year: "numeric" })}</div>
             </div>
 
-            <div className="field compact"><label>Срок строительства (мес)</label>
-              <input type="number" min="1" step="1" value={handoverMonth} onChange={e => setHandoverMonth(clamp(parseInt(e.target.value || 0, 10), 1, 120))} />
-            </div>
+            {normalizeYM(initialProject?.plannedCompletion) ? (
+              <div className="field compact"><label>Завершение строительства</label>
+                <div className="info-display">{ymLabel(initialProject.plannedCompletion)}</div>
+              </div>
+            ) : (
+              <div className="field compact"><label>Срок строительства (мес)</label>
+                <input type="number" min="1" step="1" value={handoverMonth} onChange={e => setHandoverMonth(clamp(parseInt(e.target.value || 0, 10), 1, 120))} />
+              </div>
+            )}
 
             {!isClient ? (
               <>
@@ -1083,9 +1188,9 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
                     )}
                     <td>
                       <input type="range" min="50" max="100" step="1" className="range"
-                        value={Math.max(50, Math.min(100, (ld.line.prePct ?? 70)))}
+                        value={Math.max(50, Math.min(100, (ld.line.prePct ?? 100)))}
                         onChange={e => setLines(prev => prev.map(x => x.id===ld.line.id?{...x, prePct: clamp(parseInt(e.target.value || 0, 10), 50, 100)}:x))} />
-                      <div className="pill" style={{ marginTop: 6 }}>{Math.max(50, Math.min(100, (ld.line.prePct ?? 70)))}%</div>
+                      <div className="pill" style={{ marginTop: 6 }}>{Math.max(50, Math.min(100, (ld.line.prePct ?? 100)))}%</div>
                     </td>
                     {!isClient && (
                       <td>
@@ -1111,7 +1216,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
         </div>
 
-        {/* KPI, Полный график платежей, Финмодель, Годовой и Период рассрочки — как ранее */}
+        {/* KPI */}
         <div className="card">
           <div className="kpi-header-pills">
             <span className="badge">Выбрано вилл: {lines.length}</span>
@@ -1158,6 +1263,7 @@ function Calculator({ catalog, initialProject, initialVilla, isClient, onBackToC
           </div>
         </div>
 
+        {/* График платежей, Финмодель, Годовой и Период рассрочки */}
         <div className="cashflow-block">
           <div className="card">
             <div className="card-header">
@@ -1373,8 +1479,15 @@ function App() {
   const [calcInput, setCalcInput] = useState(null); // { project, villa }
   useRevealOnRoute(calcInput ? "calc" : "catalog");
 
-  function handleCalculate(project, villa) { setCalcInput({ project, villa }); requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" })); }
-  function handleBackToCatalog() { setCalcInput(null); requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" })); }
+  function handleCalculate(project, villa) {
+    // всегда только 1 вилла: просто переходим с заменой
+    setCalcInput({ project, villa });
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  }
+  function handleBackToCatalog() {
+    setCalcInput(null);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  }
 
   function toggleMode() {
     if (isClient) {
@@ -1388,7 +1501,7 @@ function App() {
     <>
       <div className="container reveal">
         <div className="header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h1 className="h1" style={{ margin: 0, fontSize: 24 }}>Arconique · Каталог / Калькулятор</h1>
+          <h1 className="h1" style={{ margin: 0, fontSize: 24 }}>Arconique / Каталог инвестиционной недвижимости на Бали</h1>
           <div style={{ display: "flex", gap: 8 }}>
             {calcInput && <button className="btn" onClick={handleBackToCatalog}>← К каталогу</button>}
             <button className="btn" onClick={toggleMode}>{isClient ? "Переключиться в редактор" : "Переключиться в клиент"}</button>
